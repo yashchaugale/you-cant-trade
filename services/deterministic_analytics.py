@@ -53,6 +53,23 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         for hour, count in sorted(hourly_counts.items())
     ]
 
+    valid_sessions = {"ASIA", "LONDON", "NEW_YORK", "OTHER"}
+    session_counts: dict[str, int] = {}
+
+    for trade in trades:
+        session = trade.get("session")
+        if session not in valid_sessions:
+            continue
+
+        session_counts[session] = session_counts.get(session, 0) + 1
+
+    session_order = ["ASIA", "LONDON", "NEW_YORK", "OTHER"]
+    by_session = [
+        {"session": session, "count": session_counts[session]}
+        for session in session_order
+        if session in session_counts
+    ]
+
     planned_r: list[float] = []
     actual_r: list[float] = []
     actual_r_trades: list[tuple[str, float, str]] = []
@@ -293,6 +310,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "count": len(chronological_results),
         },
         "byHour": by_hour,
+        "bySession": by_session,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [

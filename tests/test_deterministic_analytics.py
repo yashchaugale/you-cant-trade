@@ -1152,5 +1152,68 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertIn("at least 10 trades", stats["sampleWarning"])
 
 
+    def test_session_groups_trades_by_canonical_session(self):
+        trades = [
+            {"id": "1", "session": "LONDON"},
+            {"id": "2", "session": "ASIA"},
+            {"id": "3", "session": "LONDON"},
+            {"id": "4", "session": "NEW_YORK"},
+            {"id": "5", "session": "OTHER"},
+            {"id": "6", "session": "ASIA"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["bySession"], [
+            {"session": "ASIA", "count": 2},
+            {"session": "LONDON", "count": 2},
+            {"session": "NEW_YORK", "count": 1},
+            {"session": "OTHER", "count": 1},
+        ])
+
+    def test_session_excludes_missing_and_invalid_sessions(self):
+        trades = [
+            {"id": "1", "session": "LONDON"},
+            {"id": "2", "session": None},
+            {"id": "3"},
+            {"id": "4", "session": ""},
+            {"id": "5", "session": "INVALID"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["bySession"], [
+            {"session": "LONDON", "count": 1},
+        ])
+
+    def test_session_returns_empty_when_no_valid_sessions_exist(self):
+        trades = [
+            {"id": "1", "session": None},
+            {"id": "2"},
+            {"id": "3", "session": "INVALID"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["bySession"], [])
+
+    def test_session_does_not_infer_session_from_timestamp(self):
+        trades = [
+            {
+                "id": "1",
+                "session": None,
+                "timestamp": "2026-01-05T09:00:00Z",
+            },
+            {
+                "id": "2",
+                "timestamp": "2026-01-05T14:00:00Z",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["bySession"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
