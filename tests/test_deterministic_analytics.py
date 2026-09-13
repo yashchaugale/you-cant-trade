@@ -305,6 +305,116 @@ class DeterministicAnalyticsTests(unittest.TestCase):
             "breakEven": 0,
         })
 
+    def test_profit_factor_uses_gross_profit_over_gross_loss(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 105,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+            {
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["profitFactor"]["value"], 2.0)
+        self.assertEqual(stats["profitFactor"]["count"], 5)
+        self.assertEqual(stats["profitFactor"]["grossProfit"], 3.0)
+        self.assertEqual(stats["profitFactor"]["grossLoss"], 1.5)
+
+    def test_profit_factor_is_none_when_there_is_no_gross_loss(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertIsNone(stats["profitFactor"]["value"])
+        self.assertEqual(stats["profitFactor"]["count"], 2)
+        self.assertEqual(stats["profitFactor"]["grossProfit"], 2.0)
+        self.assertEqual(stats["profitFactor"]["grossLoss"], 0.0)
+
+    def test_profit_factor_excludes_missing_actual_r_evidence(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": None,
+            },
+            {
+                "result": None,
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["profitFactor"]["value"], 2.0)
+        self.assertEqual(stats["profitFactor"]["count"], 2)
+        self.assertEqual(stats["profitFactor"]["grossProfit"], 2.0)
+        self.assertEqual(stats["profitFactor"]["grossLoss"], 1.0)
+
     def test_calculates_reviewed_outcomes_actual_r_and_top_fields(self):
         trades = [
             {
