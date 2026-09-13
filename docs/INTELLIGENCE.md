@@ -26,6 +26,8 @@ Expectancy is calculated as the mean realized Actual R across `actualRTrades`. I
 
 Profit factor is calculated as gross profit divided by gross loss across `actualRTrades`. Gross profit is the sum of positive realized Actual R values, while gross loss is the absolute sum of negative realized Actual R values. Break-even trades contribute zero and remain in the evidence count. If there is no gross loss, profit factor is `null` rather than infinity. Missing exit prices, invalid direction, zero-risk trades, and unknown outcomes are excluded from the Actual-R evidence population.
 
+Average winner is calculated as the mean positive realized Actual R values across `actualRTrades`. Losses and break-even trades are excluded from the winner average. Its evidence count is the number of positive realized Actual R values. If there are no positive realized Actual R values, average winner is `null`.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery

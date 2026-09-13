@@ -73,10 +73,14 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         actual_r.append(realized_r)
         actual_r_trades.append((trade.get("result"), realized_r))
 
-    gross_profit = sum(
+    winning_actual_r = [
         realized_r
         for _, realized_r in actual_r_trades
         if realized_r > 0
+    ]
+
+    gross_profit = sum(
+        winning_actual_r
     )
     gross_loss = abs(sum(
         realized_r
@@ -162,6 +166,14 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "count": len(actual_r_trades),
             "grossProfit": round(gross_profit, 6),
             "grossLoss": round(gross_loss, 6),
+        },
+        "averageWinner": {
+            "value": (
+                round(sum(winning_actual_r) / len(winning_actual_r), 6)
+                if winning_actual_r
+                else None
+            ),
+            "count": len(winning_actual_r),
         },
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
