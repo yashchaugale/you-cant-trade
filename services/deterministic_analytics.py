@@ -1044,6 +1044,13 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     losses = sum(trade.get("result") == "LOSS" for trade in reviewed)
     break_even = sum(trade.get("result") == "BE" for trade in reviewed)
     decided_trades = wins + losses
+    win_rate_trade_ids = [
+        trade["id"]
+        for trade in reviewed
+        if trade.get("result") in {"WIN", "LOSS"}
+        and isinstance(trade.get("id"), str)
+        and trade.get("id").strip()
+    ]
 
     return {
         "totalTrades": len(trades),
@@ -1066,6 +1073,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "traceability": {
             "tradeIds": traceable_trade_ids,
             "tradeCount": len(traceable_trade_ids),
+            "winRateTradeIds": win_rate_trade_ids,
         },
         "actualR": {
             "count": len(actual_r),

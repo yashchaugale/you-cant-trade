@@ -25,6 +25,23 @@ class DeterministicAnalyticsTests(unittest.TestCase):
             "breakEven": 1,
         })
 
+    def test_win_rate_traceability_includes_only_decided_trade_ids(self):
+        trades = [
+            {"id": "win-1", "result": "WIN"},
+            {"id": "loss-1", "result": "LOSS"},
+            {"id": "be-1", "result": "BE"},
+            {"id": "unknown-1", "result": None},
+            {"result": "WIN"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["winRate"], 0.666667)
+        self.assertEqual(
+            stats["traceability"]["winRateTradeIds"],
+            ["win-1", "loss-1"],
+        )
+
     def test_win_rate_is_none_when_no_decided_trades_exist(self):
         trades = [
             {"result": "BE"},
@@ -2618,6 +2635,7 @@ class TestVolatilityPerformance(unittest.TestCase):
             {
                 "tradeIds": ["trade-1", "trade-2", "trade-3"],
                 "tradeCount": 3,
+                "winRateTradeIds": ["trade-1", "trade-2"],
             },
         )
 
@@ -2660,6 +2678,7 @@ class TestVolatilityPerformance(unittest.TestCase):
             {
                 "tradeIds": ["trade-1"],
                 "tradeCount": 1,
+                "winRateTradeIds": ["trade-1"],
             },
         )
         self.assertEqual(
