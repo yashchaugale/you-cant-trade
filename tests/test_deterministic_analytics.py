@@ -1457,6 +1457,7 @@ class TestRegimePerformance(unittest.TestCase):
                 {
                     "regime": "TRENDING",
                     "sampleSize": 2,
+                    "tradeIds": ["1", "2"],
                     "winRate": 0.5,
                     "averageR": 0.5,
                     "expectancy": 0.5,
@@ -1464,6 +1465,7 @@ class TestRegimePerformance(unittest.TestCase):
                 {
                     "regime": "RANGING",
                     "sampleSize": 1,
+                    "tradeIds": ["3"],
                     "winRate": 1.0,
                     "averageR": None,
                     "expectancy": None,
@@ -1471,6 +1473,7 @@ class TestRegimePerformance(unittest.TestCase):
                 {
                     "regime": "UNCERTAIN",
                     "sampleSize": 1,
+                    "tradeIds": ["4"],
                     "winRate": None,
                     "averageR": None,
                     "expectancy": None,
@@ -1516,6 +1519,7 @@ class TestRegimePerformance(unittest.TestCase):
                 {
                     "regime": "TRENDING",
                     "sampleSize": 1,
+                    "tradeIds": ["1"],
                     "winRate": 1.0,
                     "averageR": None,
                     "expectancy": None,
@@ -2050,6 +2054,7 @@ class TestStructurePerformance(unittest.TestCase):
                 {
                     "structure": "BULLISH",
                     "sampleSize": 2,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": 0.5,
                     "expectancy": 0.5,
@@ -2057,6 +2062,7 @@ class TestStructurePerformance(unittest.TestCase):
                 {
                     "structure": "BEARISH",
                     "sampleSize": 2,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": 0.5,
                     "expectancy": 0.5,
@@ -2101,6 +2107,7 @@ class TestStructurePerformance(unittest.TestCase):
                 {
                     "structure": "BULLISH",
                     "sampleSize": 1,
+                    "tradeIds": [],
                     "winRate": 1.0,
                     "averageR": None,
                     "expectancy": None,
@@ -2146,6 +2153,7 @@ class TestStructurePerformance(unittest.TestCase):
                 {
                     "structure": "BULLISH",
                     "sampleSize": 3,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": -0.5,
                     "expectancy": -0.5,
@@ -2586,3 +2594,119 @@ class TestVolatilityPerformance(unittest.TestCase):
         second = calculate_journal_analytics(trades)
 
         self.assertEqual(first, second)
+
+    def test_traceability_includes_canonical_trade_ids(self):
+        trades = [
+            {"id": "trade-1", "result": "WIN"},
+            {"id": "trade-2", "result": "LOSS"},
+            {"id": "trade-3", "result": "BE"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["traceability"],
+            {
+                "tradeIds": ["trade-1", "trade-2", "trade-3"],
+                "tradeCount": 3,
+            },
+        )
+
+    def test_setup_traceability_matches_setup_sample(self):
+        trades = [
+            {"id": "trade-1", "setup": "Breakout", "result": "WIN"},
+            {"id": "trade-2", "setup": "Breakout", "result": "LOSS"},
+            {"id": "trade-3", "setup": "Reversal", "result": "WIN"},
+            {"id": "trade-4", "setup": "Breakout", "result": None},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertEqual(performance["Breakout"]["sampleSize"], 3)
+        self.assertEqual(
+            performance["Breakout"]["tradeIds"],
+            ["trade-1", "trade-2", "trade-4"],
+        )
+        self.assertEqual(performance["Reversal"]["sampleSize"], 1)
+        self.assertEqual(
+            performance["Reversal"]["tradeIds"],
+            ["trade-3"],
+        )
+
+    def test_traceability_does_not_invent_missing_trade_ids(self):
+        trades = [
+            {"id": "trade-1", "setup": "Breakout", "result": "WIN"},
+            {"setup": "Breakout", "result": "LOSS"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["traceability"],
+            {
+                "tradeIds": ["trade-1"],
+                "tradeCount": 1,
+            },
+        )
+        self.assertEqual(
+            stats["setupPerformance"][0]["sampleSize"],
+            2,
+        )
+        self.assertEqual(
+            stats["setupPerformance"][0]["tradeIds"],
+            ["trade-1"],
+        )
+
+    def test_regime_traceability_matches_regime_sample(self):
+        trades = [
+            {
+                "id": "trade-1",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+            },
+            {
+                "id": "trade-2",
+                "result": "LOSS",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+            },
+            {
+                "id": "trade-3",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "RANGING"}
+                },
+            },
+            {
+                "result": "BE",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["regime"]: item
+            for item in stats["regimePerformance"]
+        }
+
+        self.assertEqual(performance["TRENDING"]["sampleSize"], 3)
+        self.assertEqual(
+            performance["TRENDING"]["tradeIds"],
+            ["trade-1", "trade-2"],
+        )
+        self.assertEqual(performance["RANGING"]["sampleSize"], 1)
+        self.assertEqual(
+            performance["RANGING"]["tradeIds"],
+            ["trade-3"],
+        )

@@ -13,6 +13,12 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         if trade.get("result") in {"WIN", "LOSS", "BE"}
     ]
 
+    traceable_trade_ids = [
+        trade["id"]
+        for trade in trades
+        if isinstance(trade.get("id"), str) and trade.get("id").strip()
+    ]
+
     def counts(values: list[Any]) -> list[dict[str, Any]]:
         tally: dict[str, int] = {}
         for value in values:
@@ -173,17 +179,20 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     ]
 
     setup_sample_counts: dict[str, int] = {}
+    setup_trade_ids: dict[str, list[str]] = {}
     setup_wins: dict[str, int] = {}
     setup_losses: dict[str, int] = {}
     setup_actual_r: dict[str, list[float]] = {}
     setup_recent_trades: dict[str, list[dict[str, Any]]] = {}
 
     regime_sample_counts: dict[str, int] = {}
+    regime_trade_ids: dict[str, list[str]] = {}
     regime_wins: dict[str, int] = {}
     regime_losses: dict[str, int] = {}
     regime_actual_r: dict[str, list[float]] = {}
 
     structure_sample_counts: dict[str, int] = {}
+    structure_trade_ids: dict[str, list[str]] = {}
     structure_wins: dict[str, int] = {}
     structure_losses: dict[str, int] = {}
     structure_actual_r: dict[str, list[float]] = {}
@@ -230,6 +239,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         setup_sample_counts[setup_name] = (
             setup_sample_counts.get(setup_name, 0) + 1
         )
+
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            setup_trade_ids.setdefault(setup_name, []).append(trade_id)
 
         result = trade.get("result")
         if result == "WIN":
@@ -289,6 +302,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         regime_sample_counts[regime] = (
             regime_sample_counts.get(regime, 0) + 1
         )
+
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            regime_trade_ids.setdefault(regime, []).append(trade_id)
 
         result = trade.get("result")
         if result == "WIN":
@@ -494,6 +511,13 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             structure_sample_counts.get(structure_state, 0) + 1
         )
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            structure_trade_ids.setdefault(
+                structure_state,
+                [],
+            ).append(trade_id)
+
         result = trade.get("result")
         if result == "WIN":
             structure_wins[structure_state] = (
@@ -540,6 +564,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         {
             "structure": structure_state,
             "sampleSize": structure_sample_counts[structure_state],
+            "tradeIds": structure_trade_ids.get(structure_state, []),
             "winRate": (
                 round(
                     structure_wins.get(structure_state, 0)
@@ -590,6 +615,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         {
             "regime": regime,
             "sampleSize": regime_sample_counts[regime],
+            "tradeIds": regime_trade_ids.get(regime, []),
             "winRate": (
                 round(
                     regime_wins.get(regime, 0)
@@ -683,6 +709,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         {
             "setup": setup,
             "sampleSize": count,
+            "tradeIds": setup_trade_ids.get(setup, []),
             "winRate": (
                 round(
                     setup_wins.get(setup, 0)
@@ -973,6 +1000,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "outcomeTrades": len(reviewed),
             "plannedRTrades": len(planned_r),
             "actualRTrades": len(actual_r),
+        },
+        "traceability": {
+            "tradeIds": traceable_trade_ids,
+            "tradeCount": len(traceable_trade_ids),
         },
         "actualR": {
             "count": len(actual_r),
