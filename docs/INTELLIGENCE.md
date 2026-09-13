@@ -42,6 +42,8 @@ Loss streak is the maximum number of consecutive `LOSS` outcomes in chronologica
 
 Hour analysis groups trades by the UTC hour extracted from each valid canonical trade timestamp. Offset-aware timestamps are normalized to UTC before the hour is determined. Invalid or missing timestamps are excluded. Results are returned as hour buckets from `0` through `23`, with each bucket exposing its trade count. No user-local timezone is inferred unless an explicit timezone is later configured.
 
+Holding duration is an estimated chart-path duration calculated from `chartAnchorTime` to `outcomeEvidenceTime`. It represents the elapsed time from the captured chart anchor to the first observed candle that reached the planned stop or target; it is not actual broker or execution holding time. Durations are calculated only when both timestamps are valid numeric values and the resulting duration is positive. Missing, invalid, zero, or negative durations are treated as unknown and excluded. The analytics expose the average duration in seconds, median duration in seconds, and the number of valid duration observations.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery

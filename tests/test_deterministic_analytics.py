@@ -1407,5 +1407,97 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["byMonth"], [])
 
 
+class TestHoldingDuration(unittest.TestCase):
+
+    def test_holding_duration_uses_chart_anchor_and_outcome_evidence(self):
+        trades = [
+            {
+                "chartAnchorTime": 1000000,
+                "outcomeEvidenceTime": 1120000,
+            },
+            {
+                "chartAnchorTime": 2000000,
+                "outcomeEvidenceTime": 2300000,
+            },
+            {
+                "chartAnchorTime": 3000000,
+                "outcomeEvidenceTime": 3180000,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["holdingDuration"]["value"], 200.0)
+        self.assertEqual(stats["holdingDuration"]["median"], 180.0)
+        self.assertEqual(stats["holdingDuration"]["count"], 3)
+
+    def test_holding_duration_excludes_missing_invalid_and_boolean_evidence(self):
+        trades = [
+            {
+                "chartAnchorTime": 1000000,
+                "outcomeEvidenceTime": 1120000,
+            },
+            {
+                "chartAnchorTime": None,
+                "outcomeEvidenceTime": 1300000,
+            },
+            {
+                "chartAnchorTime": 1400000,
+                "outcomeEvidenceTime": None,
+            },
+            {
+                "chartAnchorTime": "invalid",
+                "outcomeEvidenceTime": 1600000,
+            },
+            {
+                "chartAnchorTime": True,
+                "outcomeEvidenceTime": 1800000,
+            },
+            {
+                "chartAnchorTime": 1900000,
+                "outcomeEvidenceTime": False,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["holdingDuration"]["value"], 120.0)
+        self.assertEqual(stats["holdingDuration"]["median"], 120.0)
+        self.assertEqual(stats["holdingDuration"]["count"], 1)
+
+    def test_holding_duration_excludes_zero_and_negative_duration(self):
+        trades = [
+            {
+                "chartAnchorTime": 1000000,
+                "outcomeEvidenceTime": 1000000,
+            },
+            {
+                "chartAnchorTime": 2000000,
+                "outcomeEvidenceTime": 1900000,
+            },
+            {
+                "chartAnchorTime": 3000000,
+                "outcomeEvidenceTime": 3120000,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["holdingDuration"]["value"], 120.0)
+        self.assertEqual(stats["holdingDuration"]["median"], 120.0)
+        self.assertEqual(stats["holdingDuration"]["count"], 1)
+
+    def test_holding_duration_is_none_without_valid_evidence(self):
+        stats = calculate_journal_analytics([
+            {},
+            {"chartAnchorTime": 1000000},
+            {"outcomeEvidenceTime": 2000000},
+        ])
+
+        self.assertIsNone(stats["holdingDuration"]["value"])
+        self.assertIsNone(stats["holdingDuration"]["median"])
+        self.assertEqual(stats["holdingDuration"]["count"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

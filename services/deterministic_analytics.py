@@ -172,6 +172,50 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         if session in session_counts
     ]
 
+    holding_durations: list[float] = []
+
+    for trade in trades:
+        anchor_time = trade.get("chartAnchorTime")
+        outcome_time = trade.get("outcomeEvidenceTime")
+
+        if (
+            isinstance(anchor_time, bool)
+            or not isinstance(anchor_time, (int, float))
+        ):
+            continue
+
+        if (
+            isinstance(outcome_time, bool)
+            or not isinstance(outcome_time, (int, float))
+        ):
+            continue
+
+        if not all(
+            isinstance(value, (int, float)) and value == value
+            for value in (anchor_time, outcome_time)
+        ):
+            continue
+
+        duration_seconds = (outcome_time - anchor_time) / 1000
+
+        if duration_seconds <= 0:
+            continue
+
+        holding_durations.append(duration_seconds)
+
+    sorted_holding_durations = sorted(holding_durations)
+
+    holding_duration_median = (
+        sorted_holding_durations[len(sorted_holding_durations) // 2]
+        if len(sorted_holding_durations) % 2
+        else (
+            sorted_holding_durations[len(sorted_holding_durations) // 2 - 1]
+            + sorted_holding_durations[len(sorted_holding_durations) // 2]
+        ) / 2
+        if sorted_holding_durations
+        else None
+    )
+
     planned_r: list[float] = []
     actual_r: list[float] = []
     actual_r_trades: list[tuple[str, float, str]] = []
@@ -410,6 +454,22 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "lossStreak": {
             "value": max_loss_streak,
             "count": len(chronological_results),
+        },
+        "holdingDuration": {
+            "value": (
+                round(
+                    sum(holding_durations) / len(holding_durations),
+                    6,
+                )
+                if holding_durations
+                else None
+            ),
+            "median": (
+                round(holding_duration_median, 6)
+                if holding_duration_median is not None
+                else None
+            ),
+            "count": len(holding_durations),
         },
         "byHour": by_hour,
         "byDay": by_day,
