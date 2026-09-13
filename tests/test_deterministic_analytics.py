@@ -1349,9 +1349,9 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byMonth"], [
-            {"year": 2026, "month": 1, "count": 2},
-            {"year": 2026, "month": 2, "count": 1},
-            {"year": 2026, "month": 3, "count": 1},
+            {"year": 2026, "month": 1, "count": 2, "tradeIds": ["1", "2"]},
+            {"year": 2026, "month": 2, "count": 1, "tradeIds": ["3"]},
+            {"year": 2026, "month": 3, "count": 1, "tradeIds": ["4"]},
         ])
 
     def test_month_keeps_same_month_separate_across_years(self):
@@ -1364,9 +1364,9 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byMonth"], [
-            {"year": 2025, "month": 1, "count": 1},
-            {"year": 2026, "month": 1, "count": 1},
-            {"year": 2027, "month": 1, "count": 1},
+            {"year": 2025, "month": 1, "count": 1, "tradeIds": ["1"]},
+            {"year": 2026, "month": 1, "count": 1, "tradeIds": ["2"]},
+            {"year": 2027, "month": 1, "count": 1, "tradeIds": ["3"]},
         ])
 
     def test_month_normalizes_offset_timestamps_to_utc(self):
@@ -1378,7 +1378,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byMonth"], [
-            {"year": 2026, "month": 2, "count": 2},
+            {"year": 2026, "month": 2, "count": 2, "tradeIds": ["1", "2"]},
         ])
 
     def test_month_excludes_invalid_and_missing_timestamps(self):
@@ -1392,7 +1392,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byMonth"], [
-            {"year": 2026, "month": 1, "count": 1},
+            {"year": 2026, "month": 1, "count": 1, "tradeIds": ["1"]},
         ])
 
     def test_month_returns_empty_when_no_valid_timestamps_exist(self):

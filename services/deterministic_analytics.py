@@ -155,6 +155,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     ]
 
     monthly_counts: dict[tuple[int, int], int] = {}
+    monthly_trade_ids: dict[tuple[int, int], list[str]] = {}
 
     for trade in trades:
         timestamp = trade.get("timestamp")
@@ -176,11 +177,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         key = (utc_timestamp.year, utc_timestamp.month)
         monthly_counts[key] = monthly_counts.get(key, 0) + 1
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            monthly_trade_ids.setdefault(key, []).append(trade_id)
+
     by_month = [
         {
             "year": year,
             "month": month,
             "count": count,
+            "tradeIds": monthly_trade_ids.get((year, month), []),
         }
         for (year, month), count in sorted(monthly_counts.items())
     ]
