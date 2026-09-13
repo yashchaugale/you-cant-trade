@@ -90,6 +90,40 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         if weekday in daily_counts
     ]
 
+    weekly_counts: dict[tuple[int, int], int] = {}
+
+    for trade in trades:
+        timestamp = trade.get("timestamp")
+        if not isinstance(timestamp, str) or not timestamp.strip():
+            continue
+
+        try:
+            from datetime import datetime, timezone
+            parsed_timestamp = datetime.fromisoformat(
+                timestamp.strip().replace("Z", "+00:00")
+            )
+        except ValueError:
+            continue
+
+        if parsed_timestamp.tzinfo is None:
+            parsed_timestamp = parsed_timestamp.replace(tzinfo=timezone.utc)
+
+        iso_year, iso_week, _ = parsed_timestamp.astimezone(
+            timezone.utc
+        ).isocalendar()
+
+        key = (iso_year, iso_week)
+        weekly_counts[key] = weekly_counts.get(key, 0) + 1
+
+    by_week = [
+        {
+            "year": year,
+            "week": week,
+            "count": count,
+        }
+        for (year, week), count in sorted(weekly_counts.items())
+    ]
+
     valid_sessions = {"ASIA", "LONDON", "NEW_YORK", "OTHER"}
     session_counts: dict[str, int] = {}
 
@@ -348,6 +382,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "byHour": by_hour,
         "byDay": by_day,
+        "byWeek": by_week,
         "bySession": by_session,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(

@@ -1270,5 +1270,73 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["byDay"], [])
 
 
+    def test_week_groups_trades_by_iso_calendar_week(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T09:00:00Z"},  # ISO week 2
+            {"id": "2", "timestamp": "2026-01-06T14:00:00Z"},  # ISO week 2
+            {"id": "3", "timestamp": "2026-01-12T10:00:00Z"},  # ISO week 3
+            {"id": "4", "timestamp": "2026-01-19T10:00:00Z"},  # ISO week 4
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byWeek"], [
+            {"year": 2026, "week": 2, "count": 2},
+            {"year": 2026, "week": 3, "count": 1},
+            {"year": 2026, "week": 4, "count": 1},
+        ])
+
+    def test_week_uses_iso_year_at_new_year_boundary(self):
+        trades = [
+            {"id": "1", "timestamp": "2025-12-29T12:00:00Z"},  # ISO 2026-W01
+            {"id": "2", "timestamp": "2026-01-01T12:00:00Z"},  # ISO 2026-W01
+            {"id": "3", "timestamp": "2026-01-05T12:00:00Z"},  # ISO 2026-W02
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byWeek"], [
+            {"year": 2026, "week": 1, "count": 2},
+            {"year": 2026, "week": 2, "count": 1},
+        ])
+
+    def test_week_normalizes_offset_timestamps_to_utc(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-04T23:30:00-01:00"},  # Monday UTC, W02
+            {"id": "2", "timestamp": "2026-01-04T22:30:00-02:00"},  # Monday UTC, W02
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byWeek"], [
+            {"year": 2026, "week": 2, "count": 2},
+        ])
+
+    def test_week_excludes_invalid_and_missing_timestamps(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T09:00:00Z"},
+            {"id": "2", "timestamp": "not-a-timestamp"},
+            {"id": "3"},
+            {"id": "4", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byWeek"], [
+            {"year": 2026, "week": 2, "count": 1},
+        ])
+
+    def test_week_returns_empty_when_no_valid_timestamps_exist(self):
+        trades = [
+            {"id": "1", "timestamp": "invalid"},
+            {"id": "2"},
+            {"id": "3", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byWeek"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
