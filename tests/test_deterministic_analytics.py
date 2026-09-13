@@ -1226,9 +1226,9 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byDay"], [
-            {"day": "Monday", "count": 2},
-            {"day": "Tuesday", "count": 1},
-            {"day": "Friday", "count": 1},
+            {"day": "Monday", "count": 2, "tradeIds": ["1", "2"]},
+            {"day": "Tuesday", "count": 1, "tradeIds": ["3"]},
+            {"day": "Friday", "count": 1, "tradeIds": ["4"]},
         ])
 
     def test_day_normalizes_offset_timestamps_to_utc(self):
@@ -1240,8 +1240,8 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byDay"], [
-            {"day": "Monday", "count": 1},
-            {"day": "Sunday", "count": 1},
+            {"day": "Monday", "count": 1, "tradeIds": ["2"]},
+            {"day": "Sunday", "count": 1, "tradeIds": ["1"]},
         ])
 
     def test_day_excludes_invalid_and_missing_timestamps(self):
@@ -1255,7 +1255,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byDay"], [
-            {"day": "Monday", "count": 1},
+            {"day": "Monday", "count": 1, "tradeIds": ["1"]},
         ])
 
     def test_day_returns_empty_when_no_valid_timestamps_exist(self):

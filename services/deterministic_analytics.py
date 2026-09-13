@@ -69,6 +69,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     ]
 
     daily_counts: dict[int, int] = {}
+    daily_trade_ids: dict[int, list[str]] = {}
 
     for trade in trades:
         timestamp = trade.get("timestamp")
@@ -89,6 +90,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         weekday = parsed_timestamp.astimezone(timezone.utc).weekday()
         daily_counts[weekday] = daily_counts.get(weekday, 0) + 1
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            daily_trade_ids.setdefault(weekday, []).append(trade_id)
+
     day_names = [
         "Monday",
         "Tuesday",
@@ -100,7 +105,11 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     ]
 
     by_day = [
-        {"day": day_names[weekday], "count": daily_counts[weekday]}
+        {
+            "day": day_names[weekday],
+            "count": daily_counts[weekday],
+            "tradeIds": daily_trade_ids.get(weekday, []),
+        }
         for weekday in range(7)
         if weekday in daily_counts
     ]
