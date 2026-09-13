@@ -388,6 +388,83 @@ class DataHealthTests(unittest.TestCase):
         self.assertEqual(health["missing"]["exitPriceReviewed"], 0)
         self.assertEqual(health["missing"]["actualRReviewed"], 1)
 
+    def test_reports_missing_screenshot_information(self):
+        trades = [
+            {
+                "id": "no-screenshot",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "screenshot": None,
+                "screenshotPath": None,
+            },
+            {
+                "id": "inline-screenshot",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "screenshot": "data:image/png;base64,example",
+                "screenshotPath": None,
+            },
+            {
+                "id": "stored-screenshot",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "screenshot": None,
+                "screenshotPath": "/screenshots/trade.png",
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(health["missing"]["screenshot"], 1)
+
+    def test_missing_screenshot_is_independent_of_trade_completeness(self):
+        trades = [
+            {
+                "id": "incomplete-no-screenshot",
+                "symbol": None,
+                "timeframe": None,
+                "direction": None,
+                "entry": None,
+                "stopLoss": None,
+                "takeProfit": None,
+                "result": None,
+                "screenshot": None,
+                "screenshotPath": None,
+            },
+            {
+                "id": "complete-with-screenshot",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "screenshot": "data:image/png;base64,example",
+                "screenshotPath": None,
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(health["missing"]["screenshot"], 1)
+        self.assertEqual(health["incompleteTrades"]["count"], 1)
+
     def test_data_health_does_not_mutate_trades(self):
         trades = [
             {

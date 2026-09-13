@@ -111,6 +111,7 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
     missing_actual_r = 0
     missing_execution = 0
+    missing_screenshot = 0
     missing_market_context = 0
     missing_market_structure = 0
     missing_setup_fingerprint = 0
@@ -130,6 +131,13 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         market_structure = intelligence.get("marketStructure") or {}
         fingerprint = intelligence.get("setupFingerprint") or {}
         execution = intelligence.get("execution") or {}
+
+        has_screenshot = any(
+            (
+                _has_value(trade.get("screenshot")),
+                _has_value(trade.get("screenshotPath")),
+            )
+        )
 
         has_execution_evidence = any(
             (
@@ -192,6 +200,8 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
             missing_actual_r += 1
         if not has_execution_evidence:
             missing_execution += 1
+        if not has_screenshot:
+            missing_screenshot += 1
         if not has_market_context:
             missing_market_context += 1
         if not has_market_structure:
@@ -244,6 +254,7 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "exitPriceReviewed": missing_exit_price,
             "actualRReviewed": missing_actual_r,
             "execution": missing_execution,
+            "screenshot": missing_screenshot,
             "setup": missing_setup,
             "session": missing_session,
             "marketContext": missing_market_context,

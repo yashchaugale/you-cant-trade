@@ -125,6 +125,12 @@ Execution completeness is measured separately from core trade-capture completene
 
 An empty execution object is treated as missing execution evidence. Exit price and Actual R are measured separately and are not required to establish execution evidence. Missing execution information is an evidence-quality finding, not a negative performance result.
 
+### Missing screenshot information
+
+Screenshot completeness is measured from the canonical screenshot evidence available on a trade. A screenshot is present when either the inline `screenshot` value or persisted `screenshotPath` is recorded.
+
+Missing both forms of screenshot evidence is counted as missing screenshot information. Screenshot availability is an evidence-quality measurement and does not determine whether a trade is complete or profitable.
+
 ### Missing fields
 
 Missing-field counts are deterministic completeness measurements across canonical trades. Core fields tracked include outcome, symbol, timeframe, direction, entry, stop loss, take profit, reviewed exit price, reviewed Actual R, setup, session, market context, market structure, and setup fingerprint.
