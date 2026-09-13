@@ -110,6 +110,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         else:
             current_win_streak = 0
 
+    current_loss_streak = 0
+    max_loss_streak = 0
+
+    for result in chronological_results:
+        if result == "LOSS":
+            current_loss_streak += 1
+            max_loss_streak = max(max_loss_streak, current_loss_streak)
+        else:
+            current_loss_streak = 0
+
     winning_actual_r = [
         realized_r
         for _, realized_r, _ in actual_r_trades
@@ -250,6 +260,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "winStreak": {
             "value": max_win_streak,
+            "count": len(chronological_results),
+        },
+        "lossStreak": {
+            "value": max_loss_streak,
             "count": len(chronological_results),
         },
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],

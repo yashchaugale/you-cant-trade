@@ -38,6 +38,8 @@ Drawdown is the maximum observed peak-to-trough decline of the cumulative realiz
 
 Win streak is the maximum number of consecutive `WIN` outcomes in chronological trade order. `LOSS`, `BE`, and unknown or missing outcomes break the current win streak but are not counted as wins. Its evidence count is the number of trades considered in the chronological outcome sequence. If there are no wins, win streak is `0`.
 
+Loss streak is the maximum number of consecutive `LOSS` outcomes in chronological trade order. `WIN`, `BE`, and unknown or missing outcomes break the current loss streak but are not counted as losses. Its evidence count is the number of trades considered in the chronological outcome sequence. If there are no losses, loss streak is `0`.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery
