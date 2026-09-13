@@ -22,6 +22,8 @@ Deterministic analytics must track the evidence population used by each metric r
 - `plannedRTrades`: trades with calculable planned R from entry, stop loss, and take profit.
 - `actualRTrades`: trades with a calculable realized Actual R from a known outcome, entry, stop loss, exit price, and valid direction.
 
+Expectancy is calculated as the mean realized Actual R across `actualRTrades`. Its evidence count and WIN/LOSS/BE breakdown must use that same population. A missing exit price or invalid direction excludes a trade from expectancy, but does not exclude it from analyses that do not require realized R.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery

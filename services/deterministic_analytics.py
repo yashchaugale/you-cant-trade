@@ -29,6 +29,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
     planned_r: list[float] = []
     actual_r: list[float] = []
+    actual_r_trades: list[tuple[str, float]] = []
 
     for trade in trades:
         entry = trade.get("entry")
@@ -68,7 +69,9 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             if direction == "LONG"
             else entry - exit_price
         )
-        actual_r.append(profit / risk)
+        realized_r = profit / risk
+        actual_r.append(realized_r)
+        actual_r_trades.append((trade.get("result"), realized_r))
 
     wins = sum(trade.get("result") == "WIN" for trade in reviewed)
     losses = sum(trade.get("result") == "LOSS" for trade in reviewed)
@@ -116,6 +119,28 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 if actual_r
                 else None
             ),
+        },
+        "expectancy": {
+            "value": (
+                round(sum(actual_r) / len(actual_r), 6)
+                if actual_r
+                else None
+            ),
+            "count": len(actual_r_trades),
+            "outcomes": {
+                "wins": sum(
+                    result == "WIN"
+                    for result, _ in actual_r_trades
+                ),
+                "losses": sum(
+                    result == "LOSS"
+                    for result, _ in actual_r_trades
+                ),
+                "breakEven": sum(
+                    result == "BE"
+                    for result, _ in actual_r_trades
+                ),
+            },
         },
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
