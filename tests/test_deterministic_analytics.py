@@ -1281,9 +1281,9 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byWeek"], [
-            {"year": 2026, "week": 2, "count": 2},
-            {"year": 2026, "week": 3, "count": 1},
-            {"year": 2026, "week": 4, "count": 1},
+            {"year": 2026, "week": 2, "count": 2, "tradeIds": ["1", "2"]},
+            {"year": 2026, "week": 3, "count": 1, "tradeIds": ["3"]},
+            {"year": 2026, "week": 4, "count": 1, "tradeIds": ["4"]},
         ])
 
     def test_week_uses_iso_year_at_new_year_boundary(self):
@@ -1296,8 +1296,8 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byWeek"], [
-            {"year": 2026, "week": 1, "count": 2},
-            {"year": 2026, "week": 2, "count": 1},
+            {"year": 2026, "week": 1, "count": 2, "tradeIds": ["1", "2"]},
+            {"year": 2026, "week": 2, "count": 1, "tradeIds": ["3"]},
         ])
 
     def test_week_normalizes_offset_timestamps_to_utc(self):
@@ -1309,7 +1309,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byWeek"], [
-            {"year": 2026, "week": 2, "count": 2},
+            {"year": 2026, "week": 2, "count": 2, "tradeIds": ["1", "2"]},
         ])
 
     def test_week_excludes_invalid_and_missing_timestamps(self):
@@ -1323,7 +1323,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byWeek"], [
-            {"year": 2026, "week": 2, "count": 1},
+            {"year": 2026, "week": 2, "count": 1, "tradeIds": ["1"]},
         ])
 
     def test_week_returns_empty_when_no_valid_timestamps_exist(self):

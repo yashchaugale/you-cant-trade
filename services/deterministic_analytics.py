@@ -115,6 +115,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     ]
 
     weekly_counts: dict[tuple[int, int], int] = {}
+    weekly_trade_ids: dict[tuple[int, int], list[str]] = {}
 
     for trade in trades:
         timestamp = trade.get("timestamp")
@@ -139,11 +140,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         key = (iso_year, iso_week)
         weekly_counts[key] = weekly_counts.get(key, 0) + 1
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            weekly_trade_ids.setdefault(key, []).append(trade_id)
+
     by_week = [
         {
             "year": year,
             "week": week,
             "count": count,
+            "tradeIds": weekly_trade_ids.get((year, week), []),
         }
         for (year, week), count in sorted(weekly_counts.items())
     ]
