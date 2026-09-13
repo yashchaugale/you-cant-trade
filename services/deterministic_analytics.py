@@ -34,6 +34,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         ]
 
     hourly_counts: dict[int, int] = {}
+    hourly_trade_ids: dict[int, list[str]] = {}
 
     for trade in trades:
         timestamp = trade.get("timestamp")
@@ -54,8 +55,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         hour = parsed_timestamp.astimezone(timezone.utc).hour
         hourly_counts[hour] = hourly_counts.get(hour, 0) + 1
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            hourly_trade_ids.setdefault(hour, []).append(trade_id)
+
     by_hour = [
-        {"hour": hour, "count": count}
+        {
+            "hour": hour,
+            "count": count,
+            "tradeIds": hourly_trade_ids.get(hour, []),
+        }
         for hour, count in sorted(hourly_counts.items())
     ]
 

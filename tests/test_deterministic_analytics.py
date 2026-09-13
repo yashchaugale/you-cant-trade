@@ -169,8 +169,8 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byHour"], [
-            {"hour": 9, "count": 2},
-            {"hour": 14, "count": 1},
+            {"hour": 9, "count": 2, "tradeIds": []},
+            {"hour": 14, "count": 1, "tradeIds": []},
         ])
 
     def test_hour_normalizes_offset_timestamps_to_utc(self):
@@ -182,7 +182,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byHour"], [
-            {"hour": 9, "count": 2},
+            {"hour": 9, "count": 2, "tradeIds": []},
         ])
 
     def test_hour_excludes_invalid_and_missing_timestamps(self):
@@ -196,7 +196,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["byHour"], [
-            {"hour": 9, "count": 1},
+            {"hour": 9, "count": 1, "tradeIds": []},
         ])
 
     def test_hour_returns_empty_when_no_valid_timestamps_exist(self):
