@@ -84,6 +84,8 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         if realized_r < 0
     ]
 
+    biggest_winner = max(winning_actual_r) if winning_actual_r else None
+
     gross_profit = sum(
         winning_actual_r
     )
@@ -187,6 +189,14 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(losing_actual_r),
+        },
+        "biggestWinner": {
+            "value": (
+                round(biggest_winner, 6)
+                if biggest_winner is not None
+                else None
+            ),
+            "count": len(winning_actual_r),
         },
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
