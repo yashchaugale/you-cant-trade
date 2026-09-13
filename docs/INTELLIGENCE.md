@@ -66,6 +66,17 @@ For each recognized regime, sample size counts every trade assigned to that regi
 
 Results use deterministic ordering: `TRENDING`, `RANGING`, `EXPANDING`, `CONTRACTING`, then `UNCERTAIN`. Regime performance is descriptive evidence about observed trades and must not be treated as predictive.
 
+### Structure performance
+
+Structure performance groups trades by the canonical `intelligence.marketStructure.state` produced by the existing You Can't Trade structure engine. Recognized structure states are `BULLISH` and `BEARISH`. Missing, `UNKNOWN`, and unrecognized structure states are treated as unknown evidence and excluded; unknown structure is never interpreted as bullish or bearish.
+
+For each recognized structure state, sample size counts every trade assigned to that state. Win rate is `WIN / (WIN + LOSS)`, with break-even and unknown outcomes excluded from the denominator. If a structure state has no decided WIN/LOSS trades, its win rate is `null`.
+
+Average R and expectancy use only valid realized Actual-R evidence using the same global rules: valid entry, stop loss, exit price, direction, and non-zero risk. Missing or invalid Actual-R evidence does not reduce the structure state's overall sample size.
+
+Results use deterministic ordering: `BULLISH`, then `BEARISH`. Structure performance is descriptive evidence about observed trades and must not be treated as predictive.
+
+
 ## Pattern Discovery
 
 Search setup, session, direction, structure, regime and bounded combinations. A finding requires sample size, baseline, difference from baseline, recency, stability, and evidence strength. Tiny samples, multiple-comparison effects, survivorship bias, and missing fields must produce warnings—not confident claims.

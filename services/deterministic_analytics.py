@@ -182,6 +182,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     regime_wins: dict[str, int] = {}
     regime_losses: dict[str, int] = {}
     regime_actual_r: dict[str, list[float]] = {}
+
+    structure_sample_counts: dict[str, int] = {}
+    structure_wins: dict[str, int] = {}
+    structure_losses: dict[str, int] = {}
+    structure_actual_r: dict[str, list[float]] = {}
+    valid_structures = {
+        "BULLISH",
+        "BEARISH",
+    }
+
     valid_regimes = {
         "TRENDING",
         "RANGING",
@@ -292,6 +302,104 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         realized_r = profit / risk
 
         regime_actual_r.setdefault(regime, []).append(realized_r)
+
+    structure_performance = []
+
+    for trade in trades:
+        intelligence = trade.get("intelligence") or {}
+        market_structure = intelligence.get("marketStructure") or {}
+        structure_state = market_structure.get("state")
+
+        if structure_state not in valid_structures:
+            continue
+
+        structure_sample_counts[structure_state] = (
+            structure_sample_counts.get(structure_state, 0) + 1
+        )
+
+        result = trade.get("result")
+        if result == "WIN":
+            structure_wins[structure_state] = (
+                structure_wins.get(structure_state, 0) + 1
+            )
+        elif result == "LOSS":
+            structure_losses[structure_state] = (
+                structure_losses.get(structure_state, 0) + 1
+            )
+
+        entry = trade.get("entry")
+        stop = trade.get("stopLoss")
+        exit_price = trade.get("exitPrice")
+        direction = trade.get("direction")
+
+        if not all(
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            for value in (entry, stop, exit_price)
+        ):
+            continue
+
+        if direction not in {"LONG", "SHORT"}:
+            continue
+
+        risk = abs(entry - stop)
+        if risk == 0:
+            continue
+
+        profit = (
+            exit_price - entry
+            if direction == "LONG"
+            else entry - exit_price
+        )
+        realized_r = profit / risk
+
+        structure_actual_r.setdefault(structure_state, []).append(realized_r)
+
+    structure_order = [
+        "BULLISH",
+        "BEARISH",
+    ]
+
+    structure_performance = [
+        {
+            "structure": structure_state,
+            "sampleSize": structure_sample_counts[structure_state],
+            "winRate": (
+                round(
+                    structure_wins.get(structure_state, 0)
+                    / (
+                        structure_wins.get(structure_state, 0)
+                        + structure_losses.get(structure_state, 0)
+                    ),
+                    6,
+                )
+                if (
+                    structure_wins.get(structure_state, 0)
+                    + structure_losses.get(structure_state, 0)
+                )
+                else None
+            ),
+            "averageR": (
+                round(
+                    sum(structure_actual_r[structure_state])
+                    / len(structure_actual_r[structure_state]),
+                    6,
+                )
+                if structure_actual_r.get(structure_state)
+                else None
+            ),
+            "expectancy": (
+                round(
+                    sum(structure_actual_r[structure_state])
+                    / len(structure_actual_r[structure_state]),
+                    6,
+                )
+                if structure_actual_r.get(structure_state)
+                else None
+            ),
+        }
+        for structure_state in structure_order
+        if structure_state in structure_sample_counts
+    ]
 
     regime_order = [
         "TRENDING",
@@ -761,6 +869,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "bySession": by_session,
         "setupPerformance": setup_performance,
         "regimePerformance": regime_performance,
+        "structurePerformance": structure_performance,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [

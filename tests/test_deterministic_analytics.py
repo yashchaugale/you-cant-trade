@@ -1994,3 +1994,176 @@ class TestSetupPerformance(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStructurePerformance(unittest.TestCase):
+
+    def test_structure_performance_uses_canonical_states(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"}
+                },
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"}
+                },
+            },
+            {
+                "result": "LOSS",
+                "direction": "SHORT",
+                "entry": 100,
+                "stopLoss": 105,
+                "exitPrice": 105,
+                "intelligence": {
+                    "marketStructure": {"state": "BEARISH"}
+                },
+            },
+            {
+                "result": "WIN",
+                "direction": "SHORT",
+                "entry": 100,
+                "stopLoss": 105,
+                "exitPrice": 90,
+                "intelligence": {
+                    "marketStructure": {"state": "BEARISH"}
+                },
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["structurePerformance"],
+            [
+                {
+                    "structure": "BULLISH",
+                    "sampleSize": 2,
+                    "winRate": 0.5,
+                    "averageR": 0.5,
+                    "expectancy": 0.5,
+                },
+                {
+                    "structure": "BEARISH",
+                    "sampleSize": 2,
+                    "winRate": 0.5,
+                    "averageR": 0.5,
+                    "expectancy": 0.5,
+                },
+            ],
+        )
+
+    def test_structure_performance_excludes_missing_and_invalid_states(self):
+        trades = [
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"}
+                },
+            },
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "UNKNOWN"}
+                },
+            },
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "SIDEWAYS"}
+                },
+            },
+            {"result": "WIN"},
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {}
+                },
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["structurePerformance"],
+            [
+                {
+                    "structure": "BULLISH",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": None,
+                    "expectancy": None,
+                }
+            ],
+        )
+
+    def test_structure_performance_keeps_sample_size_independent_of_actual_r(self):
+        trades = [
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"}
+                },
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"}
+                },
+            },
+            {
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"}
+                },
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["structurePerformance"],
+            [
+                {
+                    "structure": "BULLISH",
+                    "sampleSize": 3,
+                    "winRate": 0.5,
+                    "averageR": -0.5,
+                    "expectancy": -0.5,
+                }
+            ],
+        )
+
+    def test_structure_performance_returns_empty_without_valid_states(self):
+        trades = [
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "UNKNOWN"}
+                },
+            },
+            {"result": "LOSS"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["structurePerformance"], [])
