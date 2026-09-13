@@ -234,6 +234,23 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         for timestamp in valid_timestamps
     ]
 
+    evidence_dimensions = 6
+    evidence_opportunities = len(trades) * evidence_dimensions
+    missing_evidence = (
+        missing_outcome
+        + missing_screenshot
+        + missing_execution
+        + missing_market_context
+        + missing_market_structure
+        + missing_setup_fingerprint
+    )
+    available_evidence = evidence_opportunities - missing_evidence
+    evidence_coverage_rate = (
+        available_evidence / evidence_opportunities
+        if evidence_opportunities
+        else None
+    )
+
     return {
         "computationVersion": DATA_HEALTH_VERSION,
         "totalTrades": len(trades),
@@ -268,6 +285,11 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "duplicates": {
             "ids": duplicate_id_count,
+        },
+        "evidenceQuality": {
+            "availableDimensions": available_evidence,
+            "totalDimensions": evidence_opportunities,
+            "coverageRate": evidence_coverage_rate,
         },
         "dateCoverage": {
             "earliest": min(normalized_timestamps)

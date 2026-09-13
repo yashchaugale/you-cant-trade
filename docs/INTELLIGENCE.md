@@ -131,6 +131,29 @@ Screenshot completeness is measured from the canonical screenshot evidence avail
 
 Missing both forms of screenshot evidence is counted as missing screenshot information. Screenshot availability is an evidence-quality measurement and does not determine whether a trade is complete or profitable.
 
+### Evidence quality
+
+Evidence quality is reported as deterministic evidence coverage across six journal dimensions:
+
+1. Outcome
+2. Screenshot
+3. Execution
+4. Market context
+5. Market structure
+6. Setup fingerprint
+
+For each canonical trade, each dimension contributes one evidence opportunity. A dimension is available when its corresponding deterministic Data Health evidence is present; otherwise it is treated as unknown.
+
+The aggregate report exposes:
+
+- `availableDimensions`: number of available evidence dimensions across all trades
+- `totalDimensions`: total evidence opportunities (`trade count × 6`)
+- `coverageRate`: available evidence divided by total evidence opportunities
+
+An empty journal reports `coverageRate: null` because there are no evidence opportunities.
+
+Evidence coverage is a data-quality measurement only. Missing evidence is unknown and is never treated as negative trading performance.
+
 ### Missing fields
 
 Missing-field counts are deterministic completeness measurements across canonical trades. Core fields tracked include outcome, symbol, timeframe, direction, entry, stop loss, take profit, reviewed exit price, reviewed Actual R, setup, session, market context, market structure, and setup fingerprint.

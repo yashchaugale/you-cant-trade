@@ -465,6 +465,92 @@ class DataHealthTests(unittest.TestCase):
         self.assertEqual(health["missing"]["screenshot"], 1)
         self.assertEqual(health["incompleteTrades"]["count"], 1)
 
+    def test_reports_evidence_quality_coverage(self):
+        trades = [
+            {
+                "id": "full-evidence",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "screenshot": "data:image/png;base64,example",
+                "intelligence": {
+                    "execution": {"actualEntry": 100},
+                    "marketContext": {"regime": "TRENDING"},
+                    "marketStructure": {"state": "BULLISH"},
+                    "setupFingerprint": {"features": ["breakout"]},
+                },
+            },
+            {
+                "id": "missing-evidence",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": None,
+                "screenshot": None,
+                "intelligence": {},
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(
+            health["evidenceQuality"],
+            {
+                "availableDimensions": 6,
+                "totalDimensions": 12,
+                "coverageRate": 0.5,
+            },
+        )
+
+    def test_evidence_quality_is_complete_when_all_dimensions_exist(self):
+        trade = {
+            "id": "complete-evidence",
+            "symbol": "NQ",
+            "timeframe": "5m",
+            "direction": "LONG",
+            "entry": 100,
+            "stopLoss": 95,
+            "takeProfit": 110,
+            "result": "WIN",
+            "screenshot": "data:image/png;base64,example",
+            "intelligence": {
+                "execution": {"actualEntry": 100},
+                "marketContext": {"regime": "TRENDING"},
+                "marketStructure": {"state": "BULLISH"},
+                "setupFingerprint": {"features": ["breakout"]},
+            },
+        }
+
+        health = assess_data_health([trade])
+
+        self.assertEqual(
+            health["evidenceQuality"],
+            {
+                "availableDimensions": 6,
+                "totalDimensions": 6,
+                "coverageRate": 1.0,
+            },
+        )
+
+    def test_evidence_quality_is_unknown_for_empty_journal(self):
+        health = assess_data_health([])
+
+        self.assertEqual(
+            health["evidenceQuality"],
+            {
+                "availableDimensions": 0,
+                "totalDimensions": 0,
+                "coverageRate": None,
+            },
+        )
+
     def test_data_health_does_not_mutate_trades(self):
         trades = [
             {
