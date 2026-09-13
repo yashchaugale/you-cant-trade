@@ -40,6 +40,8 @@ Win streak is the maximum number of consecutive `WIN` outcomes in chronological 
 
 Loss streak is the maximum number of consecutive `LOSS` outcomes in chronological trade order. `WIN`, `BE`, and unknown or missing outcomes break the current loss streak but are not counted as losses. Its evidence count is the number of trades considered in the chronological outcome sequence. If there are no losses, loss streak is `0`.
 
+Hour analysis groups trades by the UTC hour extracted from each valid canonical trade timestamp. Offset-aware timestamps are normalized to UTC before the hour is determined. Invalid or missing timestamps are excluded. Results are returned as hour buckets from `0` through `23`, with each bucket exposing its trade count. No user-local timezone is inferred unless an explicit timezone is later configured.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery

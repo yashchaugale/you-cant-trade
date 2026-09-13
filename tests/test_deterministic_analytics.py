@@ -158,6 +158,57 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["lossStreak"]["value"], 0)
         self.assertEqual(stats["lossStreak"]["count"], 3)
 
+
+    def test_hour_groups_trades_by_utc_hour(self):
+        trades = [
+            {"result": "WIN", "timestamp": "2026-01-01T09:15:00Z"},
+            {"result": "LOSS", "timestamp": "2026-01-02T09:45:00Z"},
+            {"result": "WIN", "timestamp": "2026-01-03T14:10:00Z"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byHour"], [
+            {"hour": 9, "count": 2},
+            {"hour": 14, "count": 1},
+        ])
+
+    def test_hour_normalizes_offset_timestamps_to_utc(self):
+        trades = [
+            {"result": "WIN", "timestamp": "2026-01-01T10:00:00+01:00"},
+            {"result": "LOSS", "timestamp": "2026-01-01T05:00:00-04:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byHour"], [
+            {"hour": 9, "count": 2},
+        ])
+
+    def test_hour_excludes_invalid_and_missing_timestamps(self):
+        trades = [
+            {"result": "WIN", "timestamp": "2026-01-01T09:00:00Z"},
+            {"result": "LOSS", "timestamp": "not-a-date"},
+            {"result": "WIN"},
+            {"result": "LOSS", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byHour"], [
+            {"hour": 9, "count": 1},
+        ])
+
+    def test_hour_returns_empty_when_no_valid_timestamps_exist(self):
+        trades = [
+            {"result": "WIN", "timestamp": "not-a-date"},
+            {"result": "LOSS"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byHour"], [])
+
     def test_average_r_uses_realized_actual_r_only(self):
         trades = [
             {

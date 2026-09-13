@@ -27,6 +27,32 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             )
         ]
 
+    hourly_counts: dict[int, int] = {}
+
+    for trade in trades:
+        timestamp = trade.get("timestamp")
+        if not isinstance(timestamp, str) or not timestamp.strip():
+            continue
+
+        try:
+            from datetime import datetime, timezone
+            parsed_timestamp = datetime.fromisoformat(
+                timestamp.strip().replace("Z", "+00:00")
+            )
+        except ValueError:
+            continue
+
+        if parsed_timestamp.tzinfo is None:
+            parsed_timestamp = parsed_timestamp.replace(tzinfo=timezone.utc)
+
+        hour = parsed_timestamp.astimezone(timezone.utc).hour
+        hourly_counts[hour] = hourly_counts.get(hour, 0) + 1
+
+    by_hour = [
+        {"hour": hour, "count": count}
+        for hour, count in sorted(hourly_counts.items())
+    ]
+
     planned_r: list[float] = []
     actual_r: list[float] = []
     actual_r_trades: list[tuple[str, float, str]] = []
@@ -266,6 +292,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "value": max_loss_streak,
             "count": len(chronological_results),
         },
+        "byHour": by_hour,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [
