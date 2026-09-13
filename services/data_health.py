@@ -94,6 +94,21 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         for trade in trades
     )
 
+    incomplete_trade_count = sum(
+        any(
+            (
+                not _has_value(trade.get("symbol")),
+                not _has_value(trade.get("timeframe")),
+                not _has_value(trade.get("direction")),
+                not isinstance(trade.get("entry"), (int, float)),
+                not isinstance(trade.get("stopLoss"), (int, float)),
+                not isinstance(trade.get("takeProfit"), (int, float)),
+                not _has_value(trade.get("result")),
+            )
+        )
+        for trade in trades
+    )
+
     missing_actual_r = 0
     missing_market_context = 0
     missing_market_structure = 0
@@ -195,6 +210,10 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "totalTrades": len(trades),
         "reviewedTrades": len(reviewed),
         "unreviewedTrades": len(trades) - len(reviewed),
+        "incompleteTrades": {
+            "count": incomplete_trade_count,
+            "total": len(trades),
+        },
         "missing": {
             "outcome": missing_outcome,
             "symbol": missing_symbol,

@@ -113,6 +113,12 @@ Only measured, supported behaviors become leaks: late entry, early exit, moved s
 
 Report completeness of setup, execution, context, screenshot, result, and review fields, then explain which missing fields would improve a requested analysis.
 
+### Incomplete trades
+
+A trade is incomplete when one or more core capture fields are missing: symbol, timeframe, direction, entry, stop loss, take profit, or outcome. Each trade is counted once regardless of how many required fields are missing.
+
+Reviewed exit price, Actual R, setup, session, market intelligence, and screenshot evidence are not required for the core incomplete-trade classification. Those dimensions are measured separately by their corresponding Data Health checks. An incomplete trade is a data-completeness finding, not a negative performance result.
+
 ### Missing fields
 
 Missing-field counts are deterministic completeness measurements across canonical trades. Core fields tracked include outcome, symbol, timeframe, direction, entry, stop loss, take profit, reviewed exit price, reviewed Actual R, setup, session, market context, market structure, and setup fingerprint.

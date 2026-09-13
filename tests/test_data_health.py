@@ -202,6 +202,96 @@ class DataHealthTests(unittest.TestCase):
         self.assertEqual(health["missing"]["setup"], 1)
         self.assertEqual(health["missing"]["session"], 1)
 
+    def test_reports_incomplete_trades_once_per_trade(self):
+        trades = [
+            {
+                "id": "complete",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+            },
+            {
+                "id": "missing-many",
+                "symbol": None,
+                "timeframe": None,
+                "direction": None,
+                "entry": None,
+                "stopLoss": None,
+                "takeProfit": None,
+                "result": None,
+            },
+            {
+                "id": "missing-one",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": None,
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(
+            health["incompleteTrades"],
+            {
+                "count": 2,
+                "total": 3,
+            },
+        )
+
+    def test_incomplete_trade_requires_core_capture_fields_only(self):
+        trades = [
+            {
+                "id": "unreviewed",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "exitPrice": None,
+            },
+            {
+                "id": "complete-core",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(
+            health["incompleteTrades"],
+            {
+                "count": 0,
+                "total": 2,
+            },
+        )
+
+    def test_incomplete_trades_empty_journal(self):
+        health = assess_data_health([])
+
+        self.assertEqual(
+            health["incompleteTrades"],
+            {
+                "count": 0,
+                "total": 0,
+            },
+        )
+
     def test_data_health_does_not_mutate_trades(self):
         trades = [
             {
