@@ -198,6 +198,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     structure_actual_r: dict[str, list[float]] = {}
 
     direction_sample_counts: dict[str, int] = {}
+    direction_trade_ids: dict[str, list[str]] = {}
     direction_wins: dict[str, int] = {}
     direction_losses: dict[str, int] = {}
     direction_actual_r: dict[str, list[float]] = {}
@@ -417,6 +418,13 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             direction_sample_counts.get(direction, 0) + 1
         )
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            direction_trade_ids.setdefault(
+                direction,
+                [],
+            ).append(trade_id)
+
         result = trade.get("result")
         if result == "WIN":
             direction_wins[direction] = (
@@ -459,6 +467,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         {
             "direction": direction,
             "sampleSize": direction_sample_counts[direction],
+            "tradeIds": direction_trade_ids.get(direction, []),
             "winRate": (
                 round(
                     direction_wins.get(direction, 0)

@@ -2219,6 +2219,7 @@ class TestDirectionPerformance(unittest.TestCase):
                 {
                     "direction": "LONG",
                     "sampleSize": 2,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": 0.5,
                     "expectancy": 0.5,
@@ -2226,6 +2227,7 @@ class TestDirectionPerformance(unittest.TestCase):
                 {
                     "direction": "SHORT",
                     "sampleSize": 2,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": 0.5,
                     "expectancy": 0.5,
@@ -2264,6 +2266,7 @@ class TestDirectionPerformance(unittest.TestCase):
                 {
                     "direction": "LONG",
                     "sampleSize": 1,
+                    "tradeIds": [],
                     "winRate": 1.0,
                     "averageR": None,
                     "expectancy": None,
@@ -2301,6 +2304,7 @@ class TestDirectionPerformance(unittest.TestCase):
                 {
                     "direction": "LONG",
                     "sampleSize": 3,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": -0.5,
                     "expectancy": -0.5,
