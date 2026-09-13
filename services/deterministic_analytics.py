@@ -876,6 +876,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     ]
 
     holding_durations: list[float] = []
+    holding_duration_trade_ids: list[str] = []
 
     for trade in trades:
         anchor_time = trade.get("chartAnchorTime")
@@ -905,6 +906,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             continue
 
         holding_durations.append(duration_seconds)
+
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            holding_duration_trade_ids.append(trade_id)
 
     sorted_holding_durations = sorted(holding_durations)
 
@@ -1177,6 +1182,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(holding_durations),
+            "tradeIds": holding_duration_trade_ids,
         },
         "byHour": by_hour,
         "byDay": by_day,
