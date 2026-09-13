@@ -95,8 +95,8 @@
                 <strong id="winRate">0.0%</strong>
             </article>
             <article class="metric-card">
-                <span>Total R</span>
-                <strong id="totalR">0.00R</strong>
+                <span>Avg Planned R</span>
+                <strong id="avgPlannedR">0.00R</strong>
             </article>
             <article class="metric-card">
                 <span>Reviewed</span>
@@ -189,7 +189,63 @@
                 <label>Result<select id="filterResult"><option value="">All results</option><option value="CAPTURED">Captured</option><option value="WIN">Win</option><option value="LOSS">Loss</option><option value="BE">Break even</option></select></label>
                 <label>Setup<select id="filterSetup"><option value="">All setups</option></select></label>
                 <label>Session<select id="filterSession"><option value="">All sessions</option><option value="ASIA">Asia</option><option value="LONDON">London</option><option value="NEW_YORK">New York</option><option value="OTHER">Other</option></select></label>
+                <label>Date range
+                    <select id="filterDateRange">
+                        <option value="">All dates</option>
+                        <option value="today">Today</option>
+                        <option value="7">Last 7 days</option>
+                        <option value="30">Last 30 days</option>
+                        <option value="month">This month</option>
+                        <option value="custom">Custom range</option>
+                    </select>
+                </label>
                 <button id="clearFilters" class="clear-filters" type="button">Clear filters</button>
+            </div>
+
+            <div id="customDateRange" class="custom-date-range" hidden>
+                <div class="date-range-header">
+                    <div class="date-range-title">
+                        <span class="date-range-eyebrow">Custom range</span>
+                        <div class="date-range-selectors">
+                            <select id="dateRangeMonthSelect" aria-label="Select month"></select>
+                            <select id="dateRangeYearSelect" aria-label="Select year"></select>
+                        </div>
+                    </div>
+                    <div class="date-range-navigation">
+                        <button id="dateRangePreviousMonth" class="date-range-nav" type="button" aria-label="Previous month">‹</button>
+                        <button id="dateRangeNextMonth" class="date-range-nav" type="button" aria-label="Next month">›</button>
+                    </div>
+                </div>
+
+                <div class="date-range-weekdays" aria-hidden="true">
+                    <span>Sun</span>
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                </div>
+
+                <div id="dateRangeCalendar" class="date-range-calendar" role="grid" aria-label="Select custom date range"></div>
+
+                <div class="date-range-footer">
+                    <div class="date-range-selection">
+                        <div>
+                            <span>Start</span>
+                            <strong id="dateRangeStartLabel">Select date</strong>
+                        </div>
+                        <span class="date-range-arrow">→</span>
+                        <div>
+                            <span>End</span>
+                            <strong id="dateRangeEndLabel">Select date</strong>
+                        </div>
+                    </div>
+
+                    <button id="applyCustomDateRange" class="apply-date-range" type="button" disabled>
+                        Apply
+                    </button>
+                </div>
             </div>
 
             <div id="emptyState" class="empty-state" hidden>
@@ -205,9 +261,19 @@
     <div id="tradeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-panel">
             <header class="modal-header">
-                <div>
-                    <p class="eyebrow">Trade review</p>
-                    <h2 id="modalTitle">Trade</h2>
+                <div class="trade-case-header">
+                    <p class="eyebrow">Trade case file</p>
+                    <div class="trade-case-title-row">
+                        <h2 id="modalTitle">Trade</h2>
+                        <span id="detailHeaderResult" class="trade-case-result">—</span>
+                    </div>
+                    <div class="trade-case-summary">
+                        <span id="detailHeaderDirection">—</span>
+                        <span>·</span>
+                        <span id="detailHeaderTimeframe">—</span>
+                        <span>·</span>
+                        <span id="detailHeaderDate">—</span>
+                    </div>
                 </div>
                 <button id="closeModal" class="icon-button" type="button" aria-label="Close trade review">×</button>
             </header>
@@ -225,6 +291,7 @@
                         <span id="detailDirection">—</span>
                     </div>
 
+                    <p class="case-section-label">Plan</p>
                     <dl class="level-grid">
                         <div><dt>Entry</dt><dd id="detailEntry">—</dd></div>
                         <div><dt>Stop loss</dt><dd id="detailSL">—</dd></div>
@@ -234,6 +301,23 @@
                         <div><dt>Chart anchor</dt><dd id="detailChartTime">—</dd></div>
                         <div><dt>Captured</dt><dd id="detailCaptureTime">—</dd></div>
                     </dl>
+
+                    <p class="case-section-label">Calculated information</p>
+
+                    <label class="field-label" for="tradeSetup">Setup <span>Optional</span></label>
+                    <input id="tradeSetup" type="text" placeholder="e.g. London liquidity sweep">
+
+                    <label class="field-label" for="tradeSession">Session
+                        <select id="tradeSession">
+                            <option value="">Not tagged</option>
+                            <option value="ASIA">Asia</option>
+                            <option value="LONDON">London</option>
+                            <option value="NEW_YORK">New York</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </label>
+
+                    <p class="case-section-label">Actual trade</p>
 
                     <fieldset class="review-fieldset">
                         <legend>Outcome</legend>
@@ -247,27 +331,13 @@
                     <label class="field-label" for="tradeExitPrice">Exit price <span>Optional</span></label>
                     <input id="tradeExitPrice" type="number" inputmode="decimal" step="any" placeholder="e.g. 68432.5">
 
-                    <label class="field-label" for="tradeSetup">Setup <span>Optional</span></label>
-                    <input id="tradeSetup" type="text" placeholder="e.g. London liquidity sweep">
-
-                    <div class="tag-fields">
-                        <label class="field-label" for="tradeSession">Session
-                            <select id="tradeSession">
-                                <option value="">Not tagged</option>
-                                <option value="ASIA">Asia</option>
-                                <option value="LONDON">London</option>
-                                <option value="NEW_YORK">New York</option>
-                                <option value="OTHER">Other</option>
-                            </select>
-                        </label>
-                        <label class="field-label" for="tradePlanAdherence">Plan adherence
-                            <select id="tradePlanAdherence">
-                                <option value="">Not tagged</option>
-                                <option value="FOLLOWED">Followed plan</option>
-                                <option value="DEVIATED">Deviated from plan</option>
-                            </select>
-                        </label>
-                    </div>
+                    <label class="field-label" for="tradePlanAdherence">Plan adherence
+                        <select id="tradePlanAdherence">
+                            <option value="">Not tagged</option>
+                            <option value="FOLLOWED">Followed plan</option>
+                            <option value="DEVIATED">Deviated from plan</option>
+                        </select>
+                    </label>
 
                     <label class="field-label" for="tradeExecutionTag">Execution note <span>Optional</span>
                         <select id="tradeExecutionTag">

@@ -144,8 +144,30 @@ const filterControls = {
     timeframe: document.getElementById("filterTimeframe"),
     result: document.getElementById("filterResult"),
     setup: document.getElementById("filterSetup"),
-    session: document.getElementById("filterSession")
+    session: document.getElementById("filterSession"),
+    dateRange: document.getElementById("filterDateRange")
 };
+
+const customDateRange = document.getElementById("customDateRange");
+const dateRangeMonthSelect = document.getElementById("dateRangeMonthSelect");
+const dateRangeYearSelect = document.getElementById("dateRangeYearSelect");
+const dateRangePreviousMonth = document.getElementById("dateRangePreviousMonth");
+const dateRangeNextMonth = document.getElementById("dateRangeNextMonth");
+const dateRangeCalendar = document.getElementById("dateRangeCalendar");
+const dateRangeStartLabel = document.getElementById("dateRangeStartLabel");
+const dateRangeEndLabel = document.getElementById("dateRangeEndLabel");
+const applyCustomDateRange = document.getElementById("applyCustomDateRange");
+
+let customRangeStart = null;
+let customRangeEnd = null;
+let appliedCustomRangeStart = null;
+let appliedCustomRangeEnd = null;
+let customRangeMonth = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+);
+
 
 
 function calculatePlannedR(trade) {
@@ -650,19 +672,23 @@ function renderStats() {
     const losses = trades.filter(trade => trade.result === "LOSS").length;
     const reviewed = trades.filter(trade => trade.result !== null).length;
     const decidedTrades = wins + losses;
-    const completedTrades = trades.filter(
-        trade => calculateActualR(trade) !== null
+    const plannedTrades = trades.filter(
+        trade => calculatePlannedR(trade) !== null
     );
-    const totalR = completedTrades.reduce(
-        (sum, trade) => sum + calculateActualR(trade),
+    const totalPlannedR = plannedTrades.reduce(
+        (sum, trade) => sum + calculatePlannedR(trade),
         0
     );
+    const avgPlannedR = plannedTrades.length > 0
+        ? totalPlannedR / plannedTrades.length
+        : 0;
 
     document.getElementById("totalTrades").textContent = trades.length;
     document.getElementById("winRate").textContent = decidedTrades > 0
         ? `${((wins / decidedTrades) * 100).toFixed(1)}%`
         : "0.0%";
-    document.getElementById("totalR").textContent = `${totalR.toFixed(2)}R`;
+    document.getElementById("avgPlannedR").textContent =
+        `${avgPlannedR.toFixed(2)}R`;
     document.getElementById("reviewedTrades").textContent = reviewed;
 }
 
@@ -717,9 +743,310 @@ function populateFilters() {
 }
 
 
+function formatCalendarDate(date) {
+    return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    });
+}
+
+
+function toDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+
+function initializeDateRangeSelectors() {
+    const months = Array.from({ length: 12 }, (_, index) =>
+        new Date(2000, index, 1).toLocaleDateString(undefined, { month: "long" })
+    );
+
+    dateRangeMonthSelect.replaceChildren();
+
+    months.forEach((monthName, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = monthName;
+        dateRangeMonthSelect.appendChild(option);
+    });
+
+    dateRangeYearSelect.replaceChildren();
+
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear; year >= 1990; year -= 1) {
+        const option = document.createElement("option");
+        option.value = String(year);
+        option.textContent = String(year);
+        dateRangeYearSelect.appendChild(option);
+    }
+}
+
+dateRangeMonthSelect.addEventListener("change", () => {
+    customRangeMonth = new Date(
+        Number(dateRangeYearSelect.value),
+        Number(dateRangeMonthSelect.value),
+        1
+    );
+    renderCustomDateCalendar();
+});
+
+dateRangeYearSelect.addEventListener("change", () => {
+    customRangeMonth = new Date(
+        Number(dateRangeYearSelect.value),
+        Number(dateRangeMonthSelect.value),
+        1
+    );
+    renderCustomDateCalendar();
+});
+
+
+function renderCustomDateCalendar() {
+    const year = customRangeMonth.getFullYear();
+    const month = customRangeMonth.getMonth();
+
+    dateRangeMonthSelect.value = String(month);
+    dateRangeYearSelect.value = String(year);
+
+    dateRangeCalendar.replaceChildren();
+
+    const firstDay = new Date(year, month, 1);
+    const gridStart = new Date(year, month, 1 - firstDay.getDay());
+
+    const todayKey = toDateKey(new Date());
+    const startKey = customRangeStart ? toDateKey(customRangeStart) : null;
+    const endKey = customRangeEnd ? toDateKey(customRangeEnd) : null;
+
+    for (let index = 0; index < 42; index += 1) {
+        const date = new Date(gridStart);
+        date.setDate(gridStart.getDate() + index);
+
+        const key = toDateKey(date);
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.className = "date-range-day";
+        button.textContent = String(date.getDate());
+        button.dataset.date = key;
+        button.setAttribute("role", "gridcell");
+        button.setAttribute("aria-label", formatCalendarDate(date));
+
+        if (date.getMonth() !== month) {
+            button.classList.add("is-other-month");
+        }
+
+        if (key === todayKey) {
+            button.classList.add("is-today");
+        }
+
+        if (startKey && endKey && key > startKey && key < endKey) {
+            button.classList.add("is-in-range");
+        }
+
+        if (key === startKey) {
+            button.classList.add("is-start");
+        }
+
+        if (key === endKey) {
+            button.classList.add("is-end");
+        }
+
+        button.addEventListener("click", () => {
+            const selected = new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate()
+            );
+
+            if (!customRangeStart || (customRangeStart && customRangeEnd)) {
+                customRangeStart = selected;
+                customRangeEnd = null;
+            } else if (selected < customRangeStart) {
+                customRangeEnd = customRangeStart;
+                customRangeStart = selected;
+            } else {
+                customRangeEnd = selected;
+            }
+
+            updateCustomDateRangeLabels();
+            renderCustomDateCalendar();
+        });
+
+        dateRangeCalendar.appendChild(button);
+    }
+
+    applyCustomDateRange.disabled = !(customRangeStart && customRangeEnd);
+}
+
+
+function updateCustomDateRangeLabels() {
+    dateRangeStartLabel.textContent = customRangeStart
+        ? formatCalendarDate(customRangeStart)
+        : "Select date";
+
+    dateRangeEndLabel.textContent = customRangeEnd
+        ? formatCalendarDate(customRangeEnd)
+        : "Select date";
+}
+
+
+dateRangePreviousMonth.addEventListener("click", () => {
+    customRangeMonth = new Date(
+        customRangeMonth.getFullYear(),
+        customRangeMonth.getMonth() - 1,
+        1
+    );
+    renderCustomDateCalendar();
+});
+
+
+dateRangeNextMonth.addEventListener("click", () => {
+    customRangeMonth = new Date(
+        customRangeMonth.getFullYear(),
+        customRangeMonth.getMonth() + 1,
+        1
+    );
+    renderCustomDateCalendar();
+});
+
+
+initializeDateRangeSelectors();
+
+function resetCustomDateRange() {
+    customRangeStart = null;
+    customRangeEnd = null;
+    appliedCustomRangeStart = null;
+    appliedCustomRangeEnd = null;
+    customRangeMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1
+    );
+    updateCustomDateRangeLabels();
+    renderCustomDateCalendar();
+}
+
+
+function getTradeFilterDate(trade) {
+    const rawAnchorTime = trade?.chartAnchorTime;
+
+    if (rawAnchorTime != null && rawAnchorTime !== "") {
+        const numericAnchorTime = Number(rawAnchorTime);
+        const anchorDate = Number.isFinite(numericAnchorTime)
+            ? new Date(
+                Math.abs(numericAnchorTime) < 1e11
+                    ? numericAnchorTime * 1000
+                    : numericAnchorTime
+            )
+            : new Date(rawAnchorTime);
+
+        if (!Number.isNaN(anchorDate.getTime())) {
+            return anchorDate;
+        }
+    }
+
+    const timestamp = typeof trade?.timestamp === "string"
+        ? trade.timestamp.trim()
+        : "";
+
+    if (timestamp) {
+        const tradeDate = new Date(timestamp);
+        if (!Number.isNaN(tradeDate.getTime())) {
+            return tradeDate;
+        }
+    }
+
+    return null;
+}
+
+
+function getTradeFilterDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+
+function getDateRangeBounds(range) {
+    if (!range) {
+        return null;
+    }
+
+    const now = new Date();
+    const today = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+    );
+
+    if (range === "today") {
+        return { from: today, to: today };
+    }
+
+    if (range === "7" || range === "30") {
+        const days = Number(range);
+        const from = new Date(today);
+        from.setDate(from.getDate() - (days - 1));
+        return { from, to: today };
+    }
+
+    if (range === "month") {
+        return {
+            from: new Date(today.getFullYear(), today.getMonth(), 1),
+            to: today
+        };
+    }
+
+    if (range === "custom") {
+        if (!appliedCustomRangeStart || !appliedCustomRangeEnd) {
+            return null;
+        }
+
+        return {
+            from: new Date(
+                appliedCustomRangeStart.getFullYear(),
+                appliedCustomRangeStart.getMonth(),
+                appliedCustomRangeStart.getDate(),
+                0, 0, 0, 0
+            ),
+            to: new Date(
+                appliedCustomRangeEnd.getFullYear(),
+                appliedCustomRangeEnd.getMonth(),
+                appliedCustomRangeEnd.getDate(),
+                23, 59, 59, 999
+            )
+        };
+    }
+
+    return null;
+}
+
+
 function getFilteredTrades() {
 
+    const dateRange = getDateRangeBounds(filterControls.dateRange.value);
+
     return trades.filter(trade => {
+        const filterDate = getTradeFilterDate(trade);
+
+        if (dateRange) {
+            if (!filterDate) {
+                return false;
+            }
+
+            const tradeDateKey = getTradeFilterDateKey(filterDate);
+            const fromKey = getTradeFilterDateKey(dateRange.from);
+            const toKey = getTradeFilterDateKey(dateRange.to);
+
+            if (tradeDateKey < fromKey || tradeDateKey > toKey) {
+                return false;
+            }
+        }
+
         if (searchResultIds && !searchResultIds.has(trade.id)) {
             return false;
         }
@@ -767,7 +1094,6 @@ function getFilteredTrades() {
         return true;
     });
 }
-
 
 function createTradeCard(trade) {
 
@@ -1015,7 +1341,15 @@ function openTrade(tradeId) {
     resetAIInsight();
 
     document.getElementById("modalTitle").textContent =
-        `${trade.symbol || "Trade"} review`;
+        trade.symbol || "Trade";
+    document.getElementById("detailHeaderResult").textContent =
+        trade.result || "—";
+    document.getElementById("detailHeaderDirection").textContent =
+        trade.direction || "—";
+    document.getElementById("detailHeaderTimeframe").textContent =
+        trade.timeframe || "—";
+    document.getElementById("detailHeaderDate").textContent =
+        formatDateTime(trade.chartAnchorTime || trade.timestamp);
     document.getElementById("detailSymbol").textContent = trade.symbol || "—";
     document.getElementById("detailTimeframe").textContent = trade.timeframe || "—";
     document.getElementById("detailDirection").textContent = trade.direction || "—";
@@ -1023,7 +1357,9 @@ function openTrade(tradeId) {
     document.getElementById("detailSL").textContent = formatNumber(trade.stopLoss);
     document.getElementById("detailTP").textContent = formatNumber(trade.takeProfit);
     document.getElementById("detailPlannedR").textContent = formatR(calculatePlannedR(trade));
-    document.getElementById("detailActualR").textContent = formatR(calculateActualR(trade));
+    const actualR = calculateActualR(trade);
+    document.getElementById("detailActualR").textContent =
+        actualR == null ? "Not recorded" : formatR(actualR);
     document.getElementById("detailChartTime").textContent = formatDateTime(
         trade.chartAnchorTime
     );
@@ -1207,6 +1543,46 @@ Object.values(filterControls).forEach(control => {
     control.addEventListener("change", renderTradeGrid);
 });
 
+function updateCustomDateRangeVisibility() {
+    const isCustom = filterControls.dateRange.value === "custom";
+    customDateRange.hidden = !isCustom;
+
+    if (isCustom) {
+        renderCustomDateCalendar();
+    }
+}
+
+
+filterControls.dateRange.addEventListener("change", () => {
+    if (filterControls.dateRange.value === "custom") {
+        resetCustomDateRange();
+        customDateRange.hidden = false;
+        return;
+    }
+
+    resetCustomDateRange();
+    customDateRange.hidden = true;
+    renderTradeGrid();
+});
+
+
+applyCustomDateRange.addEventListener("click", () => {
+    if (!customRangeStart || !customRangeEnd) {
+        return;
+    }
+
+    appliedCustomRangeStart = new Date(customRangeStart);
+    appliedCustomRangeEnd = new Date(customRangeEnd);
+
+    renderTradeGrid();
+});
+
+
+updateCustomDateRangeVisibility();
+
+
+
+
 document.getElementById("newExperimentButton").addEventListener("click", () => {
     document.getElementById("experimentComposer").hidden = false;
     document.getElementById("experimentBehavior").focus();
@@ -1301,6 +1677,9 @@ document
         Object.values(filterControls).forEach(control => {
             control.value = "";
         });
+
+        resetCustomDateRange();
+        customDateRange.hidden = true;
 
         renderTradeGrid();
     });
