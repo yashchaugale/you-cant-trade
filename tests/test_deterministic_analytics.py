@@ -590,6 +590,140 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertIsNone(stats["biggestLoser"]["value"])
         self.assertEqual(stats["biggestLoser"]["count"], 0)
 
+    def test_drawdown_uses_chronological_actual_r_sequence(self):
+        trades = [
+            {
+                "timestamp": "2026-01-03T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+            {
+                "timestamp": "2026-01-01T10:00:00Z",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "timestamp": "2026-01-02T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["drawdown"]["value"], 1.0)
+        self.assertEqual(stats["drawdown"]["count"], 3)
+
+    def test_drawdown_returns_peak_to_trough_decline(self):
+        trades = [
+            {
+                "timestamp": "2026-01-01T10:00:00Z",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "timestamp": "2026-01-02T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "timestamp": "2026-01-03T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["drawdown"]["value"], 2.0)
+        self.assertEqual(stats["drawdown"]["count"], 3)
+
+    def test_drawdown_excludes_trades_without_actual_r_evidence(self):
+        trades = [
+            {
+                "timestamp": "2026-01-01T10:00:00Z",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "timestamp": "2026-01-02T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": None,
+            },
+            {
+                "timestamp": "2026-01-03T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["drawdown"]["value"], 1.0)
+        self.assertEqual(stats["drawdown"]["count"], 2)
+
+    def test_drawdown_is_zero_when_equity_never_declines_from_peak(self):
+        trades = [
+            {
+                "timestamp": "2026-01-01T10:00:00Z",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 105,
+            },
+            {
+                "timestamp": "2026-01-02T10:00:00Z",
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["drawdown"]["value"], 0.0)
+        self.assertEqual(stats["drawdown"]["count"], 2)
+
+    def test_drawdown_is_zero_without_actual_r_evidence(self):
+        stats = calculate_journal_analytics([
+            {"result": "WIN"},
+            {"result": "LOSS"},
+            {"result": "BE"},
+        ])
+
+        self.assertEqual(stats["drawdown"]["value"], 0.0)
+        self.assertEqual(stats["drawdown"]["count"], 0)
+
     def test_expectancy_uses_same_actual_r_population(self):
         trades = [
             {

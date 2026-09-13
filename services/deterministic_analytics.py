@@ -29,7 +29,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
     planned_r: list[float] = []
     actual_r: list[float] = []
-    actual_r_trades: list[tuple[str, float]] = []
+    actual_r_trades: list[tuple[str, float, str]] = []
 
     for trade in trades:
         entry = trade.get("entry")
@@ -71,16 +71,35 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         )
         realized_r = profit / risk
         actual_r.append(realized_r)
-        actual_r_trades.append((trade.get("result"), realized_r))
+        actual_r_trades.append(
+            (trade.get("result"), realized_r, trade.get("timestamp"))
+        )
+
+    chronological_actual_r = [
+        realized_r
+        for _, realized_r, _ in sorted(
+            actual_r_trades,
+            key=lambda item: item[2] or "",
+        )
+    ]
+
+    equity = 0.0
+    peak = 0.0
+    max_drawdown = 0.0
+
+    for realized_r in chronological_actual_r:
+        equity += realized_r
+        peak = max(peak, equity)
+        max_drawdown = max(max_drawdown, peak - equity)
 
     winning_actual_r = [
         realized_r
-        for _, realized_r in actual_r_trades
+        for _, realized_r, _ in actual_r_trades
         if realized_r > 0
     ]
     losing_actual_r = [
         realized_r
-        for _, realized_r in actual_r_trades
+        for _, realized_r, _ in actual_r_trades
         if realized_r < 0
     ]
 
@@ -92,7 +111,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     )
     gross_loss = abs(sum(
         realized_r
-        for _, realized_r in actual_r_trades
+        for _, realized_r, _ in actual_r_trades
         if realized_r < 0
     ))
 
@@ -153,15 +172,15 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "outcomes": {
                 "wins": sum(
                     result == "WIN"
-                    for result, _ in actual_r_trades
+                    for result, _, _ in actual_r_trades
                 ),
                 "losses": sum(
                     result == "LOSS"
-                    for result, _ in actual_r_trades
+                    for result, _, _ in actual_r_trades
                 ),
                 "breakEven": sum(
                     result == "BE"
-                    for result, _ in actual_r_trades
+                    for result, _, _ in actual_r_trades
                 ),
             },
         },
@@ -206,6 +225,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(losing_actual_r),
+        },
+        "drawdown": {
+            "value": round(max_drawdown, 6),
+            "count": len(chronological_actual_r),
         },
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
