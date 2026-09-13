@@ -2517,3 +2517,72 @@ class TestVolatilityPerformance(unittest.TestCase):
         analytics = calculate_journal_analytics(trades)
 
         self.assertEqual(analytics["volatilityPerformance"], [])
+
+    def test_analytics_scales_to_100_trades(self):
+        trades = [
+            {
+                "result": "WIN" if index % 2 == 0 else "LOSS",
+                "entry": 100,
+                "stopLoss": 99,
+                "takeProfit": 102,
+                "exitPrice": 101 if index % 2 == 0 else 99,
+                "direction": "LONG",
+                "setup": "Breakout" if index % 2 == 0 else "Reversal",
+                "session": "LONDON",
+                "timestamp": f"2026-01-{(index % 28) + 1:02d}T09:00:00",
+            }
+            for index in range(100)
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["reviewedTrades"], 100)
+        self.assertEqual(stats["actualR"]["count"], 100)
+        self.assertEqual(stats["setupPerformance"][0]["sampleSize"], 50)
+        self.assertEqual(stats["setupPerformance"][1]["sampleSize"], 50)
+
+    def test_analytics_scales_to_1000_trades(self):
+        trades = [
+            {
+                "result": "WIN" if index % 2 == 0 else "LOSS",
+                "entry": 100,
+                "stopLoss": 99,
+                "takeProfit": 102,
+                "exitPrice": 101 if index % 2 == 0 else 99,
+                "direction": "LONG",
+                "setup": "Breakout" if index % 2 == 0 else "Reversal",
+                "session": "LONDON",
+                "timestamp": f"2025-{(index % 12) + 1:02d}-{(index % 28) + 1:02d}T09:00:00",
+            }
+            for index in range(1000)
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["reviewedTrades"], 1000)
+        self.assertEqual(stats["actualR"]["count"], 1000)
+        self.assertEqual(
+            sum(item["sampleSize"] for item in stats["setupPerformance"]),
+            1000,
+        )
+
+    def test_analytics_is_deterministic_for_1000_trades(self):
+        trades = [
+            {
+                "result": "WIN" if index % 3 else "LOSS",
+                "entry": 100,
+                "stopLoss": 99,
+                "takeProfit": 102,
+                "exitPrice": 101 if index % 3 else 99,
+                "direction": "LONG",
+                "setup": "Breakout" if index % 2 else "Reversal",
+                "session": "LONDON",
+                "timestamp": f"2025-{(index % 12) + 1:02d}-{(index % 28) + 1:02d}T09:00:00",
+            }
+            for index in range(1000)
+        ]
+
+        first = calculate_journal_analytics(trades)
+        second = calculate_journal_analytics(trades)
+
+        self.assertEqual(first, second)
