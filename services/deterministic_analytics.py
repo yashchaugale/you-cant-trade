@@ -208,6 +208,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
     volatility_sample_counts: dict[str, int] = {}
+    volatility_trade_ids: dict[str, list[str]] = {}
     volatility_wins: dict[str, int] = {}
     volatility_losses: dict[str, int] = {}
     volatility_actual_r: dict[str, list[float]] = {}
@@ -367,6 +368,13 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         volatility_sample_counts[volatility_state] = (
             volatility_sample_counts.get(volatility_state, 0) + 1
         )
+
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            volatility_trade_ids.setdefault(
+                volatility_state,
+                [],
+            ).append(trade_id)
 
         result = trade.get("result")
         if result == "WIN":
@@ -673,6 +681,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         {
             "volatility": volatility_state,
             "sampleSize": volatility_sample_counts[volatility_state],
+            "tradeIds": volatility_trade_ids.get(volatility_state, []),
             "winRate": (
                 round(
                     volatility_wins.get(volatility_state, 0)

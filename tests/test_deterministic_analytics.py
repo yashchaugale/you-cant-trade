@@ -2379,6 +2379,7 @@ class TestVolatilityPerformance(unittest.TestCase):
                 {
                     "volatility": "EXPANDING",
                     "sampleSize": 1,
+                    "tradeIds": [],
                     "winRate": 1.0,
                     "averageR": 2.0,
                     "expectancy": 2.0,
@@ -2386,6 +2387,7 @@ class TestVolatilityPerformance(unittest.TestCase):
                 {
                     "volatility": "NORMAL",
                     "sampleSize": 1,
+                    "tradeIds": [],
                     "winRate": 1.0,
                     "averageR": 1.0,
                     "expectancy": 1.0,
@@ -2393,6 +2395,7 @@ class TestVolatilityPerformance(unittest.TestCase):
                 {
                     "volatility": "CONTRACTING",
                     "sampleSize": 1,
+                    "tradeIds": [],
                     "winRate": 0.0,
                     "averageR": -1.0,
                     "expectancy": -1.0,
@@ -2456,6 +2459,7 @@ class TestVolatilityPerformance(unittest.TestCase):
                 {
                     "volatility": "EXPANDING",
                     "sampleSize": 1,
+                    "tradeIds": [],
                     "winRate": 1.0,
                     "averageR": 1.0,
                     "expectancy": 1.0,
@@ -2499,6 +2503,7 @@ class TestVolatilityPerformance(unittest.TestCase):
                 {
                     "volatility": "EXPANDING",
                     "sampleSize": 2,
+                    "tradeIds": [],
                     "winRate": 0.5,
                     "averageR": -1.0,
                     "expectancy": -1.0,
