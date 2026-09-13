@@ -76,6 +76,16 @@ Average R and expectancy use only valid realized Actual-R evidence using the sam
 
 Results use deterministic ordering: `LONG`, then `SHORT`. Direction performance is descriptive evidence about observed trades and must not be treated as predictive.
 
+### Volatility performance
+
+Volatility performance groups trades by the canonical volatility state derived from the persisted `marketContext.statistics.volatility.rangeRatio`. The existing market-intelligence thresholds are used deterministically: `rangeRatio >= 1.5` is `EXPANDING`, `rangeRatio <= 0.67` is `CONTRACTING`, and values between those thresholds are `NORMAL`. Missing or invalid `rangeRatio` values are treated as unknown evidence and excluded.
+
+For each recognized volatility state, sample size counts every trade with valid volatility evidence. Win rate is `WIN / (WIN + LOSS)`, with break-even and unknown outcomes excluded from the denominator. If a volatility state has no decided WIN/LOSS trades, its win rate is `null`.
+
+Average R and expectancy use only valid realized Actual-R evidence using the same global rules: valid entry, stop loss, exit price, direction, and non-zero risk. Missing or invalid Actual-R evidence does not reduce the volatility state's overall sample size.
+
+Results use deterministic ordering: `EXPANDING`, `NORMAL`, then `CONTRACTING`. Volatility performance is descriptive evidence about observed trades and must not be treated as predictive.
+
 ### Structure performance
 
 Structure performance groups trades by the canonical `intelligence.marketStructure.state` produced by the existing You Can't Trade structure engine. Recognized structure states are `BULLISH` and `BEARISH`. Missing, `UNKNOWN`, and unrecognized structure states are treated as unknown evidence and excluded; unknown structure is never interpreted as bullish or bearish.

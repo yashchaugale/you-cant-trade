@@ -2310,3 +2310,210 @@ class TestDirectionPerformance(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["directionPerformance"], [])
+
+
+class TestVolatilityPerformance(unittest.TestCase):
+    def test_volatility_performance_uses_canonical_range_ratio_states(self):
+        trades = [
+            {
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 99,
+                "exitPrice": 102,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": 1.5}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 99,
+                "exitPrice": 99,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": 0.67}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 99,
+                "exitPrice": 101,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": 1.0}
+                        }
+                    }
+                },
+            },
+        ]
+
+        analytics = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            analytics["volatilityPerformance"],
+            [
+                {
+                    "volatility": "EXPANDING",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": 2.0,
+                    "expectancy": 2.0,
+                },
+                {
+                    "volatility": "NORMAL",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": 1.0,
+                    "expectancy": 1.0,
+                },
+                {
+                    "volatility": "CONTRACTING",
+                    "sampleSize": 1,
+                    "winRate": 0.0,
+                    "averageR": -1.0,
+                    "expectancy": -1.0,
+                },
+            ],
+        )
+
+    def test_volatility_performance_excludes_missing_and_invalid_range_ratios(self):
+        trades = [
+            {
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 99,
+                "exitPrice": 101,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": 1.6}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": None}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": "1.6"}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": float("nan")}
+                        }
+                    }
+                },
+            },
+        ]
+
+        analytics = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            analytics["volatilityPerformance"],
+            [
+                {
+                    "volatility": "EXPANDING",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": 1.0,
+                    "expectancy": 1.0,
+                }
+            ],
+        )
+
+    def test_volatility_performance_keeps_sample_size_independent_of_actual_r(self):
+        trades = [
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": 1.6}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 99,
+                "exitPrice": 99,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {"rangeRatio": 1.7}
+                        }
+                    }
+                },
+            },
+        ]
+
+        analytics = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            analytics["volatilityPerformance"],
+            [
+                {
+                    "volatility": "EXPANDING",
+                    "sampleSize": 2,
+                    "winRate": 0.5,
+                    "averageR": -1.0,
+                    "expectancy": -1.0,
+                }
+            ],
+        )
+
+    def test_volatility_performance_returns_empty_without_valid_evidence(self):
+        trades = [
+            {
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {
+                        "statistics": {
+                            "volatility": {}
+                        }
+                    }
+                },
+            },
+            {
+                "result": "LOSS",
+                "intelligence": {
+                    "marketContext": {}
+                },
+            },
+        ]
+
+        analytics = calculate_journal_analytics(trades)
+
+        self.assertEqual(analytics["volatilityPerformance"], [])

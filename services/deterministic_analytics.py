@@ -197,6 +197,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "SHORT",
     }
 
+    volatility_sample_counts: dict[str, int] = {}
+    volatility_wins: dict[str, int] = {}
+    volatility_losses: dict[str, int] = {}
+    volatility_actual_r: dict[str, list[float]] = {}
+    valid_volatility_states = {
+        "EXPANDING",
+        "NORMAL",
+        "CONTRACTING",
+    }
+
     valid_structures = {
         "BULLISH",
         "BEARISH",
@@ -314,6 +324,71 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         regime_actual_r.setdefault(regime, []).append(realized_r)
 
     direction_performance = []
+
+    for trade in trades:
+        intelligence = trade.get("intelligence") or {}
+        market_context = intelligence.get("marketContext") or {}
+        statistics = market_context.get("statistics") or {}
+        volatility = statistics.get("volatility") or {}
+        raw_range_ratio = volatility.get("rangeRatio")
+
+        if (
+            isinstance(raw_range_ratio, bool)
+            or not isinstance(raw_range_ratio, (int, float))
+            or not float("-inf") < raw_range_ratio < float("inf")
+        ):
+            continue
+
+        if raw_range_ratio >= 1.5:
+            volatility_state = "EXPANDING"
+        elif raw_range_ratio <= 0.67:
+            volatility_state = "CONTRACTING"
+        else:
+            volatility_state = "NORMAL"
+
+        volatility_sample_counts[volatility_state] = (
+            volatility_sample_counts.get(volatility_state, 0) + 1
+        )
+
+        result = trade.get("result")
+        if result == "WIN":
+            volatility_wins[volatility_state] = (
+                volatility_wins.get(volatility_state, 0) + 1
+            )
+        elif result == "LOSS":
+            volatility_losses[volatility_state] = (
+                volatility_losses.get(volatility_state, 0) + 1
+            )
+
+        entry = trade.get("entry")
+        stop = trade.get("stopLoss")
+        exit_price = trade.get("exitPrice")
+        direction = trade.get("direction")
+
+        if not all(
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            for value in (entry, stop, exit_price)
+        ):
+            continue
+
+        if direction not in {"LONG", "SHORT"}:
+            continue
+
+        risk = abs(entry - stop)
+        if risk == 0:
+            continue
+
+        profit = (
+            exit_price - entry
+            if direction == "LONG"
+            else entry - exit_price
+        )
+        realized_r = profit / risk
+
+        volatility_actual_r.setdefault(
+            volatility_state,
+            [],
+        ).append(realized_r)
 
     for trade in trades:
         direction = trade.get("direction")
@@ -551,6 +626,57 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         }
         for regime in regime_order
         if regime in regime_sample_counts
+    ]
+
+    volatility_order = [
+        "EXPANDING",
+        "NORMAL",
+        "CONTRACTING",
+    ]
+
+    volatility_performance = [
+        {
+            "volatility": volatility_state,
+            "sampleSize": volatility_sample_counts[volatility_state],
+            "winRate": (
+                round(
+                    volatility_wins.get(volatility_state, 0)
+                    / (
+                        volatility_wins.get(volatility_state, 0)
+                        + volatility_losses.get(volatility_state, 0)
+                    ),
+                    6,
+                )
+                if (
+                    volatility_wins.get(volatility_state, 0)
+                    + volatility_losses.get(volatility_state, 0)
+                )
+                else None
+            ),
+            "averageR": (
+                round(
+                    sum(volatility_actual_r[volatility_state])
+                    / len(volatility_actual_r[volatility_state]),
+                    6,
+                )
+                if volatility_actual_r.get(volatility_state)
+                else None
+            ),
+            "expectancy": (
+                round(
+                    sum(volatility_actual_r[volatility_state])
+                    / len(volatility_actual_r[volatility_state]),
+                    6,
+                )
+                if volatility_actual_r.get(volatility_state)
+                else None
+            ),
+        }
+        for volatility_state in volatility_order
+        if (
+            volatility_state in valid_volatility_states
+            and volatility_state in volatility_sample_counts
+        )
     ]
 
     setup_performance = [
@@ -973,6 +1099,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "regimePerformance": regime_performance,
         "structurePerformance": structure_performance,
         "directionPerformance": direction_performance,
+        "volatilityPerformance": volatility_performance,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [
