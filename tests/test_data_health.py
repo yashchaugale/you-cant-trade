@@ -292,6 +292,102 @@ class DataHealthTests(unittest.TestCase):
             },
         )
 
+    def test_reports_missing_execution_information(self):
+        trades = [
+            {
+                "id": "no-execution",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "intelligence": {
+                    "execution": {
+                        "actualEntry": None,
+                        "actualStopLoss": None,
+                        "actualTakeProfit": None,
+                        "entryTime": None,
+                        "exitTime": None,
+                        "stopMoved": None,
+                        "targetMoved": None,
+                        "partialExits": [],
+                        "breakEven": None,
+                        "slippage": None,
+                    }
+                },
+            },
+            {
+                "id": "has-execution",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "intelligence": {
+                    "execution": {
+                        "actualEntry": 101,
+                        "actualStopLoss": None,
+                        "actualTakeProfit": None,
+                        "entryTime": None,
+                        "exitTime": None,
+                        "stopMoved": None,
+                        "targetMoved": None,
+                        "partialExits": [],
+                        "breakEven": None,
+                        "slippage": None,
+                    }
+                },
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(health["missing"]["execution"], 1)
+
+    def test_execution_evidence_is_independent_of_exit_price_and_actual_r(self):
+        trades = [
+            {
+                "id": "execution-only",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": None,
+                "exitPrice": None,
+                "intelligence": {
+                    "execution": {
+                        "actualEntry": 100.5,
+                    }
+                },
+            },
+            {
+                "id": "no-execution",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "exitPrice": 110,
+                "intelligence": {
+                    "execution": {}
+                },
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(health["missing"]["execution"], 1)
+        self.assertEqual(health["missing"]["exitPriceReviewed"], 0)
+        self.assertEqual(health["missing"]["actualRReviewed"], 1)
+
     def test_data_health_does_not_mutate_trades(self):
         trades = [
             {

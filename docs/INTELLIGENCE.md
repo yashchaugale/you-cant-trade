@@ -119,6 +119,12 @@ A trade is incomplete when one or more core capture fields are missing: symbol, 
 
 Reviewed exit price, Actual R, setup, session, market intelligence, and screenshot evidence are not required for the core incomplete-trade classification. Those dimensions are measured separately by their corresponding Data Health checks. An incomplete trade is a data-completeness finding, not a negative performance result.
 
+### Missing execution information
+
+Execution completeness is measured separately from core trade-capture completeness. A trade has execution evidence when at least one structured execution field is recorded, including actual entry, actual stop loss, actual take profit, entry or exit time, stop or target movement, partial exits, break-even, or slippage.
+
+An empty execution object is treated as missing execution evidence. Exit price and Actual R are measured separately and are not required to establish execution evidence. Missing execution information is an evidence-quality finding, not a negative performance result.
+
 ### Missing fields
 
 Missing-field counts are deterministic completeness measurements across canonical trades. Core fields tracked include outcome, symbol, timeframe, direction, entry, stop loss, take profit, reviewed exit price, reviewed Actual R, setup, session, market context, market structure, and setup fingerprint.

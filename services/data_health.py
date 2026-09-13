@@ -110,6 +110,7 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
     )
 
     missing_actual_r = 0
+    missing_execution = 0
     missing_market_context = 0
     missing_market_structure = 0
     missing_setup_fingerprint = 0
@@ -128,6 +129,22 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         market_context = intelligence.get("marketContext") or {}
         market_structure = intelligence.get("marketStructure") or {}
         fingerprint = intelligence.get("setupFingerprint") or {}
+        execution = intelligence.get("execution") or {}
+
+        has_execution_evidence = any(
+            (
+                _has_value(execution.get("actualEntry")),
+                _has_value(execution.get("actualStopLoss")),
+                _has_value(execution.get("actualTakeProfit")),
+                _has_value(execution.get("entryTime")),
+                _has_value(execution.get("exitTime")),
+                _has_value(execution.get("stopMoved")),
+                _has_value(execution.get("targetMoved")),
+                bool(execution.get("partialExits")),
+                _has_value(execution.get("breakEven")),
+                _has_value(execution.get("slippage")),
+            )
+        )
 
         timestamp = _parse_timestamp(trade.get("timestamp"))
 
@@ -173,6 +190,8 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
         if trade in reviewed and not has_actual_r:
             missing_actual_r += 1
+        if not has_execution_evidence:
+            missing_execution += 1
         if not has_market_context:
             missing_market_context += 1
         if not has_market_structure:
@@ -224,6 +243,7 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
             "takeProfit": missing_take_profit,
             "exitPriceReviewed": missing_exit_price,
             "actualRReviewed": missing_actual_r,
+            "execution": missing_execution,
             "setup": missing_setup,
             "session": missing_session,
             "marketContext": missing_market_context,
