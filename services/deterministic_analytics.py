@@ -172,6 +172,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
     valid_sessions = {"ASIA", "LONDON", "NEW_YORK", "OTHER"}
     session_counts: dict[str, int] = {}
+    session_trade_ids: dict[str, list[str]] = {}
 
     for trade in trades:
         session = trade.get("session")
@@ -180,9 +181,17 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
         session_counts[session] = session_counts.get(session, 0) + 1
 
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            session_trade_ids.setdefault(session, []).append(trade_id)
+
     session_order = ["ASIA", "LONDON", "NEW_YORK", "OTHER"]
     by_session = [
-        {"session": session, "count": session_counts[session]}
+        {
+            "session": session,
+            "count": session_counts[session],
+            "tradeIds": session_trade_ids.get(session, []),
+        }
         for session in session_order
         if session in session_counts
     ]

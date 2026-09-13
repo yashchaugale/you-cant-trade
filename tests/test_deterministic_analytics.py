@@ -1165,10 +1165,10 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["bySession"], [
-            {"session": "ASIA", "count": 2},
-            {"session": "LONDON", "count": 2},
-            {"session": "NEW_YORK", "count": 1},
-            {"session": "OTHER", "count": 1},
+            {"session": "ASIA", "count": 2, "tradeIds": ["2", "6"]},
+            {"session": "LONDON", "count": 2, "tradeIds": ["1", "3"]},
+            {"session": "NEW_YORK", "count": 1, "tradeIds": ["4"]},
+            {"session": "OTHER", "count": 1, "tradeIds": ["5"]},
         ])
 
     def test_session_excludes_missing_and_invalid_sessions(self):
@@ -1183,7 +1183,7 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["bySession"], [
-            {"session": "LONDON", "count": 1},
+            {"session": "LONDON", "count": 1, "tradeIds": ["1"]},
         ])
 
     def test_session_returns_empty_when_no_valid_sessions_exist(self):
