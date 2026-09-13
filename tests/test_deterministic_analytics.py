@@ -1407,6 +1407,171 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["byMonth"], [])
 
 
+class TestRegimePerformance(unittest.TestCase):
+
+    def test_regime_performance_uses_canonical_regimes(self):
+        trades = [
+            {
+                "id": "1",
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+            },
+            {
+                "id": "2",
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+            },
+            {
+                "id": "3",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "RANGING"}
+                },
+            },
+            {
+                "id": "4",
+                "result": "BE",
+                "intelligence": {
+                    "marketContext": {"regime": "UNCERTAIN"}
+                },
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["regimePerformance"],
+            [
+                {
+                    "regime": "TRENDING",
+                    "sampleSize": 2,
+                    "winRate": 0.5,
+                    "averageR": 0.5,
+                    "expectancy": 0.5,
+                },
+                {
+                    "regime": "RANGING",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": None,
+                    "expectancy": None,
+                },
+                {
+                    "regime": "UNCERTAIN",
+                    "sampleSize": 1,
+                    "winRate": None,
+                    "averageR": None,
+                    "expectancy": None,
+                },
+            ],
+        )
+
+    def test_regime_performance_excludes_missing_and_invalid_regimes(self):
+        trades = [
+            {
+                "id": "1",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+            },
+            {
+                "id": "2",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {}
+                },
+            },
+            {
+                "id": "3",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "UNKNOWN"}
+                },
+            },
+            {
+                "id": "4",
+                "result": "WIN",
+                "intelligence": {},
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["regimePerformance"],
+            [
+                {
+                    "regime": "TRENDING",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": None,
+                    "expectancy": None,
+                },
+            ],
+        )
+
+    def test_regime_performance_keeps_sample_size_independent_of_actual_r(self):
+        trades = [
+            {
+                "id": "1",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "EXPANDING"}
+                },
+            },
+            {
+                "id": "2",
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "direction": "LONG",
+                "intelligence": {
+                    "marketContext": {"regime": "EXPANDING"}
+                },
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        expanding = next(
+            item
+            for item in stats["regimePerformance"]
+            if item["regime"] == "EXPANDING"
+        )
+
+        self.assertEqual(expanding["sampleSize"], 2)
+        self.assertEqual(expanding["winRate"], 0.5)
+        self.assertEqual(expanding["averageR"], -1.0)
+        self.assertEqual(expanding["expectancy"], -1.0)
+
+    def test_regime_performance_returns_empty_without_valid_regimes(self):
+        stats = calculate_journal_analytics([
+            {},
+            {"intelligence": {"marketContext": {}}},
+            {
+                "intelligence": {
+                    "marketContext": {"regime": "UNKNOWN"}
+                }
+            },
+        ])
+
+        self.assertEqual(stats["regimePerformance"], [])
+
+
 class TestHoldingDuration(unittest.TestCase):
 
     def test_holding_duration_uses_chart_anchor_and_outcome_evidence(self):

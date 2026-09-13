@@ -178,6 +178,18 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     setup_actual_r: dict[str, list[float]] = {}
     setup_recent_trades: dict[str, list[dict[str, Any]]] = {}
 
+    regime_sample_counts: dict[str, int] = {}
+    regime_wins: dict[str, int] = {}
+    regime_losses: dict[str, int] = {}
+    regime_actual_r: dict[str, list[float]] = {}
+    valid_regimes = {
+        "TRENDING",
+        "RANGING",
+        "EXPANDING",
+        "CONTRACTING",
+        "UNCERTAIN",
+    }
+
     for trade in trades:
         setup = trade.get("setup")
 
@@ -235,6 +247,101 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             key=lambda trade: trade.get("timestamp") or "",
             reverse=True,
         )[:10]
+
+    for trade in trades:
+        intelligence = trade.get("intelligence") or {}
+        market_context = intelligence.get("marketContext") or {}
+        regime = market_context.get("regime")
+
+        if regime not in valid_regimes:
+            continue
+
+        regime_sample_counts[regime] = (
+            regime_sample_counts.get(regime, 0) + 1
+        )
+
+        result = trade.get("result")
+        if result == "WIN":
+            regime_wins[regime] = regime_wins.get(regime, 0) + 1
+        elif result == "LOSS":
+            regime_losses[regime] = regime_losses.get(regime, 0) + 1
+
+        entry = trade.get("entry")
+        stop = trade.get("stopLoss")
+        exit_price = trade.get("exitPrice")
+        direction = trade.get("direction")
+
+        if not all(
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            for value in (entry, stop, exit_price)
+        ):
+            continue
+
+        if direction not in {"LONG", "SHORT"}:
+            continue
+
+        risk = abs(entry - stop)
+        if risk == 0:
+            continue
+
+        profit = (
+            exit_price - entry
+            if direction == "LONG"
+            else entry - exit_price
+        )
+        realized_r = profit / risk
+
+        regime_actual_r.setdefault(regime, []).append(realized_r)
+
+    regime_order = [
+        "TRENDING",
+        "RANGING",
+        "EXPANDING",
+        "CONTRACTING",
+        "UNCERTAIN",
+    ]
+
+    regime_performance = [
+        {
+            "regime": regime,
+            "sampleSize": regime_sample_counts[regime],
+            "winRate": (
+                round(
+                    regime_wins.get(regime, 0)
+                    / (
+                        regime_wins.get(regime, 0)
+                        + regime_losses.get(regime, 0)
+                    ),
+                    6,
+                )
+                if (
+                    regime_wins.get(regime, 0)
+                    + regime_losses.get(regime, 0)
+                )
+                else None
+            ),
+            "averageR": (
+                round(
+                    sum(regime_actual_r[regime])
+                    / len(regime_actual_r[regime]),
+                    6,
+                )
+                if regime_actual_r.get(regime)
+                else None
+            ),
+            "expectancy": (
+                round(
+                    sum(regime_actual_r[regime])
+                    / len(regime_actual_r[regime]),
+                    6,
+                )
+                if regime_actual_r.get(regime)
+                else None
+            ),
+        }
+        for regime in regime_order
+        if regime in regime_sample_counts
+    ]
 
     setup_performance = [
         {
@@ -653,6 +760,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "byMonth": by_month,
         "bySession": by_session,
         "setupPerformance": setup_performance,
+        "regimePerformance": regime_performance,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [
