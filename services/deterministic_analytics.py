@@ -172,6 +172,182 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         if session in session_counts
     ]
 
+    setup_sample_counts: dict[str, int] = {}
+    setup_wins: dict[str, int] = {}
+    setup_losses: dict[str, int] = {}
+    setup_actual_r: dict[str, list[float]] = {}
+    setup_recent_trades: dict[str, list[dict[str, Any]]] = {}
+
+    for trade in trades:
+        setup = trade.get("setup")
+
+        if not isinstance(setup, str) or not setup.strip():
+            continue
+
+        setup_name = setup.strip()
+        setup_sample_counts[setup_name] = (
+            setup_sample_counts.get(setup_name, 0) + 1
+        )
+
+        result = trade.get("result")
+        if result == "WIN":
+            setup_wins[setup_name] = setup_wins.get(setup_name, 0) + 1
+        elif result == "LOSS":
+            setup_losses[setup_name] = setup_losses.get(setup_name, 0) + 1
+
+        entry = trade.get("entry")
+        stop = trade.get("stopLoss")
+        exit_price = trade.get("exitPrice")
+        direction = trade.get("direction")
+
+        if not all(
+            isinstance(value, (int, float))
+            for value in (entry, stop, exit_price)
+        ):
+            continue
+
+        if direction not in {"LONG", "SHORT"}:
+            continue
+
+        risk = abs(entry - stop)
+        if risk == 0:
+            continue
+
+        profit = (
+            exit_price - entry
+            if direction == "LONG"
+            else entry - exit_price
+        )
+        realized_r = profit / risk
+
+        setup_actual_r.setdefault(setup_name, []).append(realized_r)
+
+    for setup_name in setup_sample_counts:
+        setup_recent_trades[setup_name] = sorted(
+            [
+                trade
+                for trade in trades
+                if (
+                    isinstance(trade.get("setup"), str)
+                    and trade.get("setup").strip() == setup_name
+                )
+            ],
+            key=lambda trade: trade.get("timestamp") or "",
+            reverse=True,
+        )[:10]
+
+    setup_performance = [
+        {
+            "setup": setup,
+            "sampleSize": count,
+            "winRate": (
+                round(
+                    setup_wins.get(setup, 0)
+                    / (
+                        setup_wins.get(setup, 0)
+                        + setup_losses.get(setup, 0)
+                    ),
+                    6,
+                )
+                if (
+                    setup_wins.get(setup, 0)
+                    + setup_losses.get(setup, 0)
+                )
+                else None
+            ),
+            "averageR": (
+                round(
+                    sum(setup_actual_r[setup])
+                    / len(setup_actual_r[setup]),
+                    6,
+                )
+                if setup_actual_r.get(setup)
+                else None
+            ),
+            "expectancy": (
+                round(
+                    sum(setup_actual_r[setup])
+                    / len(setup_actual_r[setup]),
+                    6,
+                )
+                if setup_actual_r.get(setup)
+                else None
+            ),
+            "recentPerformance": (
+                lambda recent_trades: {
+                    "sampleSize": len(recent_trades),
+                    "winRate": (
+                        round(
+                            sum(
+                                trade.get("result") == "WIN"
+                                for trade in recent_trades
+                            )
+                            / (
+                                sum(
+                                    trade.get("result") == "WIN"
+                                    for trade in recent_trades
+                                )
+                                + sum(
+                                    trade.get("result") == "LOSS"
+                                    for trade in recent_trades
+                                )
+                            ),
+                            6,
+                        )
+                        if (
+                            sum(
+                                trade.get("result") == "WIN"
+                                for trade in recent_trades
+                            )
+                            + sum(
+                                trade.get("result") == "LOSS"
+                                for trade in recent_trades
+                            )
+                        )
+                        else None
+                    ),
+                }
+            )(setup_recent_trades[setup]),
+            "historicalPerformance": {
+                "sampleSize": count,
+                "winRate": (
+                    round(
+                        setup_wins.get(setup, 0)
+                        / (
+                            setup_wins.get(setup, 0)
+                            + setup_losses.get(setup, 0)
+                        ),
+                        6,
+                    )
+                    if (
+                        setup_wins.get(setup, 0)
+                        + setup_losses.get(setup, 0)
+                    )
+                    else None
+                ),
+                "averageR": (
+                    round(
+                        sum(setup_actual_r[setup])
+                        / len(setup_actual_r[setup]),
+                        6,
+                    )
+                    if setup_actual_r.get(setup)
+                    else None
+                ),
+                "expectancy": (
+                    round(
+                        sum(setup_actual_r[setup])
+                        / len(setup_actual_r[setup]),
+                        6,
+                    )
+                    if setup_actual_r.get(setup)
+                    else None
+                ),
+            },
+        }
+        for setup, count in sorted(setup_sample_counts.items())
+    ]
+
     holding_durations: list[float] = []
 
     for trade in trades:
@@ -476,6 +652,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "byWeek": by_week,
         "byMonth": by_month,
         "bySession": by_session,
+        "setupPerformance": setup_performance,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [

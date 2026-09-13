@@ -1499,5 +1499,333 @@ class TestHoldingDuration(unittest.TestCase):
         self.assertEqual(stats["holdingDuration"]["count"], 0)
 
 
+class TestSetupPerformance(unittest.TestCase):
+
+    def test_setup_sample_size_counts_all_trades(self):
+        trades = [
+            {"id": "1", "setup": "Breakout", "result": "WIN"},
+            {"id": "2", "setup": "Breakout", "result": "LOSS"},
+            {"id": "3", "setup": "Reversal", "result": None},
+            {"id": "4", "setup": "Breakout", "result": "BE"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertEqual(performance["Breakout"]["sampleSize"], 3)
+        self.assertEqual(performance["Reversal"]["sampleSize"], 1)
+
+    def test_setup_win_rate_uses_win_loss_only_and_excludes_break_even_unknown(self):
+        trades = [
+            {"id": "1", "setup": "Breakout", "result": "WIN"},
+            {"id": "2", "setup": "Breakout", "result": "LOSS"},
+            {"id": "3", "setup": "Breakout", "result": "WIN"},
+            {"id": "4", "setup": "Breakout", "result": "BE"},
+            {"id": "5", "setup": "Breakout", "result": None},
+            {"id": "6", "setup": "Reversal", "result": "BE"},
+            {"id": "7", "setup": "Reversal", "result": None},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertEqual(performance["Breakout"]["winRate"], 0.666667)
+        self.assertEqual(performance["Reversal"]["winRate"], None)
+
+    def test_setup_average_r_uses_valid_realized_r_only(self):
+        trades = [
+            {
+                "id": "1",
+                "setup": "Breakout",
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+                "direction": "LONG",
+            },
+            {
+                "id": "2",
+                "setup": "Breakout",
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "direction": "LONG",
+            },
+            {
+                "id": "3",
+                "setup": "Breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "4",
+                "setup": "Reversal",
+                "result": "LOSS",
+                "entry": 200,
+                "stopLoss": 205,
+                "exitPrice": 210,
+                "direction": "SHORT",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertEqual(performance["Breakout"]["averageR"], 0.5)
+        self.assertEqual(performance["Reversal"]["averageR"], -2.0)
+
+    def test_setup_average_r_is_none_without_valid_realized_r(self):
+        trades = [
+            {"id": "1", "setup": "Breakout", "result": "WIN"},
+            {
+                "id": "2",
+                "setup": "Reversal",
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 100,
+                "exitPrice": 90,
+                "direction": "LONG",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertIsNone(performance["Breakout"]["averageR"])
+        self.assertIsNone(performance["Reversal"]["averageR"])
+
+    def test_setup_expectancy_uses_same_realized_r_population(self):
+        trades = [
+            {
+                "id": "1",
+                "setup": "Breakout",
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+                "direction": "LONG",
+            },
+            {
+                "id": "2",
+                "setup": "Breakout",
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "direction": "LONG",
+            },
+            {
+                "id": "3",
+                "setup": "Breakout",
+                "result": "BE",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+                "direction": "LONG",
+            },
+            {
+                "id": "4",
+                "setup": "Breakout",
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": None,
+                "direction": "LONG",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertEqual(performance["Breakout"]["expectancy"], 0.333333)
+
+    def test_setup_historical_performance_uses_full_setup_history(self):
+        trades = [
+            {
+                "id": "1",
+                "setup": "Breakout",
+                "result": "WIN",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+                "direction": "LONG",
+                "timestamp": "2026-01-01T00:00:00Z",
+            },
+            {
+                "id": "2",
+                "setup": "Breakout",
+                "result": "LOSS",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+                "direction": "LONG",
+                "timestamp": "2026-01-02T00:00:00Z",
+            },
+            {
+                "id": "3",
+                "setup": "Breakout",
+                "result": "WIN",
+                "timestamp": "2026-01-03T00:00:00Z",
+            },
+            {
+                "id": "4",
+                "setup": "Reversal",
+                "result": "LOSS",
+                "timestamp": "2026-01-04T00:00:00Z",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        performance = {
+            item["setup"]: item
+            for item in stats["setupPerformance"]
+        }
+
+        self.assertEqual(
+            performance["Breakout"]["historicalPerformance"],
+            {
+                "sampleSize": 3,
+                "winRate": 0.666667,
+                "averageR": 0.5,
+                "expectancy": 0.5,
+            },
+        )
+
+        self.assertEqual(
+            performance["Reversal"]["historicalPerformance"],
+            {
+                "sampleSize": 1,
+                "winRate": 0.0,
+                "averageR": None,
+                "expectancy": None,
+            },
+        )
+
+    def test_setup_recent_performance_uses_most_recent_10_trades(self):
+        trades = [
+            {
+                "id": str(index),
+                "setup": "Breakout",
+                "result": "WIN" if index >= 6 else "LOSS",
+                "timestamp": f"2026-01-{index:02d}T00:00:00Z",
+            }
+            for index in range(1, 13)
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        breakout = next(
+            item
+            for item in stats["setupPerformance"]
+            if item["setup"] == "Breakout"
+        )
+
+        self.assertEqual(breakout["sampleSize"], 12)
+        self.assertEqual(
+            breakout["recentPerformance"],
+            {
+                "sampleSize": 10,
+                "winRate": 0.7,
+            },
+        )
+
+    def test_setup_recent_performance_uses_available_trades_when_under_10(self):
+        trades = [
+            {
+                "id": "1",
+                "setup": "Breakout",
+                "result": "WIN",
+                "timestamp": "2026-01-01T00:00:00Z",
+            },
+            {
+                "id": "2",
+                "setup": "Breakout",
+                "result": "LOSS",
+                "timestamp": "2026-01-02T00:00:00Z",
+            },
+            {
+                "id": "3",
+                "setup": "Breakout",
+                "result": None,
+                "timestamp": "2026-01-03T00:00:00Z",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["setupPerformance"][0]["recentPerformance"],
+            {
+                "sampleSize": 3,
+                "winRate": 0.5,
+            },
+        )
+
+    def test_setup_sample_size_excludes_missing_empty_and_non_string_setup(self):
+        trades = [
+            {"id": "1", "setup": "Breakout"},
+            {"id": "2", "setup": ""},
+            {"id": "3", "setup": "   "},
+            {"id": "4", "setup": None},
+            {"id": "5", "setup": 123},
+            {"id": "6"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(len(stats["setupPerformance"]), 1)
+        self.assertEqual(stats["setupPerformance"][0]["setup"], "Breakout")
+        self.assertEqual(stats["setupPerformance"][0]["sampleSize"], 1)
+
+    def test_setup_sample_size_trims_setup_names_and_sorts_deterministically(self):
+        trades = [
+            {"id": "1", "setup": " Reversal "},
+            {"id": "2", "setup": "Breakout"},
+            {"id": "3", "setup": "Reversal"},
+            {"id": "4", "setup": "Breakout"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            [item["setup"] for item in stats["setupPerformance"]],
+            ["Breakout", "Reversal"],
+        )
+        self.assertEqual(
+            [item["sampleSize"] for item in stats["setupPerformance"]],
+            [2, 2],
+        )
+
+    def test_setup_sample_size_is_empty_without_valid_setups(self):
+        stats = calculate_journal_analytics([
+            {"id": "1"},
+            {"id": "2", "setup": ""},
+            {"id": "3", "setup": None},
+        ])
+
+        self.assertEqual(stats["setupPerformance"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

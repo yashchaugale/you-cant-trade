@@ -46,6 +46,18 @@ Holding duration is an estimated chart-path duration calculated from `chartAncho
 
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
+### Setup performance
+
+Setup performance groups canonical trades by their recorded setup name. A setup must be a non-empty string after trimming whitespace; missing, empty, and non-string setup values are excluded. Setup sample size counts every trade with a valid setup, regardless of outcome or review completeness.
+
+Per-setup win rate is `WIN / (WIN + LOSS)`. Break-even and unknown outcomes are excluded from the denominator. If a setup has no decided WIN/LOSS trades, its win rate is `null`.
+
+Per-setup average R and expectancy use the same realized Actual-R evidence rules as the global metrics: only trades with valid entry, stop loss, exit price, direction, and non-zero risk contribute. Missing or invalid Actual-R evidence is excluded from those calculations without reducing the setup's overall sample size. Expectancy is the mean realized Actual R for that setup.
+
+Recent setup performance uses the 10 most recent trades for each setup, ordered by canonical trade timestamp descending. If fewer than 10 trades exist, all available setup trades are used. Its sample size counts all trades in that recent window, while its win rate uses only WIN/LOSS outcomes.
+
+Historical setup performance represents the full available history for that setup with no arbitrary lookback. It exposes the full-history sample size, win rate, average R, and expectancy using the same deterministic evidence rules as setup performance. Recent and historical results are descriptive measurements only and must not be treated as predictions.
+
 ## Pattern Discovery
 
 Search setup, session, direction, structure, regime and bounded combinations. A finding requires sample size, baseline, difference from baseline, recency, stability, and evidence strength. Tiny samples, multiple-comparison effects, survivorship bias, and missing fields must produce warnings—not confident claims.
