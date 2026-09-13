@@ -1215,5 +1215,60 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["bySession"], [])
 
 
+    def test_day_groups_trades_by_utc_day_of_week(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T09:00:00Z"},  # Monday
+            {"id": "2", "timestamp": "2026-01-05T14:00:00Z"},  # Monday
+            {"id": "3", "timestamp": "2026-01-06T10:00:00Z"},  # Tuesday
+            {"id": "4", "timestamp": "2026-01-09T10:00:00Z"},  # Friday
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byDay"], [
+            {"day": "Monday", "count": 2},
+            {"day": "Tuesday", "count": 1},
+            {"day": "Friday", "count": 1},
+        ])
+
+    def test_day_normalizes_offset_timestamps_to_utc(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T00:30:00+01:00"},
+            {"id": "2", "timestamp": "2026-01-05T00:30:00-04:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byDay"], [
+            {"day": "Monday", "count": 1},
+            {"day": "Sunday", "count": 1},
+        ])
+
+    def test_day_excludes_invalid_and_missing_timestamps(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T09:00:00Z"},
+            {"id": "2", "timestamp": "not-a-timestamp"},
+            {"id": "3"},
+            {"id": "4", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byDay"], [
+            {"day": "Monday", "count": 1},
+        ])
+
+    def test_day_returns_empty_when_no_valid_timestamps_exist(self):
+        trades = [
+            {"id": "1", "timestamp": "invalid"},
+            {"id": "2"},
+            {"id": "3", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byDay"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
