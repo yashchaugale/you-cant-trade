@@ -187,6 +187,16 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     structure_wins: dict[str, int] = {}
     structure_losses: dict[str, int] = {}
     structure_actual_r: dict[str, list[float]] = {}
+
+    direction_sample_counts: dict[str, int] = {}
+    direction_wins: dict[str, int] = {}
+    direction_losses: dict[str, int] = {}
+    direction_actual_r: dict[str, list[float]] = {}
+    valid_directions = {
+        "LONG",
+        "SHORT",
+    }
+
     valid_structures = {
         "BULLISH",
         "BEARISH",
@@ -302,6 +312,98 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         realized_r = profit / risk
 
         regime_actual_r.setdefault(regime, []).append(realized_r)
+
+    direction_performance = []
+
+    for trade in trades:
+        direction = trade.get("direction")
+
+        if direction not in valid_directions:
+            continue
+
+        direction_sample_counts[direction] = (
+            direction_sample_counts.get(direction, 0) + 1
+        )
+
+        result = trade.get("result")
+        if result == "WIN":
+            direction_wins[direction] = (
+                direction_wins.get(direction, 0) + 1
+            )
+        elif result == "LOSS":
+            direction_losses[direction] = (
+                direction_losses.get(direction, 0) + 1
+            )
+
+        entry = trade.get("entry")
+        stop = trade.get("stopLoss")
+        exit_price = trade.get("exitPrice")
+
+        if not all(
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            for value in (entry, stop, exit_price)
+        ):
+            continue
+
+        risk = abs(entry - stop)
+        if risk == 0:
+            continue
+
+        profit = (
+            exit_price - entry
+            if direction == "LONG"
+            else entry - exit_price
+        )
+        realized_r = profit / risk
+
+        direction_actual_r.setdefault(direction, []).append(realized_r)
+
+    direction_order = [
+        "LONG",
+        "SHORT",
+    ]
+
+    direction_performance = [
+        {
+            "direction": direction,
+            "sampleSize": direction_sample_counts[direction],
+            "winRate": (
+                round(
+                    direction_wins.get(direction, 0)
+                    / (
+                        direction_wins.get(direction, 0)
+                        + direction_losses.get(direction, 0)
+                    ),
+                    6,
+                )
+                if (
+                    direction_wins.get(direction, 0)
+                    + direction_losses.get(direction, 0)
+                )
+                else None
+            ),
+            "averageR": (
+                round(
+                    sum(direction_actual_r[direction])
+                    / len(direction_actual_r[direction]),
+                    6,
+                )
+                if direction_actual_r.get(direction)
+                else None
+            ),
+            "expectancy": (
+                round(
+                    sum(direction_actual_r[direction])
+                    / len(direction_actual_r[direction]),
+                    6,
+                )
+                if direction_actual_r.get(direction)
+                else None
+            ),
+        }
+        for direction in direction_order
+        if direction in direction_sample_counts
+    ]
 
     structure_performance = []
 
@@ -870,6 +972,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "setupPerformance": setup_performance,
         "regimePerformance": regime_performance,
         "structurePerformance": structure_performance,
+        "directionPerformance": direction_performance,
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(
             [

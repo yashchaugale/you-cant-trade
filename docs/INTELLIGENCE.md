@@ -66,6 +66,16 @@ For each recognized regime, sample size counts every trade assigned to that regi
 
 Results use deterministic ordering: `TRENDING`, `RANGING`, `EXPANDING`, `CONTRACTING`, then `UNCERTAIN`. Regime performance is descriptive evidence about observed trades and must not be treated as predictive.
 
+### Direction performance
+
+Direction performance groups trades by the canonical `direction` field. Recognized directions are `LONG` and `SHORT`. Missing or unrecognized direction values are treated as unknown evidence and excluded.
+
+For each recognized direction, sample size counts every trade with that valid direction. Win rate is `WIN / (WIN + LOSS)`, with break-even and unknown outcomes excluded from the denominator. If a direction has no decided WIN/LOSS trades, its win rate is `null`.
+
+Average R and expectancy use only valid realized Actual-R evidence using the same global rules: valid entry, stop loss, exit price, direction, and non-zero risk. Missing or invalid Actual-R evidence does not reduce the direction's overall sample size.
+
+Results use deterministic ordering: `LONG`, then `SHORT`. Direction performance is descriptive evidence about observed trades and must not be treated as predictive.
+
 ### Structure performance
 
 Structure performance groups trades by the canonical `intelligence.marketStructure.state` produced by the existing You Can't Trade structure engine. Recognized structure states are `BULLISH` and `BEARISH`. Missing, `UNKNOWN`, and unrecognized structure states are treated as unknown evidence and excluded; unknown structure is never interpreted as bullish or bearish.

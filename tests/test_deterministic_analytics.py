@@ -2167,3 +2167,146 @@ class TestStructurePerformance(unittest.TestCase):
         stats = calculate_journal_analytics(trades)
 
         self.assertEqual(stats["structurePerformance"], [])
+
+
+class TestDirectionPerformance(unittest.TestCase):
+
+    def test_direction_performance_uses_canonical_directions(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "result": "LOSS",
+                "direction": "SHORT",
+                "entry": 100,
+                "stopLoss": 105,
+                "exitPrice": 105,
+            },
+            {
+                "result": "WIN",
+                "direction": "SHORT",
+                "entry": 100,
+                "stopLoss": 105,
+                "exitPrice": 90,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["directionPerformance"],
+            [
+                {
+                    "direction": "LONG",
+                    "sampleSize": 2,
+                    "winRate": 0.5,
+                    "averageR": 0.5,
+                    "expectancy": 0.5,
+                },
+                {
+                    "direction": "SHORT",
+                    "sampleSize": 2,
+                    "winRate": 0.5,
+                    "averageR": 0.5,
+                    "expectancy": 0.5,
+                },
+            ],
+        )
+
+    def test_direction_performance_excludes_missing_and_invalid_directions(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+            },
+            {
+                "result": "WIN",
+                "direction": "long",
+            },
+            {
+                "result": "WIN",
+                "direction": "SIDEWAYS",
+            },
+            {
+                "result": "WIN",
+            },
+            {
+                "result": "WIN",
+                "direction": None,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["directionPerformance"],
+            [
+                {
+                    "direction": "LONG",
+                    "sampleSize": 1,
+                    "winRate": 1.0,
+                    "averageR": None,
+                    "expectancy": None,
+                }
+            ],
+        )
+
+    def test_direction_performance_keeps_sample_size_independent_of_actual_r(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["directionPerformance"],
+            [
+                {
+                    "direction": "LONG",
+                    "sampleSize": 3,
+                    "winRate": 0.5,
+                    "averageR": -0.5,
+                    "expectancy": -0.5,
+                }
+            ],
+        )
+
+    def test_direction_performance_returns_empty_without_valid_directions(self):
+        trades = [
+            {"result": "WIN"},
+            {"result": "LOSS", "direction": "SIDEWAYS"},
+            {"result": "BE", "direction": None},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["directionPerformance"], [])
