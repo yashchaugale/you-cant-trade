@@ -124,6 +124,84 @@ class DataHealthTests(unittest.TestCase):
             3,
         )
 
+    def test_reports_missing_core_trade_and_review_fields(self):
+        trades = [
+            {
+                "id": "complete",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "exitPrice": 110,
+                "result": "WIN",
+                "setup": "breakout",
+                "session": "NEW_YORK",
+            },
+            {
+                "id": "missing",
+                "symbol": "",
+                "timeframe": None,
+                "direction": None,
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "exitPrice": None,
+                "result": None,
+                "setup": "",
+                "session": None,
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(health["missing"]["symbol"], 1)
+        self.assertEqual(health["missing"]["timeframe"], 1)
+        self.assertEqual(health["missing"]["direction"], 1)
+        self.assertEqual(health["missing"]["setup"], 1)
+        self.assertEqual(health["missing"]["session"], 1)
+
+    def test_missing_fields_are_independent_of_other_trade_fields(self):
+        trades = [
+            {
+                "id": "trade-1",
+                "symbol": "NQ",
+                "timeframe": "5m",
+                "direction": "LONG",
+                "entry": None,
+                "stopLoss": None,
+                "takeProfit": None,
+                "result": None,
+                "setup": None,
+                "session": None,
+            },
+            {
+                "id": "trade-2",
+                "symbol": None,
+                "timeframe": None,
+                "direction": None,
+                "entry": 100,
+                "stopLoss": 95,
+                "takeProfit": 110,
+                "result": "WIN",
+                "setup": "breakout",
+                "session": "LONDON",
+            },
+        ]
+
+        health = assess_data_health(trades)
+
+        self.assertEqual(health["missing"]["symbol"], 1)
+        self.assertEqual(health["missing"]["timeframe"], 1)
+        self.assertEqual(health["missing"]["direction"], 1)
+        self.assertEqual(health["missing"]["entry"], 1)
+        self.assertEqual(health["missing"]["stopLoss"], 1)
+        self.assertEqual(health["missing"]["takeProfit"], 1)
+        self.assertEqual(health["missing"]["outcome"], 1)
+        self.assertEqual(health["missing"]["setup"], 1)
+        self.assertEqual(health["missing"]["session"], 1)
+
     def test_data_health_does_not_mutate_trades(self):
         trades = [
             {

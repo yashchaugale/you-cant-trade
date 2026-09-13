@@ -57,6 +57,18 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         not _has_value(trade.get("result"))
         for trade in trades
     )
+    missing_symbol = sum(
+        not _has_value(trade.get("symbol"))
+        for trade in trades
+    )
+    missing_timeframe = sum(
+        not _has_value(trade.get("timeframe"))
+        for trade in trades
+    )
+    missing_direction = sum(
+        not _has_value(trade.get("direction"))
+        for trade in trades
+    )
     missing_entry = sum(
         not isinstance(trade.get("entry"), (int, float))
         for trade in trades
@@ -72,6 +84,14 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
     missing_exit_price = sum(
         not isinstance(trade.get("exitPrice"), (int, float))
         for trade in reviewed
+    )
+    missing_setup = sum(
+        not _has_value(trade.get("setup"))
+        for trade in trades
+    )
+    missing_session = sum(
+        not _has_value(trade.get("session"))
+        for trade in trades
     )
 
     missing_actual_r = 0
@@ -177,11 +197,16 @@ def assess_data_health(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "unreviewedTrades": len(trades) - len(reviewed),
         "missing": {
             "outcome": missing_outcome,
+            "symbol": missing_symbol,
+            "timeframe": missing_timeframe,
+            "direction": missing_direction,
             "entry": missing_entry,
             "stopLoss": missing_stop_loss,
             "takeProfit": missing_take_profit,
             "exitPriceReviewed": missing_exit_price,
             "actualRReviewed": missing_actual_r,
+            "setup": missing_setup,
+            "session": missing_session,
             "marketContext": missing_market_context,
             "marketStructure": missing_market_structure,
             "setupFingerprint": missing_setup_fingerprint,

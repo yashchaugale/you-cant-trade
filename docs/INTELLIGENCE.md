@@ -113,3 +113,9 @@ Only measured, supported behaviors become leaks: late entry, early exit, moved s
 
 Report completeness of setup, execution, context, screenshot, result, and review fields, then explain which missing fields would improve a requested analysis.
 
+### Missing fields
+
+Missing-field counts are deterministic completeness measurements across canonical trades. Core fields tracked include outcome, symbol, timeframe, direction, entry, stop loss, take profit, reviewed exit price, reviewed Actual R, setup, session, market context, market structure, and setup fingerprint.
+
+Missing values are counted as unknown evidence and are never treated as negative trading performance. Reviewed-only fields such as exit price and Actual R are evaluated against reviewed trades, while core capture and review fields are counted according to their canonical trade population. Optional notes and emotions are not treated as required fields.
+
