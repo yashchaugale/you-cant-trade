@@ -1338,5 +1338,74 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["byWeek"], [])
 
 
+    def test_month_groups_trades_by_calendar_year_and_month(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T09:00:00Z"},
+            {"id": "2", "timestamp": "2026-01-20T14:00:00Z"},
+            {"id": "3", "timestamp": "2026-02-01T10:00:00Z"},
+            {"id": "4", "timestamp": "2026-03-15T10:00:00Z"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byMonth"], [
+            {"year": 2026, "month": 1, "count": 2},
+            {"year": 2026, "month": 2, "count": 1},
+            {"year": 2026, "month": 3, "count": 1},
+        ])
+
+    def test_month_keeps_same_month_separate_across_years(self):
+        trades = [
+            {"id": "1", "timestamp": "2025-01-15T12:00:00Z"},
+            {"id": "2", "timestamp": "2026-01-15T12:00:00Z"},
+            {"id": "3", "timestamp": "2027-01-15T12:00:00Z"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byMonth"], [
+            {"year": 2025, "month": 1, "count": 1},
+            {"year": 2026, "month": 1, "count": 1},
+            {"year": 2027, "month": 1, "count": 1},
+        ])
+
+    def test_month_normalizes_offset_timestamps_to_utc(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-31T23:30:00-01:00"},
+            {"id": "2", "timestamp": "2026-02-01T00:30:00+00:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byMonth"], [
+            {"year": 2026, "month": 2, "count": 2},
+        ])
+
+    def test_month_excludes_invalid_and_missing_timestamps(self):
+        trades = [
+            {"id": "1", "timestamp": "2026-01-05T09:00:00Z"},
+            {"id": "2", "timestamp": "not-a-timestamp"},
+            {"id": "3"},
+            {"id": "4", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byMonth"], [
+            {"year": 2026, "month": 1, "count": 1},
+        ])
+
+    def test_month_returns_empty_when_no_valid_timestamps_exist(self):
+        trades = [
+            {"id": "1", "timestamp": "invalid"},
+            {"id": "2"},
+            {"id": "3", "timestamp": ""},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["byMonth"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
