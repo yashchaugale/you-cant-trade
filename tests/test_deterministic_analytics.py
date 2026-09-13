@@ -299,6 +299,103 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertIsNone(stats["averageWinner"]["value"])
         self.assertEqual(stats["averageWinner"]["count"], 0)
 
+    def test_average_loser_uses_only_negative_actual_r(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+            {
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["averageLoser"]["value"], -0.75)
+        self.assertEqual(stats["averageLoser"]["count"], 2)
+
+    def test_average_loser_excludes_trades_without_actual_r_evidence(self):
+        trades = [
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": None,
+            },
+            {
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+            {
+                "result": None,
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 95,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["averageLoser"]["value"], -0.75)
+        self.assertEqual(stats["averageLoser"]["count"], 2)
+
+    def test_average_loser_is_none_when_no_negative_actual_r_exists(self):
+        trades = [
+            {
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 105,
+            },
+            {
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 100,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertIsNone(stats["averageLoser"]["value"])
+        self.assertEqual(stats["averageLoser"]["count"], 0)
+
     def test_expectancy_uses_same_actual_r_population(self):
         trades = [
             {

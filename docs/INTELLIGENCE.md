@@ -28,6 +28,8 @@ Profit factor is calculated as gross profit divided by gross loss across `actual
 
 Average winner is calculated as the mean positive realized Actual R values across `actualRTrades`. Losses and break-even trades are excluded from the winner average. Its evidence count is the number of positive realized Actual R values. If there are no positive realized Actual R values, average winner is `null`.
 
+Average loser is calculated as the mean negative realized Actual R values across `actualRTrades`. Wins and break-even trades are excluded from the loser average. Its evidence count is the number of negative realized Actual R values. If there are no negative realized Actual R values, average loser is `null`. The returned value remains negative to preserve the direction and magnitude of realized losses.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery
