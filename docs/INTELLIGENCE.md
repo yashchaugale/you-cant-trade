@@ -36,6 +36,8 @@ Biggest loser is the minimum negative realized Actual R value across `actualRTra
 
 Drawdown is the maximum observed peak-to-trough decline of the cumulative realized Actual R equity curve, using `actualRTrades` in chronological trade order. At each valid Actual-R observation, cumulative realized R is compared with the highest equity reached so far. Drawdown is returned as a positive magnitude. Trades without calculable Actual R are excluded from the equity curve. Its evidence count is the number of chronological Actual-R observations used. If there are no observed peak-to-trough declines, drawdown is `0`.
 
+Win streak is the maximum number of consecutive `WIN` outcomes in chronological trade order. `LOSS`, `BE`, and unknown or missing outcomes break the current win streak but are not counted as wins. Its evidence count is the number of trades considered in the chronological outcome sequence. If there are no wins, win streak is `0`.
+
 Missing exit prices must not exclude a trade from outcome-based, planned-R, setup, context, or other analyses that do not require realized R. Actual-R metrics use only the `actualRTrades` population. Missing evidence is unknown, not negative performance.
 
 ## Pattern Discovery

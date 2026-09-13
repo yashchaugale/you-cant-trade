@@ -92,6 +92,24 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         peak = max(peak, equity)
         max_drawdown = max(max_drawdown, peak - equity)
 
+    chronological_results = [
+        trade.get("result")
+        for trade in sorted(
+            trades,
+            key=lambda trade: trade.get("timestamp") or "",
+        )
+    ]
+
+    current_win_streak = 0
+    max_win_streak = 0
+
+    for result in chronological_results:
+        if result == "WIN":
+            current_win_streak += 1
+            max_win_streak = max(max_win_streak, current_win_streak)
+        else:
+            current_win_streak = 0
+
     winning_actual_r = [
         realized_r
         for _, realized_r, _ in actual_r_trades
@@ -229,6 +247,10 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "drawdown": {
             "value": round(max_drawdown, 6),
             "count": len(chronological_actual_r),
+        },
+        "winStreak": {
+            "value": max_win_streak,
+            "count": len(chronological_results),
         },
         "topSetups": counts([trade.get("setup") for trade in reviewed])[:5],
         "topEmotions": counts(

@@ -48,6 +48,60 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["winRate"], 0.666667)
         self.assertEqual(stats["reviewedTrades"], 3)
 
+
+    def test_win_streak_returns_maximum_consecutive_wins(self):
+        trades = [
+            {"result": "LOSS", "timestamp": "2026-01-01T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-02T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-03T09:00:00"},
+            {"result": "LOSS", "timestamp": "2026-01-04T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-05T09:00:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["winStreak"]["value"], 2)
+        self.assertEqual(stats["winStreak"]["count"], 5)
+
+    def test_win_streak_uses_chronological_order(self):
+        trades = [
+            {"result": "WIN", "timestamp": "2026-01-03T09:00:00"},
+            {"result": "LOSS", "timestamp": "2026-01-04T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-01T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-02T09:00:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["winStreak"]["value"], 3)
+
+    def test_win_streak_breaks_on_break_even_and_unknown_outcomes(self):
+        trades = [
+            {"result": "WIN", "timestamp": "2026-01-01T09:00:00"},
+            {"result": "BE", "timestamp": "2026-01-02T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-03T09:00:00"},
+            {"result": None, "timestamp": "2026-01-04T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-05T09:00:00"},
+            {"result": "WIN", "timestamp": "2026-01-06T09:00:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["winStreak"]["value"], 2)
+        self.assertEqual(stats["winStreak"]["count"], 6)
+
+    def test_win_streak_is_zero_without_wins(self):
+        trades = [
+            {"result": "LOSS", "timestamp": "2026-01-01T09:00:00"},
+            {"result": "BE", "timestamp": "2026-01-02T09:00:00"},
+            {"result": None, "timestamp": "2026-01-03T09:00:00"},
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(stats["winStreak"]["value"], 0)
+        self.assertEqual(stats["winStreak"]["count"], 3)
+
     def test_average_r_uses_realized_actual_r_only(self):
         trades = [
             {
