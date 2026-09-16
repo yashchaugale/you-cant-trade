@@ -273,6 +273,93 @@ class PatternDiscoveryTests(unittest.TestCase):
         self.assertEqual(breakout["baseline"]["winRate"], 0.5)
 
 
+    def test_finding_reports_recency_relative_to_latest_journal_trade(self):
+        trades = [
+            {
+                "id": "old-1",
+                "timestamp": "2026-08-01T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "old-2",
+                "timestamp": "2026-08-02T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "LOSS",
+            },
+            {
+                "id": "old-3",
+                "timestamp": "2026-08-03T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "latest",
+                "timestamp": "2026-08-05T10:00:00.000Z",
+                "setup": "other",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(breakout["firstObserved"], "2026-08-01T10:00:00.000Z")
+        self.assertEqual(breakout["lastObserved"], "2026-08-03T10:00:00.000Z")
+        self.assertEqual(
+            breakout["recency"],
+            {
+                "lastObserved": "2026-08-03T10:00:00.000Z",
+                "journalLatestObserved": "2026-08-05T10:00:00.000Z",
+                "ageInDays": 2,
+            },
+        )
+
+    def test_finding_recency_is_unknown_when_supporting_timestamps_are_missing(self):
+        trades = [
+            {
+                "id": "missing-time-1",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "missing-time-2",
+                "setup": "breakout",
+                "result": "LOSS",
+            },
+            {
+                "id": "missing-time-3",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(breakout["firstObserved"], None)
+        self.assertEqual(breakout["lastObserved"], None)
+        self.assertEqual(
+            breakout["recency"],
+            {
+                "lastObserved": None,
+                "journalLatestObserved": None,
+                "ageInDays": None,
+            },
+        )
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {

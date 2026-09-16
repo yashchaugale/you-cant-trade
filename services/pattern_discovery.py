@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
 from typing import Any
 
 
@@ -112,6 +113,19 @@ def discover_patterns(
 
     baseline = _baseline_metrics(trades)
 
+    journal_timestamps = [
+        trade.get("timestamp")
+        for trade in trades
+        if trade.get("result") in {"WIN", "LOSS", "BE"}
+        and isinstance(trade.get("timestamp"), str)
+        and trade.get("timestamp").strip()
+    ]
+    journal_latest_observed = (
+        max(journal_timestamps)
+        if journal_timestamps
+        else None
+    )
+
     groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
 
     for trade in trades:
@@ -149,6 +163,23 @@ def discover_patterns(
             if actual_r
             else None
         )
+
+        age_in_days = None
+        if journal_latest_observed is not None and timestamps:
+            latest_observed = max(timestamps)
+            try:
+                latest_dt = datetime.fromisoformat(
+                    latest_observed.replace("Z", "+00:00")
+                )
+                journal_latest_dt = datetime.fromisoformat(
+                    journal_latest_observed.replace("Z", "+00:00")
+                )
+                age_in_days = (
+                    journal_latest_dt - latest_dt
+                ).total_seconds() / 86400
+                age_in_days = round(age_in_days, 6)
+            except ValueError:
+                age_in_days = None
 
         findings.append(
             {
@@ -193,6 +224,11 @@ def discover_patterns(
                 ],
                 "firstObserved": min(timestamps) if timestamps else None,
                 "lastObserved": max(timestamps) if timestamps else None,
+                "recency": {
+                    "lastObserved": max(timestamps) if timestamps else None,
+                    "journalLatestObserved": journal_latest_observed,
+                    "ageInDays": age_in_days,
+                },
                 "computationVersion": PATTERN_DISCOVERY_VERSION,
                 "reliability": {
                     "level": "LOW" if len(matches) < 10 else "OBSERVATIONAL",
