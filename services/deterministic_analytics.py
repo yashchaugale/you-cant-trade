@@ -926,6 +926,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
 
     planned_r: list[float] = []
     actual_r: list[float] = []
+    actual_r_trade_ids: list[str] = []
     actual_r_trades: list[tuple[str, float, str]] = []
 
     for trade in trades:
@@ -968,6 +969,11 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         )
         realized_r = profit / risk
         actual_r.append(realized_r)
+
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            actual_r_trade_ids.append(trade_id)
+
         actual_r_trades.append(
             (trade.get("result"), realized_r, trade.get("timestamp"))
         )
@@ -1078,6 +1084,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "actualR": {
             "count": len(actual_r),
             "total": round(sum(actual_r), 6),
+            "tradeIds": actual_r_trade_ids,
             "average": (
                 round(sum(actual_r) / len(actual_r), 6)
                 if actual_r
