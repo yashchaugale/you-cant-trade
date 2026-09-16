@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -164,6 +164,43 @@ def discover_patterns(
             else None
         )
 
+        monthly_actual_r: dict[tuple[int, int], list[float]] = defaultdict(list)
+        observed_months: set[tuple[int, int]] = set()
+
+        for trade in matches:
+            timestamp = trade.get("timestamp")
+            if not isinstance(timestamp, str) or not timestamp.strip():
+                continue
+
+            try:
+                parsed_timestamp = datetime.fromisoformat(
+                    timestamp.replace("Z", "+00:00")
+                )
+            except ValueError:
+                continue
+
+            utc_timestamp = parsed_timestamp.astimezone(timezone.utc)
+            month_key = (utc_timestamp.year, utc_timestamp.month)
+            observed_months.add(month_key)
+
+            trade_actual_r = _actual_r(trade)
+            if trade_actual_r is not None:
+                monthly_actual_r[month_key].append(trade_actual_r)
+
+        profitable_periods = 0
+        losing_periods = 0
+        neutral_periods = 0
+
+        for month_actual_r in monthly_actual_r.values():
+            average_month_r = sum(month_actual_r) / len(month_actual_r)
+
+            if average_month_r > 0:
+                profitable_periods += 1
+            elif average_month_r < 0:
+                losing_periods += 1
+            else:
+                neutral_periods += 1
+
         age_in_days = None
         if journal_latest_observed is not None and timestamps:
             latest_observed = max(timestamps)
@@ -228,6 +265,13 @@ def discover_patterns(
                     "lastObserved": max(timestamps) if timestamps else None,
                     "journalLatestObserved": journal_latest_observed,
                     "ageInDays": age_in_days,
+                },
+                "stability": {
+                    "observedPeriods": len(observed_months),
+                    "profitablePeriods": profitable_periods,
+                    "losingPeriods": losing_periods,
+                    "neutralPeriods": neutral_periods,
+                    "periodsWithActualR": len(monthly_actual_r),
                 },
                 "computationVersion": PATTERN_DISCOVERY_VERSION,
                 "reliability": {

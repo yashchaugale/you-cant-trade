@@ -360,6 +360,75 @@ class PatternDiscoveryTests(unittest.TestCase):
             },
         )
 
+    def test_finding_reports_stability_across_utc_calendar_months(self):
+        trades = [
+            {
+                "id": "jan-win",
+                "timestamp": "2026-01-10T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": 2.0}},
+                },
+            },
+            {
+                "id": "jan-loss",
+                "timestamp": "2026-01-20T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "LOSS",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": -1.0}},
+                },
+            },
+            {
+                "id": "feb-loss",
+                "timestamp": "2026-02-10T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "LOSS",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": -2.0}},
+                },
+            },
+            {
+                "id": "feb-win",
+                "timestamp": "2026-02-20T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": 1.0}},
+                },
+            },
+            {
+                "id": "mar-missing-r",
+                "timestamp": "2026-03-10T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "calculated": {"features": {}},
+                },
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=5)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(
+            breakout["stability"],
+            {
+                "observedPeriods": 3,
+                "profitablePeriods": 1,
+                "losingPeriods": 1,
+                "neutralPeriods": 0,
+                "periodsWithActualR": 2,
+            },
+        )
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {
