@@ -1016,12 +1016,18 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         peak = max(peak, equity)
         max_drawdown = max(max_drawdown, peak - equity)
 
+    chronological_result_trades = sorted(
+        trades,
+        key=lambda trade: trade.get("timestamp") or "",
+    )
     chronological_results = [
         trade.get("result")
-        for trade in sorted(
-            trades,
-            key=lambda trade: trade.get("timestamp") or "",
-        )
+        for trade in chronological_result_trades
+    ]
+    chronological_result_trade_ids = [
+        trade["id"]
+        for trade in chronological_result_trades
+        if isinstance(trade.get("id"), str) and trade.get("id").strip()
     ]
 
     current_win_streak = 0
@@ -1205,10 +1211,12 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         "winStreak": {
             "value": max_win_streak,
             "count": len(chronological_results),
+            "tradeIds": chronological_result_trade_ids,
         },
         "lossStreak": {
             "value": max_loss_streak,
             "count": len(chronological_results),
+            "tradeIds": chronological_result_trade_ids,
         },
         "holdingDuration": {
             "value": (

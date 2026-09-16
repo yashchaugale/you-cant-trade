@@ -80,6 +80,49 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["winStreak"]["value"], 2)
         self.assertEqual(stats["winStreak"]["count"], 5)
 
+    def test_streak_traceability_follows_chronological_trade_sequence(self):
+        trades = [
+            {
+                "id": "win-late",
+                "result": "WIN",
+                "timestamp": "2026-01-04T09:00:00",
+            },
+            {
+                "id": "loss-first",
+                "result": "LOSS",
+                "timestamp": "2026-01-01T09:00:00",
+            },
+            {
+                "id": "win-middle",
+                "result": "WIN",
+                "timestamp": "2026-01-02T09:00:00",
+            },
+            {
+                "id": "break-even",
+                "result": "BE",
+                "timestamp": "2026-01-03T09:00:00",
+            },
+            {
+                "result": "WIN",
+                "timestamp": "2026-01-05T09:00:00",
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        expected_ids = [
+            "loss-first",
+            "win-middle",
+            "break-even",
+            "win-late",
+        ]
+
+        self.assertEqual(stats["winStreak"]["tradeIds"], expected_ids)
+        self.assertEqual(stats["lossStreak"]["tradeIds"], expected_ids)
+        self.assertEqual(stats["winStreak"]["count"], 5)
+        self.assertEqual(stats["lossStreak"]["count"], 5)
+
+
     def test_win_streak_uses_chronological_order(self):
         trades = [
             {"result": "WIN", "timestamp": "2026-01-03T09:00:00"},
