@@ -417,6 +417,80 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["averageWinner"]["value"], 1.5)
         self.assertEqual(stats["averageWinner"]["count"], 2)
 
+    def test_winner_loser_traceability_includes_only_positive_and_negative_actual_r_trade_ids(self):
+        trades = [
+            {
+                "id": "winner-small",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 105,
+            },
+            {
+                "id": "winner-big",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 120,
+            },
+            {
+                "id": "loser-small",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 95,
+            },
+            {
+                "id": "loser-big",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 80,
+            },
+            {
+                "id": "break-even",
+                "result": "BE",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 100,
+            },
+            {
+                "id": "missing-exit",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        expected_winner_ids = ["winner-small", "winner-big"]
+        expected_loser_ids = ["loser-small", "loser-big"]
+
+        self.assertEqual(
+            stats["averageWinner"]["tradeIds"],
+            expected_winner_ids,
+        )
+        self.assertEqual(
+            stats["averageLoser"]["tradeIds"],
+            expected_loser_ids,
+        )
+        self.assertEqual(
+            stats["biggestWinner"]["tradeIds"],
+            expected_winner_ids,
+        )
+        self.assertEqual(
+            stats["biggestLoser"]["tradeIds"],
+            expected_loser_ids,
+        )
+
+
     def test_average_winner_excludes_trades_without_actual_r_evidence(self):
         trades = [
             {
@@ -801,6 +875,55 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["drawdown"]["value"], 1.0)
         self.assertEqual(stats["drawdown"]["count"], 3)
 
+    def test_drawdown_traceability_follows_chronological_actual_r_sequence(self):
+        trades = [
+            {
+                "id": "loss-late",
+                "timestamp": "2026-01-03T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+            {
+                "id": "win-first",
+                "timestamp": "2026-01-01T10:00:00Z",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 110,
+            },
+            {
+                "id": "loss-middle",
+                "timestamp": "2026-01-02T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": 97.5,
+            },
+            {
+                "id": "missing-exit",
+                "timestamp": "2026-01-04T10:00:00Z",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 95,
+                "exitPrice": None,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["drawdown"]["tradeIds"],
+            ["win-first", "loss-middle", "loss-late"],
+        )
+        self.assertEqual(stats["drawdown"]["count"], 3)
+
+
     def test_drawdown_returns_peak_to_trough_decline(self):
         trades = [
             {
@@ -1094,6 +1217,50 @@ class DeterministicAnalyticsTests(unittest.TestCase):
         self.assertEqual(stats["profitFactor"]["count"], 5)
         self.assertEqual(stats["profitFactor"]["grossProfit"], 3.0)
         self.assertEqual(stats["profitFactor"]["grossLoss"], 1.5)
+
+    def test_profit_factor_traceability_includes_only_actual_r_trade_ids(self):
+        trades = [
+            {
+                "id": "profit-factor-win",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 110,
+            },
+            {
+                "id": "profit-factor-loss",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 95,
+            },
+            {
+                "id": "missing-exit",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+            },
+            {
+                "id": "invalid-direction",
+                "result": "WIN",
+                "direction": "SIDEWAYS",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 110,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["profitFactor"]["tradeIds"],
+            ["profit-factor-win", "profit-factor-loss"],
+        )
+        self.assertEqual(stats["profitFactor"]["count"], 2)
+
 
     def test_profit_factor_is_none_when_there_is_no_gross_loss(self):
         trades = [

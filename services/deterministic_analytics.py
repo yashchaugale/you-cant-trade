@@ -927,6 +927,9 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
     planned_r: list[float] = []
     actual_r: list[float] = []
     actual_r_trade_ids: list[str] = []
+    winning_actual_r_trade_ids: list[str] = []
+    losing_actual_r_trade_ids: list[str] = []
+    actual_r_trade_id_timestamps: list[tuple[str, str]] = []
     actual_r_trades: list[tuple[str, float, str]] = []
 
     for trade in trades:
@@ -978,11 +981,29 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
             (trade.get("result"), realized_r, trade.get("timestamp"))
         )
 
+        if isinstance(trade_id, str) and trade_id.strip():
+            actual_r_trade_id_timestamps.append(
+                (trade_id, trade.get("timestamp"))
+            )
+            if realized_r > 0:
+                winning_actual_r_trade_ids.append(trade_id)
+            elif realized_r < 0:
+                losing_actual_r_trade_ids.append(trade_id)
+
+    chronological_actual_r_trades = sorted(
+        actual_r_trades,
+        key=lambda item: item[2] or "",
+    )
     chronological_actual_r = [
         realized_r
-        for _, realized_r, _ in sorted(
-            actual_r_trades,
-            key=lambda item: item[2] or "",
+        for _, realized_r, _ in chronological_actual_r_trades
+    ]
+
+    chronological_actual_r_trade_ids = [
+        trade_id
+        for trade_id, _ in sorted(
+            actual_r_trade_id_timestamps,
+            key=lambda item: item[1] or "",
         )
     ]
 
@@ -1136,6 +1157,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(actual_r_trades),
+            "tradeIds": actual_r_trade_ids,
             "grossProfit": round(gross_profit, 6),
             "grossLoss": round(gross_loss, 6),
         },
@@ -1146,6 +1168,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(winning_actual_r),
+            "tradeIds": winning_actual_r_trade_ids,
         },
         "averageLoser": {
             "value": (
@@ -1154,6 +1177,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(losing_actual_r),
+            "tradeIds": losing_actual_r_trade_ids,
         },
         "biggestWinner": {
             "value": (
@@ -1162,6 +1186,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(winning_actual_r),
+            "tradeIds": winning_actual_r_trade_ids,
         },
         "biggestLoser": {
             "value": (
@@ -1170,10 +1195,12 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(losing_actual_r),
+            "tradeIds": losing_actual_r_trade_ids,
         },
         "drawdown": {
             "value": round(max_drawdown, 6),
             "count": len(chronological_actual_r),
+            "tradeIds": chronological_actual_r_trade_ids,
         },
         "winStreak": {
             "value": max_win_streak,
