@@ -1113,6 +1113,7 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
                 else None
             ),
             "count": len(actual_r_trades),
+            "tradeIds": actual_r_trade_ids,
             "outcomes": {
                 "wins": sum(
                     result == "WIN"

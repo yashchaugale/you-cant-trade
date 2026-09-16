@@ -953,6 +953,50 @@ class DeterministicAnalyticsTests(unittest.TestCase):
             "breakEven": 1,
         })
 
+    def test_expectancy_traceability_includes_only_actual_r_trade_ids(self):
+        trades = [
+            {
+                "id": "expectancy-win",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 110,
+            },
+            {
+                "id": "expectancy-loss",
+                "result": "LOSS",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 95,
+            },
+            {
+                "id": "missing-exit",
+                "result": "WIN",
+                "direction": "LONG",
+                "entry": 100,
+                "stopLoss": 90,
+            },
+            {
+                "id": "invalid-direction",
+                "result": "WIN",
+                "direction": "SIDEWAYS",
+                "entry": 100,
+                "stopLoss": 90,
+                "exitPrice": 110,
+            },
+        ]
+
+        stats = calculate_journal_analytics(trades)
+
+        self.assertEqual(
+            stats["expectancy"]["tradeIds"],
+            ["expectancy-win", "expectancy-loss"],
+        )
+        self.assertEqual(stats["expectancy"]["count"], 2)
+
+
     def test_expectancy_is_none_without_actual_r_evidence(self):
         trades = [
             {"result": "WIN"},
