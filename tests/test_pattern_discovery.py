@@ -103,6 +103,176 @@ class PatternDiscoveryTests(unittest.TestCase):
         self.assertEqual(setup["computationVersion"], 1)
         self.assertEqual(setup["reliability"]["level"], "LOW")
 
+    def test_finding_uses_journal_baseline_and_excludes_break_even_from_win_rate(self):
+        trades = [
+            {
+                "id": "baseline-win-1",
+                "timestamp": "2026-08-01T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": 2.0}},
+                },
+            },
+            {
+                "id": "baseline-loss-1",
+                "timestamp": "2026-08-02T10:00:00.000Z",
+                "setup": "other",
+                "result": "LOSS",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": -1.0}},
+                },
+            },
+            {
+                "id": "baseline-be",
+                "timestamp": "2026-08-03T10:00:00.000Z",
+                "setup": "other",
+                "result": "BE",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": 0.0}},
+                },
+            },
+            {
+                "id": "baseline-win-2",
+                "timestamp": "2026-08-04T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": 1.0}},
+                },
+            },
+            {
+                "id": "baseline-loss-2",
+                "timestamp": "2026-08-05T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "LOSS",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": -1.0}},
+                },
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(breakout["sampleSize"], 3)
+        self.assertEqual(breakout["winRate"], 0.666667)
+        self.assertEqual(breakout["actualR"]["average"], 0.666667)
+
+        self.assertEqual(breakout["baseline"]["sampleSize"], 5)
+        self.assertEqual(breakout["baseline"]["winRate"], 0.5)
+        self.assertEqual(breakout["baseline"]["actualR"]["count"], 5)
+        self.assertEqual(breakout["baseline"]["actualR"]["average"], 0.2)
+        self.assertEqual(
+            breakout["baseline"]["tradeIds"],
+            [
+                "baseline-win-1",
+                "baseline-loss-1",
+                "baseline-be",
+                "baseline-win-2",
+                "baseline-loss-2",
+            ],
+        )
+        self.assertEqual(
+            breakout["baseline"]["actualR"]["tradeIds"],
+            [
+                "baseline-win-1",
+                "baseline-loss-1",
+                "baseline-be",
+                "baseline-win-2",
+                "baseline-loss-2",
+            ],
+        )
+
+        self.assertEqual(breakout["difference"]["winRate"], 0.166667)
+        self.assertEqual(breakout["difference"]["averageR"], 0.466667)
+
+    def test_baseline_actual_r_excludes_missing_actual_r_without_reducing_sample(self):
+        trades = [
+            {
+                "id": "baseline-win",
+                "timestamp": "2026-08-01T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": 2.0}},
+                },
+            },
+            {
+                "id": "baseline-loss",
+                "timestamp": "2026-08-02T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "LOSS",
+                "intelligence": {
+                    "calculated": {"features": {"actualR": -1.0}},
+                },
+            },
+            {
+                "id": "baseline-be",
+                "timestamp": "2026-08-03T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "BE",
+                "intelligence": {
+                    "calculated": {"features": {}},
+                },
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(breakout["baseline"]["sampleSize"], 3)
+        self.assertEqual(breakout["baseline"]["winRate"], 0.5)
+        self.assertEqual(breakout["baseline"]["actualR"]["count"], 2)
+        self.assertEqual(breakout["baseline"]["actualR"]["average"], 0.5)
+
+    def test_pattern_win_rate_excludes_break_even_from_denominator(self):
+        trades = [
+            {
+                "id": "win-1",
+                "timestamp": "2026-08-01T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "loss-1",
+                "timestamp": "2026-08-02T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "LOSS",
+            },
+            {
+                "id": "be-1",
+                "timestamp": "2026-08-03T10:00:00.000Z",
+                "setup": "breakout",
+                "result": "BE",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(breakout["winRate"], 0.5)
+        self.assertEqual(breakout["baseline"]["winRate"], 0.5)
+
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {

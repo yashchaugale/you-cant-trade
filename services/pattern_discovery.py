@@ -20,6 +20,57 @@ def _actual_r(trade: dict[str, Any]) -> float | None:
     return float(value) if isinstance(value, (int, float)) else None
 
 
+def _baseline_metrics(trades: list[dict[str, Any]]) -> dict[str, Any]:
+    outcome_trades = [
+        trade
+        for trade in trades
+        if trade.get("result") in {"WIN", "LOSS", "BE"}
+    ]
+
+    wins = sum(trade.get("result") == "WIN" for trade in outcome_trades)
+    losses = sum(trade.get("result") == "LOSS" for trade in outcome_trades)
+    decided = wins + losses
+
+    actual_r_trade_ids: list[str] = []
+    actual_r: list[float] = []
+
+    for trade in outcome_trades:
+        actual_r_value = _actual_r(trade)
+        if actual_r_value is None:
+            continue
+
+        actual_r.append(actual_r_value)
+
+        trade_id = trade.get("id")
+        if isinstance(trade_id, str) and trade_id.strip():
+            actual_r_trade_ids.append(trade_id)
+
+    outcome_trade_ids = [
+        trade["id"]
+        for trade in outcome_trades
+        if isinstance(trade.get("id"), str) and trade.get("id").strip()
+    ]
+
+    return {
+        "sampleSize": len(outcome_trades),
+        "winRate": (
+            round(wins / decided, 6)
+            if decided
+            else None
+        ),
+        "tradeIds": outcome_trade_ids,
+        "actualR": {
+            "count": len(actual_r),
+            "average": (
+                round(sum(actual_r) / len(actual_r), 6)
+                if actual_r
+                else None
+            ),
+            "tradeIds": actual_r_trade_ids,
+        },
+    }
+
+
 def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
     intelligence = trade.get("intelligence") or {}
     context = intelligence.get("marketContext") or {}
@@ -59,6 +110,8 @@ def discover_patterns(
     if min_sample < 1:
         raise ValueError("min_sample must be at least 1.")
 
+    baseline = _baseline_metrics(trades)
+
     groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
 
     for trade in trades:
@@ -90,6 +143,13 @@ def discover_patterns(
             if isinstance(trade.get("timestamp"), str)
         ]
 
+        pattern_win_rate = round(wins / (wins + losses), 6) if wins + losses else None
+        pattern_average_r = (
+            round(sum(actual_r) / len(actual_r), 6)
+            if actual_r
+            else None
+        )
+
         findings.append(
             {
                 "dimension": dimension,
@@ -100,13 +160,29 @@ def discover_patterns(
                     "losses": losses,
                     "breakEven": break_even,
                 },
-                "winRate": round(wins / len(matches), 6),
+                "winRate": pattern_win_rate,
                 "actualR": {
                     "count": len(actual_r),
                     "total": round(sum(actual_r), 6),
-                    "average": (
-                        round(sum(actual_r) / len(actual_r), 6)
-                        if actual_r
+                    "average": pattern_average_r,
+                },
+                "baseline": {
+                    "sampleSize": baseline["sampleSize"],
+                    "winRate": baseline["winRate"],
+                    "tradeIds": baseline["tradeIds"],
+                    "actualR": baseline["actualR"],
+                },
+                "difference": {
+                    "winRate": (
+                        round(pattern_win_rate - baseline["winRate"], 6)
+                        if pattern_win_rate is not None
+                        and baseline["winRate"] is not None
+                        else None
+                    ),
+                    "averageR": (
+                        round(pattern_average_r - baseline["actualR"]["average"], 6)
+                        if pattern_average_r is not None
+                        and baseline["actualR"]["average"] is not None
                         else None
                     ),
                 },
