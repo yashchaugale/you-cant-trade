@@ -100,6 +100,7 @@ def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
             )
             utc_timestamp = parsed_timestamp.astimezone(timezone.utc)
             values.append(("day", utc_timestamp.strftime("%A")))
+            values.append(("time", utc_timestamp.strftime("%H:00")))
         except ValueError:
             pass
 

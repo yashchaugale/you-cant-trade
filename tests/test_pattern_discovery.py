@@ -476,6 +476,81 @@ class PatternDiscoveryTests(unittest.TestCase):
             ["saturday-1", "saturday-2"],
         )
 
+    def test_finding_discovers_time_from_utc_timestamp(self):
+        trades = [
+            {
+                "id": "time-1",
+                "timestamp": "2026-08-01T20:30:00-02:00",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "time-2",
+                "timestamp": "2026-08-02T22:15:00Z",
+                "setup": "other",
+                "result": "LOSS",
+            },
+            {
+                "id": "time-3",
+                "timestamp": "2026-08-08T22:45:00Z",
+                "setup": "other",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        time_pattern = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "time"
+            and finding["value"] == "22:00"
+        )
+
+        self.assertEqual(time_pattern["sampleSize"], 3)
+        self.assertEqual(
+            time_pattern["sourceTradeIds"],
+            ["time-1", "time-2", "time-3"],
+        )
+
+    def test_time_pattern_ignores_missing_and_invalid_timestamps(self):
+        trades = [
+            {
+                "id": "valid-time-1",
+                "timestamp": "2026-08-01T22:00:00Z",
+                "result": "WIN",
+            },
+            {
+                "id": "valid-time-2",
+                "timestamp": "2026-08-08T22:59:00Z",
+                "result": "LOSS",
+            },
+            {
+                "id": "missing-time",
+                "result": "WIN",
+            },
+            {
+                "id": "invalid-time",
+                "timestamp": "not-a-timestamp",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        time_pattern = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "time"
+            and finding["value"] == "22:00"
+        )
+
+        self.assertEqual(time_pattern["sampleSize"], 2)
+        self.assertEqual(
+            time_pattern["sourceTradeIds"],
+            ["valid-time-1", "valid-time-2"],
+        )
+
     def test_day_pattern_ignores_missing_and_invalid_timestamps(self):
         trades = [
             {
