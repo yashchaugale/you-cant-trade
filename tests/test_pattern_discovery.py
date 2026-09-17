@@ -1008,6 +1008,101 @@ class PatternDiscoveryTests(unittest.TestCase):
         )
 
 
+    def test_finding_discovers_direction_session_combination(self):
+        trades = [
+            {
+                "id": "direction-session-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "direction": "LONG",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "direction-session-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "direction": "LONG",
+                "session": "LONDON",
+                "result": "LOSS",
+            },
+            {
+                "id": "direction-session-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "direction": "LONG",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "other-direction-session",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "direction": "SHORT",
+                "session": "NEW_YORK",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        combination = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "direction_session"
+            and finding["value"] == "LONG + LONDON"
+        )
+
+        self.assertEqual(combination["sampleSize"], 3)
+        self.assertEqual(
+            combination["sourceTradeIds"],
+            [
+                "direction-session-1",
+                "direction-session-2",
+                "direction-session-3",
+            ],
+        )
+        self.assertEqual(combination["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_direction_session_requires_both_direction_and_session(self):
+        trades = [
+            {
+                "id": "direction-only-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "direction": "LONG",
+                "result": "WIN",
+            },
+            {
+                "id": "direction-only-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "direction": "LONG",
+                "result": "LOSS",
+            },
+            {
+                "id": "session-only-1",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "session-only-2",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "session": "LONDON",
+                "result": "LOSS",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        self.assertFalse(
+            any(
+                finding["dimension"] == "direction_session"
+                for finding in findings
+            )
+        )
+
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {

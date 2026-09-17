@@ -151,6 +151,19 @@ def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
         )
 
     if (
+        isinstance(direction, str)
+        and direction.strip()
+        and isinstance(session, str)
+        and session.strip()
+    ):
+        values.append(
+            (
+                "direction_session",
+                f"{direction.strip()} + {session.strip()}",
+            )
+        )
+
+    if (
         isinstance(setup, str)
         and setup.strip()
         and isinstance(session, str)
