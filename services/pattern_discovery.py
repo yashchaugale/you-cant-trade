@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-PATTERN_DISCOVERY_VERSION = 1
+PATTERN_DISCOVERY_VERSION = 2
 MIN_PATTERN_SAMPLE = 3
 
 
@@ -163,6 +163,7 @@ def discover_patterns(
             if actual_r
             else None
         )
+        pattern_expectancy = pattern_average_r
 
         monthly_actual_r: dict[tuple[int, int], list[float]] = defaultdict(list)
         observed_months: set[tuple[int, int]] = set()
@@ -229,6 +230,7 @@ def discover_patterns(
                     "breakEven": break_even,
                 },
                 "winRate": pattern_win_rate,
+                "expectancy": pattern_expectancy,
                 "actualR": {
                     "count": len(actual_r),
                     "total": round(sum(actual_r), 6),
@@ -237,6 +239,7 @@ def discover_patterns(
                 "baseline": {
                     "sampleSize": baseline["sampleSize"],
                     "winRate": baseline["winRate"],
+                    "expectancy": baseline["actualR"]["average"],
                     "tradeIds": baseline["tradeIds"],
                     "actualR": baseline["actualR"],
                 },
@@ -250,6 +253,15 @@ def discover_patterns(
                     "averageR": (
                         round(pattern_average_r - baseline["actualR"]["average"], 6)
                         if pattern_average_r is not None
+                        and baseline["actualR"]["average"] is not None
+                        else None
+                    ),
+                    "expectancy": (
+                        round(
+                            pattern_expectancy - baseline["actualR"]["average"],
+                            6,
+                        )
+                        if pattern_expectancy is not None
                         and baseline["actualR"]["average"] is not None
                         else None
                     ),

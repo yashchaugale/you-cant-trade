@@ -94,13 +94,16 @@ class PatternDiscoveryTests(unittest.TestCase):
         self.assertEqual(setup["actualR"]["count"], 3)
         self.assertEqual(setup["actualR"]["total"], 2.0)
         self.assertEqual(setup["actualR"]["average"], 0.666667)
+        self.assertEqual(setup["expectancy"], 0.666667)
+        self.assertEqual(setup["baseline"]["expectancy"], 0.666667)
+        self.assertEqual(setup["difference"]["expectancy"], 0.0)
         self.assertEqual(
             setup["sourceTradeIds"],
             ["trade-1", "trade-2", "trade-3"],
         )
         self.assertEqual(setup["firstObserved"], "2026-08-01T10:00:00.000Z")
         self.assertEqual(setup["lastObserved"], "2026-08-03T10:00:00.000Z")
-        self.assertEqual(setup["computationVersion"], 1)
+        self.assertEqual(setup["computationVersion"], 2)
         self.assertEqual(setup["reliability"]["level"], "LOW")
 
     def test_finding_uses_journal_baseline_and_excludes_break_even_from_win_rate(self):
