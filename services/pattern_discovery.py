@@ -96,6 +96,7 @@ def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
     direction = trade.get("direction")
     session = trade.get("session")
     regime = context.get("regime")
+    structure_state = structure.get("state")
 
     if (
         isinstance(setup, str)
@@ -133,6 +134,19 @@ def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
             (
                 "setup_regime",
                 f"{setup.strip()} + {regime.strip()}",
+            )
+        )
+
+    if (
+        isinstance(structure_state, str)
+        and structure_state.strip()
+        and isinstance(session, str)
+        and session.strip()
+    ):
+        values.append(
+            (
+                "structure_session",
+                f"{structure_state.strip()} + {session.strip()}",
             )
         )
 

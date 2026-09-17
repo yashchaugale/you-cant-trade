@@ -901,6 +901,113 @@ class PatternDiscoveryTests(unittest.TestCase):
         )
 
 
+    def test_finding_discovers_structure_session_combination(self):
+        trades = [
+            {
+                "id": "structure-session-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"},
+                },
+            },
+            {
+                "id": "structure-session-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "session": "LONDON",
+                "result": "LOSS",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"},
+                },
+            },
+            {
+                "id": "structure-session-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"},
+                },
+            },
+            {
+                "id": "other-structure-session",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "session": "NEW_YORK",
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "BEARISH"},
+                },
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        combination = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "structure_session"
+            and finding["value"] == "BULLISH + LONDON"
+        )
+
+        self.assertEqual(combination["sampleSize"], 3)
+        self.assertEqual(
+            combination["sourceTradeIds"],
+            [
+                "structure-session-1",
+                "structure-session-2",
+                "structure-session-3",
+            ],
+        )
+        self.assertEqual(combination["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_structure_session_requires_both_structure_and_session(self):
+        trades = [
+            {
+                "id": "structure-only-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "result": "WIN",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"},
+                },
+            },
+            {
+                "id": "structure-only-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "result": "LOSS",
+                "intelligence": {
+                    "marketStructure": {"state": "BULLISH"},
+                },
+            },
+            {
+                "id": "session-only-1",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "session-only-2",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "session": "LONDON",
+                "result": "LOSS",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        self.assertFalse(
+            any(
+                finding["dimension"] == "structure_session"
+                for finding in findings
+            )
+        )
+
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {
