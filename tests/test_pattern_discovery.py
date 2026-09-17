@@ -103,7 +103,14 @@ class PatternDiscoveryTests(unittest.TestCase):
         )
         self.assertEqual(setup["firstObserved"], "2026-08-01T10:00:00.000Z")
         self.assertEqual(setup["lastObserved"], "2026-08-03T10:00:00.000Z")
-        self.assertEqual(setup["computationVersion"], 2)
+        self.assertEqual(setup["computationVersion"], 3)
+        self.assertEqual(setup["evidenceStrength"]["sampleSize"], 3)
+        self.assertEqual(setup["evidenceStrength"]["actualRCoverage"], 1.0)
+        self.assertEqual(setup["evidenceStrength"]["observedPeriods"], 1)
+        self.assertEqual(setup["evidenceStrength"]["periodsWithActualR"], 1)
+        self.assertTrue(setup["evidenceStrength"]["recent"])
+        self.assertEqual(setup["evidenceStrength"]["level"], "LOW")
+        self.assertEqual(setup["evidenceStrength"]["minimumSample"], 3)
         self.assertEqual(setup["reliability"]["level"], "LOW")
 
     def test_finding_uses_journal_baseline_and_excludes_break_even_from_win_rate(self):

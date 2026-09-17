@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-PATTERN_DISCOVERY_VERSION = 2
+PATTERN_DISCOVERY_VERSION = 3
 MIN_PATTERN_SAMPLE = 3
 
 
@@ -286,6 +286,31 @@ def discover_patterns(
                     "periodsWithActualR": len(monthly_actual_r),
                 },
                 "computationVersion": PATTERN_DISCOVERY_VERSION,
+                "evidenceStrength": {
+                    "sampleSize": len(matches),
+                    "actualRCoverage": (
+                        round(len(actual_r) / len(matches), 6)
+                        if matches
+                        else 0.0
+                    ),
+                    "observedPeriods": len(observed_months),
+                    "periodsWithActualR": len(monthly_actual_r),
+                    "recent": (
+                        age_in_days is not None
+                        and age_in_days <= 30
+                    ),
+                    "level": (
+                        "LOW"
+                        if len(matches) < 10
+                        else (
+                            "MODERATE"
+                            if len(observed_months) >= 3
+                            and len(monthly_actual_r) >= 2
+                            else "LOW"
+                        )
+                    ),
+                    "minimumSample": min_sample,
+                },
                 "reliability": {
                     "level": "LOW" if len(matches) < 10 else "OBSERVATIONAL",
                     "minimumSample": min_sample,
