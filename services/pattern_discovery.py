@@ -92,6 +92,17 @@ def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
         if isinstance(value, str) and value.strip():
             values.append((dimension, value.strip()))
 
+    timestamp = trade.get("timestamp")
+    if isinstance(timestamp, str) and timestamp.strip():
+        try:
+            parsed_timestamp = datetime.fromisoformat(
+                timestamp.replace("Z", "+00:00")
+            )
+            utc_timestamp = parsed_timestamp.astimezone(timezone.utc)
+            values.append(("day", utc_timestamp.strftime("%A")))
+        except ValueError:
+            pass
+
     for value in fingerprint.get("features") or []:
         if isinstance(value, str) and value.strip():
             values.append(("fingerprint_feature", value.strip()))

@@ -439,6 +439,81 @@ class PatternDiscoveryTests(unittest.TestCase):
             },
         )
 
+    def test_finding_discovers_day_from_utc_timestamp(self):
+        trades = [
+            {
+                "id": "saturday-1",
+                "timestamp": "2026-08-01T20:00:00-02:00",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "sunday-1",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "other",
+                "result": "LOSS",
+            },
+            {
+                "id": "saturday-2",
+                "timestamp": "2026-08-08T10:00:00Z",
+                "setup": "other",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        saturday = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "day"
+            and finding["value"] == "Saturday"
+        )
+
+        self.assertEqual(saturday["sampleSize"], 2)
+        self.assertEqual(
+            saturday["sourceTradeIds"],
+            ["saturday-1", "saturday-2"],
+        )
+
+    def test_day_pattern_ignores_missing_and_invalid_timestamps(self):
+        trades = [
+            {
+                "id": "valid-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "result": "WIN",
+            },
+            {
+                "id": "valid-2",
+                "timestamp": "2026-08-08T10:00:00Z",
+                "result": "LOSS",
+            },
+            {
+                "id": "missing-time",
+                "result": "WIN",
+            },
+            {
+                "id": "invalid-time",
+                "timestamp": "not-a-timestamp",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        saturday = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "day"
+            and finding["value"] == "Saturday"
+        )
+
+        self.assertEqual(saturday["sampleSize"], 2)
+        self.assertEqual(
+            saturday["sourceTradeIds"],
+            ["valid-1", "valid-2"],
+        )
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {
