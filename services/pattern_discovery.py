@@ -329,6 +329,22 @@ def discover_patterns(
                 },
                 "winRate": pattern_win_rate,
                 "expectancy": pattern_expectancy,
+                "observation": (
+                    f"{len(matches)} trades matched {dimension}={value}."
+                ),
+                "conclusion": (
+                    "Observed historical performance differs from the journal "
+                    "baseline; this is an association, not a causal conclusion."
+                    if (
+                        pattern_average_r is not None
+                        and baseline["actualR"]["average"] is not None
+                        and pattern_average_r != baseline["actualR"]["average"]
+                    )
+                    else (
+                        "Observed historical performance does not differ from "
+                        "the journal baseline; this is descriptive, not causal."
+                    )
+                ),
                 "actualR": {
                     "count": len(actual_r),
                     "total": round(sum(actual_r), 6),

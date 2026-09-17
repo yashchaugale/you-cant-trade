@@ -1103,6 +1103,103 @@ class PatternDiscoveryTests(unittest.TestCase):
         )
 
 
+    def test_finding_separates_observation_from_causal_conclusion(self):
+        trades = [
+            {
+                "id": "observation-win-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {"calculated": {"features": {"actualR": 2.0}}},
+            },
+            {
+                "id": "observation-win-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {"calculated": {"features": {"actualR": 2.0}}},
+            },
+            {
+                "id": "observation-loss",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "setup": "breakout",
+                "result": "LOSS",
+                "intelligence": {"calculated": {"features": {"actualR": -1.0}}},
+            },
+            {
+                "id": "baseline-loss",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "setup": "other",
+                "result": "LOSS",
+                "intelligence": {"calculated": {"features": {"actualR": -1.0}}},
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(
+            breakout["observation"],
+            "3 trades matched setup=breakout.",
+        )
+        self.assertIn("association", breakout["conclusion"])
+        self.assertIn("not a causal conclusion", breakout["conclusion"])
+
+
+    def test_finding_conclusion_remains_descriptive_when_baseline_matches(self):
+        trades = [
+            {
+                "id": "descriptive-win-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {"calculated": {"features": {"actualR": 1.0}}},
+            },
+            {
+                "id": "descriptive-loss",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "breakout",
+                "result": "LOSS",
+                "intelligence": {"calculated": {"features": {"actualR": -1.0}}},
+            },
+            {
+                "id": "descriptive-other",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "setup": "other",
+                "result": "WIN",
+                "intelligence": {"calculated": {"features": {"actualR": 1.0}}},
+            },
+            {
+                "id": "descriptive-other-loss",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "setup": "other",
+                "result": "LOSS",
+                "intelligence": {"calculated": {"features": {"actualR": -1.0}}},
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        breakout = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup"
+            and finding["value"] == "breakout"
+        )
+
+        self.assertEqual(
+            breakout["conclusion"],
+            "Observed historical performance does not differ from "
+            "the journal baseline; this is descriptive, not causal.",
+        )
+
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {
