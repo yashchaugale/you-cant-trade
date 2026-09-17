@@ -92,6 +92,22 @@ def _pattern_values(trade: dict[str, Any]) -> list[tuple[str, str]]:
         if isinstance(value, str) and value.strip():
             values.append((dimension, value.strip()))
 
+    setup = trade.get("setup")
+    session = trade.get("session")
+
+    if (
+        isinstance(setup, str)
+        and setup.strip()
+        and isinstance(session, str)
+        and session.strip()
+    ):
+        values.append(
+            (
+                "setup_session",
+                f"{setup.strip()} + {session.strip()}",
+            )
+        )
+
     timestamp = trade.get("timestamp")
     if isinstance(timestamp, str) and timestamp.strip():
         try:

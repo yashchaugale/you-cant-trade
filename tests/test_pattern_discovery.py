@@ -589,6 +589,97 @@ class PatternDiscoveryTests(unittest.TestCase):
             ["valid-1", "valid-2"],
         )
 
+    def test_finding_discovers_setup_session_combination(self):
+        trades = [
+            {
+                "id": "setup-session-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "setup-session-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "LOSS",
+            },
+            {
+                "id": "setup-session-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "other-session",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "setup": "breakout",
+                "session": "NEW_YORK",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        combination = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup_session"
+            and finding["value"] == "breakout + LONDON"
+        )
+
+        self.assertEqual(combination["sampleSize"], 3)
+        self.assertEqual(
+            combination["sourceTradeIds"],
+            [
+                "setup-session-1",
+                "setup-session-2",
+                "setup-session-3",
+            ],
+        )
+        self.assertEqual(combination["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_setup_session_requires_both_setup_and_session(self):
+        trades = [
+            {
+                "id": "setup-only-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "setup-only-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "breakout",
+                "result": "LOSS",
+            },
+            {
+                "id": "session-only-1",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "session-only-2",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "session": "LONDON",
+                "result": "LOSS",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=2)
+
+        self.assertFalse(
+            any(finding["dimension"] == "setup_session" for finding in findings)
+        )
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {
