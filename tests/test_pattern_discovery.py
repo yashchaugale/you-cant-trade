@@ -787,6 +787,120 @@ class PatternDiscoveryTests(unittest.TestCase):
         )
 
 
+    def test_finding_discovers_setup_session_regime_combination(self):
+        trades = [
+            {
+                "id": "setup-session-regime-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"},
+                },
+            },
+            {
+                "id": "setup-session-regime-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "LOSS",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"},
+                },
+            },
+            {
+                "id": "setup-session-regime-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"},
+                },
+            },
+            {
+                "id": "other-combination",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "setup": "breakout",
+                "session": "NEW_YORK",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "RANGING"},
+                },
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        combination = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "setup_session_regime"
+            and finding["value"] == "breakout + LONDON + TRENDING"
+        )
+
+        self.assertEqual(combination["sampleSize"], 3)
+        self.assertEqual(
+            combination["sourceTradeIds"],
+            [
+                "setup-session-regime-1",
+                "setup-session-regime-2",
+                "setup-session-regime-3",
+            ],
+        )
+        self.assertEqual(combination["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_setup_session_regime_requires_all_three_fields(self):
+        trades = [
+            {
+                "id": "setup-only-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "setup": "breakout",
+                "result": "WIN",
+            },
+            {
+                "id": "setup-session-1",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "setup": "breakout",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "setup-regime-1",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "setup": "breakout",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"},
+                },
+            },
+            {
+                "id": "session-regime-1",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"},
+                },
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=1)
+
+        self.assertFalse(
+            any(
+                finding["dimension"] == "setup_session_regime"
+                for finding in findings
+            )
+        )
+
+
     def test_does_not_create_findings_below_minimum_sample(self):
         trades = [
             {
