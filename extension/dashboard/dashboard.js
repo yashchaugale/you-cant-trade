@@ -721,6 +721,63 @@ function renderPatternDiscovery(payload) {
         });
         card.appendChild(supportingTrades);
 
+        const evidenceDetails = document.createElement("div");
+        evidenceDetails.className = "pattern-evidence-details";
+
+        const evidenceItems = [
+            ["Evidence level", finding.evidenceStrength?.level || "—"],
+            [
+                "Sample size",
+                finding.evidenceStrength?.sampleSize == null
+                    ? "—"
+                    : String(finding.evidenceStrength.sampleSize),
+            ],
+            [
+                "Actual R coverage",
+                finding.evidenceStrength?.actualRCoverage == null
+                    ? "—"
+                    : `${(Number(finding.evidenceStrength.actualRCoverage) * 100).toFixed(0)}%`,
+            ],
+            [
+                "Observed periods",
+                finding.stability?.observedPeriods == null
+                    ? "—"
+                    : String(finding.stability.observedPeriods),
+            ],
+            [
+                "Periods with Actual R",
+                finding.stability?.periodsWithActualR == null
+                    ? "—"
+                    : String(finding.stability.periodsWithActualR),
+            ],
+            [
+                "Recent",
+                finding.evidenceStrength?.recent == null
+                    ? "—"
+                    : finding.evidenceStrength.recent ? "Yes" : "No",
+            ],
+            [
+                "Reliability",
+                finding.reliability?.level || "—",
+            ],
+        ];
+
+        evidenceItems.forEach(([label, value]) => {
+            const item = document.createElement("div");
+            item.className = "pattern-evidence-item";
+
+            const itemLabel = document.createElement("span");
+            itemLabel.textContent = label;
+
+            const itemValue = document.createElement("strong");
+            itemValue.textContent = value;
+
+            item.append(itemLabel, itemValue);
+            evidenceDetails.appendChild(item);
+        });
+
+        card.appendChild(evidenceDetails);
+
         container.appendChild(card);
     });
 }
