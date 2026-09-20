@@ -708,6 +708,19 @@ function renderPatternDiscovery(payload) {
         evidenceText.textContent = `${finding.observation || "Observation unavailable"} ${finding.conclusion || ""}`;
         card.appendChild(evidenceText);
 
+        const supportingTrades = document.createElement("button");
+        supportingTrades.type = "button";
+        supportingTrades.className = "pattern-supporting-trades";
+        supportingTrades.textContent = `Open supporting trades (${finding.sourceTradeIds?.length || 0})`;
+        supportingTrades.disabled = !finding.sourceTradeIds?.length;
+        supportingTrades.addEventListener("click", () => {
+            const tradeId = finding.sourceTradeIds?.[0];
+            if (tradeId) {
+                openTrade(tradeId);
+            }
+        });
+        card.appendChild(supportingTrades);
+
         container.appendChild(card);
     });
 }
