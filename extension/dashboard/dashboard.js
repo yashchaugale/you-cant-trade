@@ -569,6 +569,7 @@ function renderPatternReview(analytics) {
 function renderPatternDiscovery(payload) {
     const container = document.getElementById("patternDiscoveryContent");
     const status = document.getElementById("patternDiscoveryStatus");
+    const sortSelect = document.getElementById("patternSortSelect");
 
     if (!container || !status) {
         return;
@@ -576,7 +577,37 @@ function renderPatternDiscovery(payload) {
 
     container.replaceChildren();
 
-    const findings = Array.isArray(payload?.patterns) ? payload.patterns : [];
+    const findings = Array.isArray(payload?.patterns) ? [...payload.patterns] : [];
+    const sortBy = sortSelect?.value || "sampleSize";
+
+    findings.sort((left, right) => {
+        if (sortBy === "winRate") {
+            return (right.winRate ?? -Infinity) - (left.winRate ?? -Infinity);
+        }
+
+        if (sortBy === "averageR") {
+            return (
+                (right.actualR?.average ?? -Infinity) -
+                (left.actualR?.average ?? -Infinity)
+            );
+        }
+
+        if (sortBy === "recency") {
+            return (
+                new Date(right.recency?.lastObserved || 0).getTime() -
+                new Date(left.recency?.lastObserved || 0).getTime()
+            );
+        }
+
+        if (sortBy === "dimension") {
+            return `${left.dimension}:${left.value}`.localeCompare(
+                `${right.dimension}:${right.value}`
+            );
+        }
+
+        return (right.sampleSize || 0) - (left.sampleSize || 0);
+    });
+
     status.textContent = `${findings.length} finding${findings.length === 1 ? "" : "s"} · minimum sample ${payload?.minimumSample || 3}`;
 
     if (!findings.length) {
@@ -657,6 +688,20 @@ function renderPatternDiscovery(payload) {
 }
 
 
+function bindPatternDiscoverySorting() {
+    const sortSelect = document.getElementById("patternSortSelect");
+
+    if (!sortSelect || sortSelect.dataset.bound === "true") {
+        return;
+    }
+
+    sortSelect.dataset.bound = "true";
+    sortSelect.addEventListener("change", () => {
+        loadPatternReview();
+    });
+}
+
+
 async function analyzePatterns() {
     const button = document.getElementById("analyzePatternsButton");
     let output = document.getElementById("patternAIInsight");
@@ -690,6 +735,8 @@ async function analyzePatterns() {
 
 
 async function loadPatternReview() {
+    bindPatternDiscoverySorting();
+
     try {
         const [analytics, patterns] = await Promise.all([
             getLocalAnalytics(),

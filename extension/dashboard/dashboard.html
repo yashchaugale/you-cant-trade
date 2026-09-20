@@ -168,7 +168,17 @@
                         <p class="eyebrow">Explore</p>
                         <h3>Patterns in your journal</h3>
                     </div>
-                    <p id="patternDiscoveryStatus" class="review-period">Loading findings…</p>
+                    <div class="pattern-discovery-controls">
+                        <label for="patternSortSelect">Sort</label>
+                        <select id="patternSortSelect">
+                            <option value="sampleSize">Sample size</option>
+                            <option value="winRate">Win rate</option>
+                            <option value="averageR">Average R</option>
+                            <option value="recency">Recent</option>
+                            <option value="dimension">Dimension</option>
+                        </select>
+                        <p id="patternDiscoveryStatus" class="review-period">Loading findings…</p>
+                    </div>
                 </div>
                 <div id="patternDiscoveryContent" class="pattern-discovery-content">
                     <p class="pattern-empty">Loading deterministic pattern findings…</p>
