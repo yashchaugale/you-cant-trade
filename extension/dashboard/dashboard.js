@@ -663,7 +663,7 @@ function renderPatternDiscovery(payload) {
 
         const meta = document.createElement("p");
         meta.className = "pattern-finding-meta";
-        meta.textContent = `${finding.sampleSize} supporting trades · ${finding.reliability?.level || "UNKNOWN"} reliability`;
+        meta.textContent = `${finding.sampleSize} supporting trades`;
         card.appendChild(meta);
 
         const metrics = document.createElement("div");
@@ -725,7 +725,6 @@ function renderPatternDiscovery(payload) {
         evidenceDetails.className = "pattern-evidence-details";
 
         const evidenceItems = [
-            ["Evidence level", finding.evidenceStrength?.level || "—"],
             [
                 "Sample size",
                 finding.evidenceStrength?.sampleSize == null
