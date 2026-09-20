@@ -33,6 +33,8 @@ def _dimension_value(
 ) -> str | None:
     if dimension == "setup":
         value = trade.get("setup")
+    elif dimension == "session":
+        value = trade.get("session")
     elif dimension == "market_regime":
         value = _regime_value(trade)
     else:

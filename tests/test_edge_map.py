@@ -232,3 +232,121 @@ def test_setup_regime_excludes_unreviewed_trades():
 
     assert cell["sampleSize"] == 3
     assert cell["sourceTradeIds"] == ["1", "2", "3"]
+
+
+def test_setup_session_creates_separate_cells():
+    trades = [
+        make_trade("1", "Breakout", "EXPANDING", "WIN", 1.5),
+        make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+        make_trade("3", "Breakout", "EXPANDING", "WIN", 1.0),
+    ]
+
+    for trade in trades:
+        trade["session"] = "LONDON"
+
+    trades.extend([
+        {
+            **make_trade("4", "Breakout", "EXPANDING", "WIN", 2.0),
+            "session": "NEW_YORK",
+        },
+        {
+            **make_trade("5", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "session": "NEW_YORK",
+        },
+        {
+            **make_trade("6", "Breakout", "EXPANDING", "WIN", 1.0),
+            "session": "NEW_YORK",
+        },
+    ])
+
+    cells = build_edge_map(
+        trades,
+        "setup",
+        "session",
+    )
+
+    assert len(cells) == 2
+    assert {
+        (cell["valueA"], cell["valueB"])
+        for cell in cells
+    } == {
+        ("Breakout", "LONDON"),
+        ("Breakout", "NEW_YORK"),
+    }
+
+
+def test_setup_session_calculates_metrics():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "session": "LONDON",
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "session": "LONDON",
+        },
+        {
+            **make_trade("3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "session": "LONDON",
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "setup",
+        "session",
+    )[0]
+
+    assert cell["sampleSize"] == 3
+    assert cell["winRate"] == 0.666667
+    assert cell["averageR"] == 0.5
+    assert cell["expectancy"] == 0.5
+    assert cell["evidenceStrength"]["actualRCoverage"] == 1.0
+
+
+def test_setup_session_returns_supporting_trade_ids():
+    trades = [
+        {
+            **make_trade("trade-1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "session": "LONDON",
+        },
+        {
+            **make_trade("trade-2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "session": "LONDON",
+        },
+        {
+            **make_trade("trade-3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "session": "LONDON",
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "setup",
+        "session",
+    )[0]
+
+    assert cell["sourceTradeIds"] == [
+        "trade-1",
+        "trade-2",
+        "trade-3",
+    ]
+
+
+def test_setup_session_enforces_minimum_sample():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.0),
+            "session": "LONDON",
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "session": "LONDON",
+        },
+    ]
+
+    assert build_edge_map(
+        trades,
+        "setup",
+        "session",
+    ) == []
