@@ -169,6 +169,19 @@
                         <h3>Patterns in your journal</h3>
                     </div>
                     <div class="pattern-discovery-controls">
+                        <label for="patternDimensionFilter">Filter</label>
+                        <select id="patternDimensionFilter">
+                            <option value="">All dimensions</option>
+                            <option value="setup">Setup</option>
+                            <option value="session">Session</option>
+                            <option value="direction">Direction</option>
+                            <option value="structure_state">Structure</option>
+                            <option value="market_regime">Regime</option>
+                            <option value="day">Day</option>
+                            <option value="time">Time</option>
+                            <option value="combined">Combined dimensions</option>
+                        </select>
+
                         <label for="patternSortSelect">Sort</label>
                         <select id="patternSortSelect">
                             <option value="sampleSize">Sample size</option>
@@ -177,6 +190,7 @@
                             <option value="recency">Recent</option>
                             <option value="dimension">Dimension</option>
                         </select>
+
                         <p id="patternDiscoveryStatus" class="review-period">Loading findings…</p>
                     </div>
                 </div>

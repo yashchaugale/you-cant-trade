@@ -570,6 +570,7 @@ function renderPatternDiscovery(payload) {
     const container = document.getElementById("patternDiscoveryContent");
     const status = document.getElementById("patternDiscoveryStatus");
     const sortSelect = document.getElementById("patternSortSelect");
+    const dimensionFilter = document.getElementById("patternDimensionFilter");
 
     if (!container || !status) {
         return;
@@ -577,7 +578,27 @@ function renderPatternDiscovery(payload) {
 
     container.replaceChildren();
 
-    const findings = Array.isArray(payload?.patterns) ? [...payload.patterns] : [];
+    const allFindings = Array.isArray(payload?.patterns) ? [...payload.patterns] : [];
+    const selectedDimension = dimensionFilter?.value || "";
+    const findings = allFindings.filter(finding => {
+        if (!selectedDimension) {
+            return true;
+        }
+
+        if (selectedDimension === "combined") {
+            return [
+                "setup_session",
+                "setup_direction",
+                "setup_regime",
+                "setup_session_regime",
+                "structure_session",
+                "direction_session",
+            ].includes(finding.dimension);
+        }
+
+        return finding.dimension === selectedDimension;
+    });
+
     const sortBy = sortSelect?.value || "sampleSize";
 
     findings.sort((left, right) => {
@@ -608,7 +629,11 @@ function renderPatternDiscovery(payload) {
         return (right.sampleSize || 0) - (left.sampleSize || 0);
     });
 
-    status.textContent = `${findings.length} finding${findings.length === 1 ? "" : "s"} · minimum sample ${payload?.minimumSample || 3}`;
+    const filterLabel = selectedDimension
+        ? ` · ${selectedDimension === "combined" ? "combined" : selectedDimension}`
+        : "";
+
+    status.textContent = `${findings.length} finding${findings.length === 1 ? "" : "s"}${filterLabel} · minimum sample ${payload?.minimumSample || 3}`;
 
     if (!findings.length) {
         const empty = document.createElement("p");
@@ -690,15 +715,21 @@ function renderPatternDiscovery(payload) {
 
 function bindPatternDiscoverySorting() {
     const sortSelect = document.getElementById("patternSortSelect");
+    const dimensionFilter = document.getElementById("patternDimensionFilter");
 
-    if (!sortSelect || sortSelect.dataset.bound === "true") {
-        return;
+    if (sortSelect && sortSelect.dataset.bound !== "true") {
+        sortSelect.dataset.bound = "true";
+        sortSelect.addEventListener("change", () => {
+            loadPatternReview();
+        });
     }
 
-    sortSelect.dataset.bound = "true";
-    sortSelect.addEventListener("change", () => {
-        loadPatternReview();
-    });
+    if (dimensionFilter && dimensionFilter.dataset.bound !== "true") {
+        dimensionFilter.dataset.bound = "true";
+        dimensionFilter.addEventListener("change", () => {
+            loadPatternReview();
+        });
+    }
 }
 
 
