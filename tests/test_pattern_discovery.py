@@ -589,6 +589,222 @@ class PatternDiscoveryTests(unittest.TestCase):
             ["valid-1", "valid-2"],
         )
 
+    def test_finding_discovers_session_pattern(self):
+        trades = [
+            {
+                "id": "session-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "session-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "session": "LONDON",
+                "result": "LOSS",
+            },
+            {
+                "id": "session-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "session": "LONDON",
+                "result": "WIN",
+            },
+            {
+                "id": "other-session",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "session": "NEW_YORK",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        session = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "session"
+            and finding["value"] == "LONDON"
+        )
+
+        self.assertEqual(session["sampleSize"], 3)
+        self.assertEqual(session["winRate"], 0.666667)
+        self.assertEqual(
+            session["sourceTradeIds"],
+            ["session-1", "session-2", "session-3"],
+        )
+        self.assertEqual(session["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_finding_discovers_direction_pattern(self):
+        trades = [
+            {
+                "id": "direction-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "direction": "LONG",
+                "result": "WIN",
+            },
+            {
+                "id": "direction-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "direction": "LONG",
+                "result": "LOSS",
+            },
+            {
+                "id": "direction-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "direction": "LONG",
+                "result": "WIN",
+            },
+            {
+                "id": "other-direction",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "direction": "SHORT",
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        direction = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "direction"
+            and finding["value"] == "LONG"
+        )
+
+        self.assertEqual(direction["sampleSize"], 3)
+        self.assertEqual(direction["winRate"], 0.666667)
+        self.assertEqual(
+            direction["sourceTradeIds"],
+            ["direction-1", "direction-2", "direction-3"],
+        )
+        self.assertEqual(direction["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_finding_discovers_structure_pattern(self):
+        trades = [
+            {
+                "id": "structure-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "intelligence": {
+                    "marketStructure": {"state": "TRENDING"}
+                },
+                "result": "WIN",
+            },
+            {
+                "id": "structure-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "intelligence": {
+                    "marketStructure": {"state": "TRENDING"}
+                },
+                "result": "LOSS",
+            },
+            {
+                "id": "structure-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "intelligence": {
+                    "marketStructure": {"state": "TRENDING"}
+                },
+                "result": "WIN",
+            },
+            {
+                "id": "other-structure",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "intelligence": {
+                    "marketStructure": {"state": "RANGING"}
+                },
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        structure = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "structure_state"
+            and finding["value"] == "TRENDING"
+        )
+
+        self.assertEqual(structure["sampleSize"], 3)
+        self.assertEqual(structure["winRate"], 0.666667)
+        self.assertEqual(
+            structure["sourceTradeIds"],
+            ["structure-1", "structure-2", "structure-3"],
+        )
+        self.assertEqual(structure["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
+    def test_finding_discovers_regime_pattern(self):
+        trades = [
+            {
+                "id": "regime-1",
+                "timestamp": "2026-08-01T10:00:00Z",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+                "result": "WIN",
+            },
+            {
+                "id": "regime-2",
+                "timestamp": "2026-08-02T10:00:00Z",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+                "result": "LOSS",
+            },
+            {
+                "id": "regime-3",
+                "timestamp": "2026-08-03T10:00:00Z",
+                "intelligence": {
+                    "marketContext": {"regime": "TRENDING"}
+                },
+                "result": "WIN",
+            },
+            {
+                "id": "other-regime",
+                "timestamp": "2026-08-04T10:00:00Z",
+                "intelligence": {
+                    "marketContext": {"regime": "RANGING"}
+                },
+                "result": "WIN",
+            },
+        ]
+
+        findings = discover_patterns(trades, min_sample=3)
+
+        regime = next(
+            finding
+            for finding in findings
+            if finding["dimension"] == "market_regime"
+            and finding["value"] == "TRENDING"
+        )
+
+        self.assertEqual(regime["sampleSize"], 3)
+        self.assertEqual(regime["winRate"], 0.666667)
+        self.assertEqual(
+            regime["sourceTradeIds"],
+            ["regime-1", "regime-2", "regime-3"],
+        )
+        self.assertEqual(regime["outcomes"], {
+            "wins": 2,
+            "losses": 1,
+            "breakEven": 0,
+        })
+
+
     def test_finding_discovers_setup_session_combination(self):
         trades = [
             {
