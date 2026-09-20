@@ -350,3 +350,124 @@ def test_setup_session_enforces_minimum_sample():
         "setup",
         "session",
     ) == []
+
+
+def test_setup_direction_creates_separate_cells():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("4", "Breakout", "EXPANDING", "WIN", 2.0),
+            "direction": "SHORT",
+        },
+        {
+            **make_trade("5", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "direction": "SHORT",
+        },
+        {
+            **make_trade("6", "Breakout", "EXPANDING", "WIN", 1.0),
+            "direction": "SHORT",
+        },
+    ]
+
+    cells = build_edge_map(
+        trades,
+        "setup",
+        "direction",
+    )
+
+    assert len(cells) == 2
+    assert {
+        (cell["valueA"], cell["valueB"])
+        for cell in cells
+    } == {
+        ("Breakout", "LONG"),
+        ("Breakout", "SHORT"),
+    }
+
+
+def test_setup_direction_calculates_metrics():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "direction": "LONG",
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "setup",
+        "direction",
+    )[0]
+
+    assert cell["sampleSize"] == 3
+    assert cell["winRate"] == 0.666667
+    assert cell["averageR"] == 0.5
+    assert cell["expectancy"] == 0.5
+    assert cell["evidenceStrength"]["actualRCoverage"] == 1.0
+
+
+def test_setup_direction_returns_supporting_trade_ids():
+    trades = [
+        {
+            **make_trade("trade-1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("trade-2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("trade-3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "direction": "LONG",
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "setup",
+        "direction",
+    )[0]
+
+    assert cell["sourceTradeIds"] == [
+        "trade-1",
+        "trade-2",
+        "trade-3",
+    ]
+
+
+def test_setup_direction_enforces_minimum_sample():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.0),
+            "direction": "LONG",
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "direction": "LONG",
+        },
+    ]
+
+    assert build_edge_map(
+        trades,
+        "setup",
+        "direction",
+    ) == []
