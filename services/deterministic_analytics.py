@@ -337,6 +337,9 @@ def calculate_journal_analytics(trades: list[dict[str, Any]]) -> dict[str, Any]:
         market_context = intelligence.get("marketContext") or {}
         regime = market_context.get("regime")
 
+        if isinstance(regime, dict):
+            regime = regime.get("regime")
+
         if regime not in valid_regimes:
             continue
 
