@@ -39,6 +39,7 @@ from database.local_database import (
 )
 from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
+from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -268,6 +269,25 @@ async def change_experiment_status(experiment_id: str, payload: dict):
     if result is None:
         raise HTTPException(status_code=404, detail="Experiment not found")
     return {"experiment": result}
+
+
+@app.get("/patterns")
+async def patterns():
+    try:
+        provider = get_storage_provider()
+        trades = provider.list_trades(
+            limit=provider.historical_candidate_limit()
+        )
+        return {
+            "patterns": discover_patterns(
+                trades,
+                min_sample=MIN_PATTERN_SAMPLE,
+            ),
+            "sampleSize": len(trades),
+            "minimumSample": MIN_PATTERN_SAMPLE,
+        }
+    except StorageProviderError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/analytics/summary")

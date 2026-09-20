@@ -10,6 +10,7 @@ import {
     LocalApiUnavailableError,
     searchLocalTrades,
     getLocalAnalytics,
+    getLocalPatterns,
     analyzeLocalPatterns,
     getSimilarLocalTrades,
     compareLocalTrade,
@@ -565,6 +566,97 @@ function renderPatternReview(analytics) {
 }
 
 
+function renderPatternDiscovery(payload) {
+    const container = document.getElementById("patternDiscoveryContent");
+    const status = document.getElementById("patternDiscoveryStatus");
+
+    if (!container || !status) {
+        return;
+    }
+
+    container.replaceChildren();
+
+    const findings = Array.isArray(payload?.patterns) ? payload.patterns : [];
+    status.textContent = `${findings.length} finding${findings.length === 1 ? "" : "s"} · minimum sample ${payload?.minimumSample || 3}`;
+
+    if (!findings.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No recurring patterns meet the minimum sample yet.";
+        container.appendChild(empty);
+        return;
+    }
+
+    findings.forEach(finding => {
+        const card = document.createElement("article");
+        card.className = "pattern-finding";
+
+        const heading = document.createElement("div");
+        heading.className = "pattern-finding-heading";
+
+        const title = document.createElement("h4");
+        title.className = "pattern-finding-title";
+        title.textContent = `${finding.dimension}: ${finding.value}`;
+
+        const evidence = document.createElement("span");
+        evidence.className = "review-period";
+        evidence.textContent = finding.evidenceStrength?.level || "UNKNOWN";
+
+        heading.append(title, evidence);
+        card.appendChild(heading);
+
+        const meta = document.createElement("p");
+        meta.className = "pattern-finding-meta";
+        meta.textContent = `${finding.sampleSize} supporting trades · ${finding.reliability?.level || "UNKNOWN"} reliability`;
+        card.appendChild(meta);
+
+        const metrics = document.createElement("div");
+        metrics.className = "pattern-finding-metrics";
+
+        const addMetric = (label, value) => {
+            const metric = document.createElement("div");
+            metric.className = "pattern-finding-metric";
+
+            const metricLabel = document.createElement("span");
+            metricLabel.textContent = label;
+
+            const metricValue = document.createElement("strong");
+            metricValue.textContent = value;
+
+            metric.append(metricLabel, metricValue);
+            metrics.appendChild(metric);
+        };
+
+        addMetric(
+            "Win rate",
+            finding.winRate == null ? "—" : `${(Number(finding.winRate) * 100).toFixed(1)}%`
+        );
+
+        addMetric(
+            "Average R",
+            finding.actualR?.average == null ? "—" : `${Number(finding.actualR.average).toFixed(2)}R`
+        );
+
+        addMetric(
+            "Actual R coverage",
+            finding.evidenceStrength?.actualRCoverage == null
+                ? "—"
+                : `${(Number(finding.evidenceStrength.actualRCoverage) * 100).toFixed(0)}%`
+        );
+
+        metrics.appendChild(document.createElement("div"));
+        card.appendChild(metrics);
+
+        const evidenceText = document.createElement("p");
+        evidenceText.className = "pattern-evidence";
+        evidenceText.textContent = `${finding.observation || "Observation unavailable"} ${finding.conclusion || ""}`;
+        card.appendChild(evidenceText);
+
+        container.appendChild(card);
+    });
+}
+
+
 async function analyzePatterns() {
     const button = document.getElementById("analyzePatternsButton");
     let output = document.getElementById("patternAIInsight");
@@ -599,10 +691,32 @@ async function analyzePatterns() {
 
 async function loadPatternReview() {
     try {
-        renderPatternReview(await getLocalAnalytics());
+        const [analytics, patterns] = await Promise.all([
+            getLocalAnalytics(),
+            getLocalPatterns(),
+        ]);
+
+        renderPatternReview(analytics);
+        renderPatternDiscovery(patterns);
     } catch (error) {
         patternReviewStatus.textContent = "Local service unavailable";
         renderPatternReview(null);
+
+        const discoveryStatus = document.getElementById("patternDiscoveryStatus");
+        const discoveryContent = document.getElementById("patternDiscoveryContent");
+
+        if (discoveryStatus) {
+            discoveryStatus.textContent = "Local service unavailable";
+        }
+
+        if (discoveryContent) {
+            discoveryContent.replaceChildren();
+
+            const empty = document.createElement("p");
+            empty.className = "pattern-empty";
+            empty.textContent = "Start the local service to load deterministic pattern findings.";
+            discoveryContent.appendChild(empty);
+        }
     }
 }
 

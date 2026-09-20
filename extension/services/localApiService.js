@@ -156,6 +156,11 @@ export async function getLocalAnalytics() {
 }
 
 
+export async function getLocalPatterns() {
+    return request("/patterns");
+}
+
+
 export async function analyzeLocalPatterns() {
     const result = await request("/ai/analyze-patterns", { method: "POST" });
     return result;
