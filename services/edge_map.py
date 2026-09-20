@@ -27,6 +27,18 @@ def _regime_value(trade: dict[str, Any]) -> str | None:
     return None
 
 
+def _structure_value(trade: dict[str, Any]) -> str | None:
+    market_structure = (
+        (trade.get("intelligence") or {}).get("marketStructure") or {}
+    )
+    structure = market_structure.get("state")
+
+    if isinstance(structure, str) and structure.strip():
+        return structure.strip()
+
+    return None
+
+
 def _dimension_value(
     trade: dict[str, Any],
     dimension: str,
@@ -39,6 +51,8 @@ def _dimension_value(
         value = trade.get("direction")
     elif dimension == "market_regime":
         value = _regime_value(trade)
+    elif dimension == "structure_state":
+        value = _structure_value(trade)
     else:
         raise ValueError(f"Unsupported Edge Map dimension: {dimension}")
 

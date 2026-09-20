@@ -471,3 +471,168 @@ def test_setup_direction_enforces_minimum_sample():
         "setup",
         "direction",
     ) == []
+
+
+def test_structure_setup_creates_separate_cells():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+        {
+            **make_trade("3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+        {
+            **make_trade("4", "Breakout", "EXPANDING", "WIN", 2.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "RANGING"},
+            },
+        },
+        {
+            **make_trade("5", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "RANGING"},
+            },
+        },
+        {
+            **make_trade("6", "Breakout", "EXPANDING", "WIN", 1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "RANGING"},
+            },
+        },
+    ]
+
+    cells = build_edge_map(
+        trades,
+        "structure_state",
+        "setup",
+    )
+
+    assert len(cells) == 2
+    assert {
+        (cell["valueA"], cell["valueB"])
+        for cell in cells
+    } == {
+        ("TRENDING", "Breakout"),
+        ("RANGING", "Breakout"),
+    }
+
+
+def test_structure_setup_calculates_metrics():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+                "calculated": {"features": {"actualR": 1.5}},
+            },
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+                "calculated": {"features": {"actualR": -1.0}},
+            },
+        },
+        {
+            **make_trade("3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+                "calculated": {"features": {"actualR": 1.0}},
+            },
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "structure_state",
+        "setup",
+    )[0]
+
+    assert cell["sampleSize"] == 3
+    assert cell["winRate"] == 0.666667
+    assert cell["averageR"] == 0.5
+    assert cell["expectancy"] == 0.5
+    assert cell["evidenceStrength"]["actualRCoverage"] == 1.0
+
+def test_structure_setup_returns_supporting_trade_ids():
+    trades = [
+        {
+            **make_trade("trade-1", "Breakout", "EXPANDING", "WIN", 1.5),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+        {
+            **make_trade("trade-2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+        {
+            **make_trade("trade-3", "Breakout", "EXPANDING", "WIN", 1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "structure_state",
+        "setup",
+    )[0]
+
+    assert cell["sourceTradeIds"] == [
+        "trade-1",
+        "trade-2",
+        "trade-3",
+    ]
+
+
+def test_structure_setup_enforces_minimum_sample():
+    trades = [
+        {
+            **make_trade("1", "Breakout", "EXPANDING", "WIN", 1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+        {
+            **make_trade("2", "Breakout", "EXPANDING", "LOSS", -1.0),
+            "intelligence": {
+                "marketContext": {"regime": "EXPANDING"},
+                "marketStructure": {"state": "TRENDING"},
+            },
+        },
+    ]
+
+    assert build_edge_map(
+        trades,
+        "structure_state",
+        "setup",
+    ) == []
