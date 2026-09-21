@@ -161,6 +161,16 @@ export async function getLocalPatterns() {
 }
 
 
+export async function getLocalEdgeMap(dimensionA, dimensionB) {
+    const params = new URLSearchParams({
+        dimension_a: dimensionA,
+        dimension_b: dimensionB,
+    });
+
+    return request(`/edge-map?${params.toString()}`);
+}
+
+
 export async function analyzeLocalPatterns() {
     const result = await request("/ai/analyze-patterns", { method: "POST" });
     return result;

@@ -11,6 +11,7 @@ import {
     searchLocalTrades,
     getLocalAnalytics,
     getLocalPatterns,
+    getLocalEdgeMap,
     analyzeLocalPatterns,
     getSimilarLocalTrades,
     compareLocalTrade,
@@ -36,6 +37,7 @@ let searchQuery = "";
 let searchResultIds = null;
 let searchTimer = null;
 let outboxRetryInFlight = false;
+let edgeMapPayload = null;
 
 const modal = document.getElementById("tradeModal");
 const tradeGrid = document.getElementById("tradeGrid");
@@ -47,6 +49,162 @@ const clearSearch = document.getElementById("clearSearch");
 const searchStatus = document.getElementById("searchStatus");
 const patternReviewContent = document.getElementById("patternReviewContent");
 const patternReviewStatus = document.getElementById("patternReviewStatus");
+const edgeMapContent = document.getElementById("edgeMapContent");
+const edgeMapStatus = document.getElementById("edgeMapStatus");
+const edgeMapDimensionSelect = document.getElementById("edgeMapDimensionSelect");
+
+function renderEdgeMap(payload) {
+    if (!edgeMapContent || !edgeMapStatus) {
+        return;
+    }
+
+    edgeMapContent.replaceChildren();
+
+    const cells = Array.isArray(payload?.cells) ? payload.cells : [];
+    const minimumSample = payload?.minimumSample || 3;
+
+    const labels = {
+        setup: "Setup",
+        session: "Session",
+        direction: "Direction",
+        market_regime: "Regime",
+        structure_state: "Structure",
+    };
+
+    edgeMapStatus.textContent =
+        `${cells.length} condition${cells.length === 1 ? "" : "s"} · minimum sample ${minimumSample}`;
+
+    if (!cells.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No Edge Map cells meet the minimum sample yet.";
+        edgeMapContent.appendChild(empty);
+        return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "edge-map-grid";
+
+    cells.forEach(cell => {
+        const card = document.createElement("article");
+        card.className = "edge-map-cell";
+
+        const heading = document.createElement("div");
+        heading.className = "edge-map-cell-heading";
+
+        const title = document.createElement("h3");
+        title.className = "edge-map-cell-title";
+        title.textContent =
+            `${cell.valueA} × ${cell.valueB}`;
+
+        const evidence = document.createElement("span");
+        evidence.className = "review-period";
+        evidence.textContent =
+            cell.evidenceStrength?.level || "UNKNOWN";
+
+        heading.append(title, evidence);
+        card.appendChild(heading);
+
+        const dimensions = document.createElement("p");
+        dimensions.className = "edge-map-cell-meta";
+        dimensions.textContent =
+            `${labels[cell.dimensionA] || cell.dimensionA} × ${labels[cell.dimensionB] || cell.dimensionB}`;
+        card.appendChild(dimensions);
+
+        const metrics = document.createElement("div");
+        metrics.className = "edge-map-cell-metrics";
+
+        const addMetric = (label, value) => {
+            const metric = document.createElement("div");
+            metric.className = "edge-map-cell-metric";
+
+            const metricLabel = document.createElement("span");
+            metricLabel.textContent = label;
+
+            const metricValue = document.createElement("strong");
+            metricValue.textContent = value;
+
+            metric.append(metricLabel, metricValue);
+            metrics.appendChild(metric);
+        };
+
+        addMetric(
+            "Sample",
+            String(cell.sampleSize ?? "—")
+        );
+
+        addMetric(
+            "Win rate",
+            cell.winRate == null
+                ? "—"
+                : `${(Number(cell.winRate) * 100).toFixed(1)}%`
+        );
+
+        addMetric(
+            "Average R",
+            cell.averageR == null
+                ? "—"
+                : `${Number(cell.averageR).toFixed(2)}R`
+        );
+
+        addMetric(
+            "Expectancy",
+            cell.expectancy == null
+                ? "—"
+                : `${Number(cell.expectancy).toFixed(2)}R`
+        );
+
+        metrics.appendChild(document.createElement("div"));
+        card.appendChild(metrics);
+
+        const coverage = document.createElement("p");
+        coverage.className = "edge-map-cell-evidence";
+        coverage.textContent =
+            `Actual R coverage: ${
+                cell.evidenceStrength?.actualRCoverage == null
+                    ? "—"
+                    : `${(Number(cell.evidenceStrength.actualRCoverage) * 100).toFixed(0)}%`
+            }`;
+
+        card.appendChild(coverage);
+        grid.appendChild(card);
+    });
+
+    edgeMapContent.appendChild(grid);
+}
+
+
+async function loadEdgeMap() {
+    if (!edgeMapContent || !edgeMapStatus || !edgeMapDimensionSelect) {
+        return;
+    }
+
+    const [dimensionA, dimensionB] = edgeMapDimensionSelect.value.split("|");
+
+    edgeMapStatus.textContent = "Loading historical conditions…";
+    edgeMapContent.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.className = "pattern-empty";
+    loading.textContent = "Loading deterministic Edge Map…";
+    edgeMapContent.appendChild(loading);
+
+    try {
+        const payload = await getLocalEdgeMap(dimensionA, dimensionB);
+        edgeMapPayload = payload;
+        renderEdgeMap(payload);
+    } catch (error) {
+        edgeMapPayload = null;
+        edgeMapStatus.textContent = "Local service unavailable";
+        edgeMapContent.replaceChildren();
+
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "Start the local service to load the Edge Map.";
+        edgeMapContent.appendChild(empty);
+    }
+}
+
 
 function renderStorageStatus(status) {
     const label = document.getElementById("storageProviderStatus");
@@ -831,6 +989,17 @@ async function analyzePatterns() {
         button.disabled = false;
         button.textContent = "Coach me locally";
     }
+}
+
+
+function bindEdgeMapControls() {
+    if (!edgeMapDimensionSelect) {
+        return;
+    }
+
+    edgeMapDimensionSelect.addEventListener("change", () => {
+        loadEdgeMap();
+    });
 }
 
 
@@ -1982,6 +2151,9 @@ document.addEventListener("keydown", event => {
         closeModal();
     }
 });
+
+bindEdgeMapControls();
+loadEdgeMap();
 
 loadTrades().catch(error => {
     console.error("❌ DASHBOARD LOAD FAILED", error);

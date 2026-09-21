@@ -201,6 +201,31 @@
             <p id="patternAIInsight" class="pattern-ai-insight" hidden></p>
         </section>
 
+        <section id="edgeMap" class="edge-map" aria-labelledby="edgeMapTitle">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Where your trading works</p>
+                    <h2 id="edgeMapTitle">Edge Map</h2>
+                </div>
+                <p id="edgeMapStatus" class="review-period">Loading historical conditions…</p>
+            </div>
+
+            <div class="edge-map-controls">
+                <label for="edgeMapDimensionSelect">Compare</label>
+                <select id="edgeMapDimensionSelect">
+                    <option value="setup|market_regime">Setup × Regime</option>
+                    <option value="setup|session">Setup × Session</option>
+                    <option value="setup|direction">Setup × Direction</option>
+                    <option value="structure_state|setup">Structure × Setup</option>
+                    <option value="session|direction">Session × Direction</option>
+                </select>
+            </div>
+
+            <div id="edgeMapContent" class="edge-map-content">
+                <p class="pattern-empty">Loading Edge Map…</p>
+            </div>
+        </section>
+
         <section id="library" class="library" aria-labelledby="libraryTitle">
             <div class="section-heading">
                 <div>
