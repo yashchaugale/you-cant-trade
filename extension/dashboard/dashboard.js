@@ -88,6 +88,27 @@ function renderEdgeMap(payload) {
     cells.forEach(cell => {
         const card = document.createElement("article");
         card.className = "edge-map-cell";
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute(
+            "aria-label",
+            `Open supporting trade for ${cell.valueA} × ${cell.valueB}`
+        );
+
+        const openSupportingTrade = () => {
+            const tradeId = cell.sourceTradeIds?.[0];
+            if (tradeId) {
+                openTrade(tradeId);
+            }
+        };
+
+        card.addEventListener("click", openSupportingTrade);
+        card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openSupportingTrade();
+            }
+        });
 
         const heading = document.createElement("div");
         heading.className = "edge-map-cell-heading";
