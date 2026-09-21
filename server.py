@@ -40,6 +40,7 @@ from database.local_database import (
 from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
 from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
+from services.edge_map import build_edge_map
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -283,6 +284,59 @@ async def patterns():
                 trades,
                 min_sample=MIN_PATTERN_SAMPLE,
             ),
+            "sampleSize": len(trades),
+            "minimumSample": MIN_PATTERN_SAMPLE,
+        }
+    except StorageProviderError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/edge-map")
+async def edge_map(
+    dimension_a: str,
+    dimension_b: str,
+):
+    allowed_dimensions = {
+        "setup",
+        "session",
+        "direction",
+        "market_regime",
+        "structure_state",
+    }
+
+    if dimension_a not in allowed_dimensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported Edge Map dimension: {dimension_a}",
+        )
+
+    if dimension_b not in allowed_dimensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported Edge Map dimension: {dimension_b}",
+        )
+
+    if dimension_a == dimension_b:
+        raise HTTPException(
+            status_code=400,
+            detail="Edge Map dimensions must be different",
+        )
+
+    try:
+        provider = get_storage_provider()
+        trades = provider.list_trades(
+            limit=provider.historical_candidate_limit()
+        )
+        cells = build_edge_map(
+            trades,
+            dimension_a,
+            dimension_b,
+            min_sample=MIN_PATTERN_SAMPLE,
+        )
+        return {
+            "dimensionA": dimension_a,
+            "dimensionB": dimension_b,
+            "cells": cells,
             "sampleSize": len(trades),
             "minimumSample": MIN_PATTERN_SAMPLE,
         }
