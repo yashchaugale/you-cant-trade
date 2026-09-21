@@ -38,6 +38,7 @@ let searchResultIds = null;
 let searchTimer = null;
 let outboxRetryInFlight = false;
 let edgeMapPayload = null;
+let edgeMapSelectedTradeIds = null;
 
 const modal = document.getElementById("tradeModal");
 const tradeGrid = document.getElementById("tradeGrid");
@@ -96,9 +97,20 @@ function renderEdgeMap(payload) {
         );
 
         const openSupportingTrade = () => {
-            const tradeId = cell.sourceTradeIds?.[0];
-            if (tradeId) {
-                openTrade(tradeId);
+            const tradeIds = Array.isArray(cell.sourceTradeIds)
+                ? cell.sourceTradeIds
+                : [];
+
+            if (!tradeIds.length) {
+                return;
+            }
+
+            edgeMapSelectedTradeIds = new Set(tradeIds);
+            renderTradeGrid();
+
+            const firstTradeId = tradeIds[0];
+            if (firstTradeId) {
+                openTrade(firstTradeId);
             }
         };
 
@@ -1482,6 +1494,10 @@ function getFilteredTrades() {
     const dateRange = getDateRangeBounds(filterControls.dateRange.value);
 
     return trades.filter(trade => {
+        if (edgeMapSelectedTradeIds && !edgeMapSelectedTradeIds.has(trade.id)) {
+            return false;
+        }
+
         const filterDate = getTradeFilterDate(trade);
 
         if (dateRange) {
@@ -2131,6 +2147,7 @@ document
 
         resetCustomDateRange();
         customDateRange.hidden = true;
+        edgeMapSelectedTradeIds = null;
 
         renderTradeGrid();
     });
