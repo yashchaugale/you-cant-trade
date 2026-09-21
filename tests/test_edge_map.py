@@ -636,3 +636,200 @@ def test_structure_setup_enforces_minimum_sample():
         "structure_state",
         "setup",
     ) == []
+
+
+def test_session_direction_creates_separate_cells():
+    trades = [
+        {
+            "id": "1",
+            "setup": "Breakout",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.5}},
+            },
+        },
+        {
+            "id": "2",
+            "setup": "Breakout",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "LOSS",
+            "intelligence": {
+                "calculated": {"features": {"actualR": -1.0}},
+            },
+        },
+        {
+            "id": "3",
+            "setup": "Breakout",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.0}},
+            },
+        },
+        {
+            "id": "4",
+            "setup": "Breakout",
+            "session": "NEW_YORK",
+            "direction": "SHORT",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 2.0}},
+            },
+        },
+        {
+            "id": "5",
+            "setup": "Breakout",
+            "session": "NEW_YORK",
+            "direction": "SHORT",
+            "result": "LOSS",
+            "intelligence": {
+                "calculated": {"features": {"actualR": -1.0}},
+            },
+        },
+        {
+            "id": "6",
+            "setup": "Breakout",
+            "session": "NEW_YORK",
+            "direction": "SHORT",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.0}},
+            },
+        },
+    ]
+
+    cells = build_edge_map(
+        trades,
+        "session",
+        "direction",
+    )
+
+    assert len(cells) == 2
+    assert {
+        (cell["valueA"], cell["valueB"])
+        for cell in cells
+    } == {
+        ("LONDON", "LONG"),
+        ("NEW_YORK", "SHORT"),
+    }
+
+
+def test_session_direction_calculates_metrics():
+    trades = [
+        {
+            "id": "1",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.5}},
+            },
+        },
+        {
+            "id": "2",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "LOSS",
+            "intelligence": {
+                "calculated": {"features": {"actualR": -1.0}},
+            },
+        },
+        {
+            "id": "3",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.0}},
+            },
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "session",
+        "direction",
+    )[0]
+
+    assert cell["sampleSize"] == 3
+    assert cell["winRate"] == 0.666667
+    assert cell["averageR"] == 0.5
+    assert cell["expectancy"] == 0.5
+    assert cell["evidenceStrength"]["actualRCoverage"] == 1.0
+
+
+def test_session_direction_returns_supporting_trade_ids():
+    trades = [
+        {
+            "id": "trade-1",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.5}},
+            },
+        },
+        {
+            "id": "trade-2",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "LOSS",
+            "intelligence": {
+                "calculated": {"features": {"actualR": -1.0}},
+            },
+        },
+        {
+            "id": "trade-3",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.0}},
+            },
+        },
+    ]
+
+    cell = build_edge_map(
+        trades,
+        "session",
+        "direction",
+    )[0]
+
+    assert cell["sourceTradeIds"] == [
+        "trade-1",
+        "trade-2",
+        "trade-3",
+    ]
+
+
+def test_session_direction_enforces_minimum_sample():
+    trades = [
+        {
+            "id": "1",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "WIN",
+            "intelligence": {
+                "calculated": {"features": {"actualR": 1.0}},
+            },
+        },
+        {
+            "id": "2",
+            "session": "LONDON",
+            "direction": "LONG",
+            "result": "LOSS",
+            "intelligence": {
+                "calculated": {"features": {"actualR": -1.0}},
+            },
+        },
+    ]
+
+    assert build_edge_map(
+        trades,
+        "session",
+        "direction",
+    ) == []
