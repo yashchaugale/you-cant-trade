@@ -39,6 +39,7 @@ let searchTimer = null;
 let outboxRetryInFlight = false;
 let edgeMapPayload = null;
 let edgeMapSelectedTradeIds = null;
+let edgeMapComparisonCells = [];
 
 const modal = document.getElementById("tradeModal");
 const tradeGrid = document.getElementById("tradeGrid");
@@ -53,6 +54,84 @@ const patternReviewStatus = document.getElementById("patternReviewStatus");
 const edgeMapContent = document.getElementById("edgeMapContent");
 const edgeMapStatus = document.getElementById("edgeMapStatus");
 const edgeMapDimensionSelect = document.getElementById("edgeMapDimensionSelect");
+
+function renderEdgeMapComparison(container) {
+    if (!container || edgeMapComparisonCells.length !== 2) {
+        return;
+    }
+
+    const [first, second] = edgeMapComparisonCells;
+
+    const section = document.createElement("section");
+    section.className = "edge-map-comparison";
+    section.setAttribute("aria-labelledby", "edgeMapComparisonTitle");
+
+    const title = document.createElement("h3");
+    title.id = "edgeMapComparisonTitle";
+    title.textContent = "Comparison";
+    section.appendChild(title);
+
+    const table = document.createElement("table");
+    table.className = "edge-map-comparison-table";
+
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+
+    ["Metric", `${first.valueA} × ${first.valueB}`, `${second.valueA} × ${second.valueB}`]
+        .forEach(text => {
+            const cell = document.createElement("th");
+            cell.scope = "col";
+            cell.textContent = text;
+            headRow.appendChild(cell);
+        });
+
+    head.appendChild(headRow);
+    table.appendChild(head);
+
+    const body = document.createElement("tbody");
+    const formatValue = (value, formatter) =>
+        value == null ? "—" : formatter(value);
+
+    const rows = [
+        ["Sample", first.sampleSize, second.sampleSize, value => String(value)],
+        ["Win rate", first.winRate, second.winRate, value => `${(Number(value) * 100).toFixed(1)}%`],
+        ["Average R", first.averageR, second.averageR, value => `${Number(value).toFixed(2)}R`],
+        ["Expectancy", first.expectancy, second.expectancy, value => `${Number(value).toFixed(2)}R`],
+        [
+            "Actual R coverage",
+            first.evidenceStrength?.actualRCoverage,
+            second.evidenceStrength?.actualRCoverage,
+            value => `${(Number(value) * 100).toFixed(0)}%`
+        ],
+        [
+            "Evidence",
+            first.evidenceStrength?.level,
+            second.evidenceStrength?.level,
+            value => String(value)
+        ],
+    ];
+
+    rows.forEach(([label, firstValue, secondValue, formatter]) => {
+        const row = document.createElement("tr");
+
+        const labelCell = document.createElement("th");
+        labelCell.scope = "row";
+        labelCell.textContent = label;
+        row.appendChild(labelCell);
+
+        [firstValue, secondValue].forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = formatValue(value, formatter);
+            row.appendChild(cell);
+        });
+
+        body.appendChild(row);
+    });
+
+    table.appendChild(body);
+    section.appendChild(table);
+    container.appendChild(section);
+}
 
 function renderEdgeMap(payload) {
     if (!edgeMapContent || !edgeMapStatus) {
@@ -200,10 +279,30 @@ function renderEdgeMap(payload) {
             }`;
 
         card.appendChild(coverage);
+
+        const compareButton = document.createElement("button");
+        compareButton.type = "button";
+        compareButton.className = "edge-map-compare-button";
+        compareButton.textContent = "Compare";
+        compareButton.addEventListener("click", event => {
+            event.stopPropagation();
+
+            const index = edgeMapComparisonCells.indexOf(cell);
+            if (index >= 0) {
+                edgeMapComparisonCells.splice(index, 1);
+            } else if (edgeMapComparisonCells.length < 2) {
+                edgeMapComparisonCells.push(cell);
+            }
+
+            renderEdgeMap(edgeMapPayload);
+        });
+
+        card.appendChild(compareButton);
         grid.appendChild(card);
     });
 
     edgeMapContent.appendChild(grid);
+    renderEdgeMapComparison(edgeMapContent);
 }
 
 
@@ -213,6 +312,16 @@ async function loadEdgeMap() {
     }
 
     const [dimensionA, dimensionB] = edgeMapDimensionSelect.value.split("|");
+
+    if (
+        edgeMapPayload &&
+        (
+            edgeMapPayload.dimensionA !== dimensionA ||
+            edgeMapPayload.dimensionB !== dimensionB
+        )
+    ) {
+        edgeMapComparisonCells = [];
+    }
 
     edgeMapStatus.textContent = "Loading historical conditions…";
     edgeMapContent.replaceChildren();
