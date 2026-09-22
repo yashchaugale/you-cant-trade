@@ -1326,3 +1326,100 @@ body { min-height: 100vh; background: radial-gradient(circle at 78% -12%, rgba(1
 .edge-map-comparison-table tr:last-child td {
     border-bottom: 0;
 }
+
+
+.leak-map {
+    margin: 0 0 42px;
+    scroll-margin-top: 24px;
+}
+
+.leak-map-content {
+    display: grid;
+    gap: 10px;
+    min-height: 90px;
+    padding: 16px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.leak-map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.leak-map-card {
+    padding: 14px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+}
+
+.leak-map-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.leak-map-card-title {
+    margin: 0;
+    font-size: 14px;
+}
+
+.leak-map-card-count {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin-top: 14px;
+}
+
+.leak-map-card-count strong {
+    font-family: var(--font-mono);
+    font-size: 28px;
+}
+
+.leak-map-card-count span {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.leak-map-card-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.leak-map-card-metric {
+    display: grid;
+    gap: 3px;
+}
+
+.leak-map-card-metric span {
+    color: var(--text-muted);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.leak-map-card-metric strong {
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+.leak-map-card-note {
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-default);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+    .leak-map-card-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

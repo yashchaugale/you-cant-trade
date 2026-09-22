@@ -12,6 +12,7 @@ import {
     getLocalAnalytics,
     getLocalPatterns,
     getLocalEdgeMap,
+    getLocalLeakMap,
     analyzeLocalPatterns,
     getSimilarLocalTrades,
     compareLocalTrade,
@@ -40,6 +41,7 @@ let outboxRetryInFlight = false;
 let edgeMapPayload = null;
 let edgeMapSelectedTradeIds = null;
 let edgeMapComparisonCells = [];
+let leakMapPayload = null;
 
 const modal = document.getElementById("tradeModal");
 const tradeGrid = document.getElementById("tradeGrid");
@@ -54,6 +56,8 @@ const patternReviewStatus = document.getElementById("patternReviewStatus");
 const edgeMapContent = document.getElementById("edgeMapContent");
 const edgeMapStatus = document.getElementById("edgeMapStatus");
 const edgeMapDimensionSelect = document.getElementById("edgeMapDimensionSelect");
+const leakMapContent = document.getElementById("leakMapContent");
+const leakMapStatus = document.getElementById("leakMapStatus");
 
 function renderEdgeMapComparison(container) {
     if (!container || edgeMapComparisonCells.length !== 2) {
@@ -344,6 +348,137 @@ async function loadEdgeMap() {
         empty.className = "pattern-empty";
         empty.textContent = "Start the local service to load the Edge Map.";
         edgeMapContent.appendChild(empty);
+    }
+}
+
+
+
+function renderLeakMap(payload) {
+    if (!leakMapContent || !leakMapStatus) {
+        return;
+    }
+
+    leakMapContent.replaceChildren();
+
+    const leaks = Array.isArray(payload?.leaks) ? payload.leaks : [];
+    const sampleSize = Number(payload?.sampleSize || 0);
+
+    leakMapStatus.textContent =
+        `${sampleSize} trade${sampleSize === 1 ? "" : "s"} analysed`;
+
+    if (!leaks.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No leak measurements are available yet.";
+        leakMapContent.appendChild(empty);
+        return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "leak-map-grid";
+
+    leaks.forEach(leak => {
+        const card = document.createElement("article");
+        card.className = "leak-map-card";
+
+        const heading = document.createElement("div");
+        heading.className = "leak-map-card-heading";
+
+        const title = document.createElement("h3");
+        title.className = "leak-map-card-title";
+        title.textContent = leak.label || leak.type;
+
+        const evidence = document.createElement("span");
+        evidence.className = "review-period";
+        evidence.textContent = leak.evidenceStrength || "UNKNOWN";
+
+        heading.append(title, evidence);
+        card.appendChild(heading);
+
+        const count = document.createElement("div");
+        count.className = "leak-map-card-count";
+        count.innerHTML = `<strong>${Number(leak.occurrenceCount || 0)}</strong><span>occurrences</span>`;
+        card.appendChild(count);
+
+        const metrics = document.createElement("div");
+        metrics.className = "leak-map-card-metrics";
+
+        const addMetric = (label, value) => {
+            const item = document.createElement("div");
+            item.className = "leak-map-card-metric";
+
+            const itemLabel = document.createElement("span");
+            itemLabel.textContent = label;
+
+            const itemValue = document.createElement("strong");
+            itemValue.textContent = value;
+
+            item.append(itemLabel, itemValue);
+            metrics.appendChild(item);
+        };
+
+        addMetric(
+            "R impact",
+            leak.rImpact == null ? "—" : `${Number(leak.rImpact).toFixed(2)}R`
+        );
+
+        addMetric(
+            "R coverage",
+            `${(Number(leak.actualRCoverage || 0) * 100).toFixed(0)}%`
+        );
+
+        addMetric(
+            "Trades",
+            String(Array.isArray(leak.supportingTradeIds) ? leak.supportingTradeIds.length : 0)
+        );
+
+        card.appendChild(metrics);
+
+        const note = document.createElement("p");
+        note.className = "leak-map-card-note";
+
+        if (leak.occurrenceCount === 0) {
+            note.textContent = "No explicit occurrences recorded.";
+        } else if (leak.rImpact == null) {
+            note.textContent = "R impact unavailable from current trade data.";
+        } else {
+            note.textContent = "Historical measurement only.";
+        }
+
+        card.appendChild(note);
+        grid.appendChild(card);
+    });
+
+    leakMapContent.appendChild(grid);
+}
+
+
+async function loadLeakMap() {
+    if (!leakMapContent || !leakMapStatus) {
+        return;
+    }
+
+    leakMapStatus.textContent = "Loading historical leaks…";
+    leakMapContent.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.className = "pattern-empty";
+    loading.textContent = "Loading deterministic Leak Map…";
+    leakMapContent.appendChild(loading);
+
+    try {
+        const payload = await getLocalLeakMap();
+        leakMapPayload = payload;
+        renderLeakMap(payload);
+    } catch (error) {
+        leakMapPayload = null;
+        leakMapStatus.textContent = "Local service unavailable";
+        leakMapContent.replaceChildren();
+
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "Start the local service to load the Leak Map.";
+        leakMapContent.appendChild(empty);
     }
 }
 
@@ -2310,3 +2445,5 @@ loadTrades().catch(error => {
     emptyState.querySelector("h3").textContent = "Journal connection unavailable.";
     emptyState.querySelector("p").textContent = "Start the local service and reload this dashboard.";
 });
+
+loadLeakMap();

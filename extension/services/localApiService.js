@@ -274,3 +274,8 @@ export async function analyzeLocalTrade(tradeId) {
     );
     return result.insight;
 }
+
+
+export async function getLocalLeakMap() {
+    return request("/leak-map");
+}
