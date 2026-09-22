@@ -1423,3 +1423,120 @@ body { min-height: 100vh; background: radial-gradient(circle at 78% -12%, rgba(1
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+
+.leak-map-card {
+    cursor: pointer;
+}
+
+.leak-map-card:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 3px;
+}
+
+.leak-details {
+    margin: 0 0 42px;
+    scroll-margin-top: 24px;
+}
+
+.leak-details-content {
+    display: grid;
+    gap: 14px;
+}
+
+.leak-details-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.leak-details-summary-card {
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.leak-details-summary-card span {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.leak-details-summary-card strong {
+    font-family: var(--font-mono);
+    font-size: 20px;
+}
+
+.leak-supporting-trades {
+    padding: 16px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.leak-details-subheading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.leak-details-subheading h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.leak-details-subheading span {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.leak-trade-list {
+    display: grid;
+    gap: 8px;
+}
+
+.leak-trade-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.leak-trade-row:hover {
+    background: var(--bg-surface-hover);
+}
+
+.leak-trade-identity {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.leak-trade-meta {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+@media (max-width: 760px) {
+    .leak-details-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .leak-trade-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

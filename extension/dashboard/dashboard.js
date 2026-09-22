@@ -58,6 +58,10 @@ const edgeMapStatus = document.getElementById("edgeMapStatus");
 const edgeMapDimensionSelect = document.getElementById("edgeMapDimensionSelect");
 const leakMapContent = document.getElementById("leakMapContent");
 const leakMapStatus = document.getElementById("leakMapStatus");
+const leakDetails = document.getElementById("leakDetails");
+const leakDetailsTitle = document.getElementById("leakDetailsTitle");
+const leakDetailsContent = document.getElementById("leakDetailsContent");
+const closeLeakDetails = document.getElementById("closeLeakDetails");
 
 function renderEdgeMapComparison(container) {
     if (!container || edgeMapComparisonCells.length !== 2) {
@@ -380,6 +384,8 @@ function renderLeakMap(payload) {
     leaks.forEach(leak => {
         const card = document.createElement("article");
         card.className = "leak-map-card";
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
 
         const heading = document.createElement("div");
         heading.className = "leak-map-card-heading";
@@ -446,10 +452,125 @@ function renderLeakMap(payload) {
         }
 
         card.appendChild(note);
+
+        const openDetails = () => openLeakDetails(leak);
+        card.addEventListener("click", openDetails);
+        card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openDetails();
+            }
+        });
+
         grid.appendChild(card);
     });
 
     leakMapContent.appendChild(grid);
+}
+
+
+
+function formatLeakR(value) {
+    return value == null ? "—" : `${Number(value).toFixed(2)}R`;
+}
+
+function openLeakDetails(leak) {
+    if (!leakDetails || !leakDetailsContent) {
+        return;
+    }
+
+    leakDetails.hidden = false;
+    leakDetailsTitle.textContent = leak.label || leak.type;
+    leakDetailsContent.replaceChildren();
+
+    const summary = document.createElement("div");
+    summary.className = "leak-details-summary";
+
+    const addSummaryMetric = (label, value) => {
+        const card = document.createElement("div");
+        card.className = "leak-details-summary-card";
+
+        const metricLabel = document.createElement("span");
+        metricLabel.textContent = label;
+
+        const metricValue = document.createElement("strong");
+        metricValue.textContent = value;
+
+        card.append(metricLabel, metricValue);
+        summary.appendChild(card);
+    };
+
+    addSummaryMetric("Occurrences", String(leak.occurrenceCount || 0));
+    addSummaryMetric("R impact", formatLeakR(leak.rImpact));
+    addSummaryMetric(
+        "Actual R coverage",
+        `${(Number(leak.actualRCoverage || 0) * 100).toFixed(0)}%`
+    );
+    addSummaryMetric("Evidence", leak.evidenceStrength || "UNKNOWN");
+
+    leakDetailsContent.appendChild(summary);
+
+    const supporting = document.createElement("section");
+    supporting.className = "leak-supporting-trades";
+
+    const heading = document.createElement("div");
+    heading.className = "leak-details-subheading";
+
+    const title = document.createElement("h3");
+    title.textContent = "Supporting trades";
+
+    const count = document.createElement("span");
+    const tradeIds = Array.isArray(leak.supportingTradeIds)
+        ? leak.supportingTradeIds
+        : [];
+    count.textContent = `${tradeIds.length} trade${tradeIds.length === 1 ? "" : "s"}`;
+
+    heading.append(title, count);
+    supporting.appendChild(heading);
+
+    if (!tradeIds.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No supporting trades recorded for this leak.";
+        supporting.appendChild(empty);
+    } else {
+        const list = document.createElement("div");
+        list.className = "leak-trade-list";
+
+        tradeIds.forEach(tradeId => {
+            const trade = trades.find(item => item.id === tradeId);
+
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "leak-trade-row";
+
+            const identity = document.createElement("span");
+            identity.className = "leak-trade-identity";
+            identity.textContent = trade
+                ? `${trade.symbol || "Trade"} · ${trade.direction || "—"}`
+                : tradeId;
+
+            const meta = document.createElement("span");
+            meta.className = "leak-trade-meta";
+            meta.textContent = trade
+                ? `${trade.result || "UNREVIEWED"} · ${formatDate(trade.timestamp)}`
+                : tradeId;
+
+            row.append(identity, meta);
+
+            row.addEventListener("click", () => {
+                edgeMapSelectedTradeIds = null;
+                openTrade(tradeId);
+            });
+
+            list.appendChild(row);
+        });
+
+        supporting.appendChild(list);
+    }
+
+    leakDetailsContent.appendChild(supporting);
+    leakDetails.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 
@@ -2447,3 +2568,16 @@ loadTrades().catch(error => {
 });
 
 loadLeakMap();
+
+
+if (closeLeakDetails) {
+    closeLeakDetails.addEventListener("click", () => {
+        if (leakDetails) {
+            leakDetails.hidden = true;
+        }
+        document.getElementById("leakMap")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    });
+}
