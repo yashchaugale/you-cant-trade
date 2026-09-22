@@ -226,3 +226,74 @@ def test_build_leak_map_does_not_turn_missing_evidence_into_occurrences():
     )
 
     assert all(item["occurrenceCount"] == 0 for item in result)
+
+def test_leak_trend_requires_sufficient_history():
+    from services.leak_map import calculate_leak_trend
+
+    occurrences = [
+        {"timestamp": "2026-09-01T10:00:00"},
+        {"timestamp": "2026-09-02T10:00:00"},
+        {"timestamp": "2026-10-01T10:00:00"},
+    ]
+
+    assert calculate_leak_trend(occurrences) == "INSUFFICIENT_HISTORY"
+
+
+def test_leak_trend_requires_three_periods():
+    from services.leak_map import calculate_leak_trend
+
+    occurrences = [
+        {"timestamp": "2026-07-01T10:00:00"},
+        {"timestamp": "2026-07-02T10:00:00"},
+        {"timestamp": "2026-07-03T10:00:00"},
+        {"timestamp": "2026-08-01T10:00:00"},
+        {"timestamp": "2026-08-02T10:00:00"},
+        {"timestamp": "2026-08-03T10:00:00"},
+    ]
+
+    assert calculate_leak_trend(occurrences) == "INSUFFICIENT_HISTORY"
+
+
+def test_leak_trend_can_detect_increasing_monthly_occurrences():
+    from services.leak_map import calculate_leak_trend
+
+    occurrences = [
+        {"timestamp": "2026-07-01T10:00:00"},
+        {"timestamp": "2026-08-01T10:00:00"},
+        {"timestamp": "2026-08-02T10:00:00"},
+        {"timestamp": "2026-09-01T10:00:00"},
+        {"timestamp": "2026-09-02T10:00:00"},
+        {"timestamp": "2026-09-03T10:00:00"},
+    ]
+
+    assert calculate_leak_trend(occurrences) == "TRENDING_UP"
+
+
+def test_leak_trend_can_detect_decreasing_monthly_occurrences():
+    from services.leak_map import calculate_leak_trend
+
+    occurrences = [
+        {"timestamp": "2026-07-01T10:00:00"},
+        {"timestamp": "2026-07-02T10:00:00"},
+        {"timestamp": "2026-07-03T10:00:00"},
+        {"timestamp": "2026-08-01T10:00:00"},
+        {"timestamp": "2026-08-02T10:00:00"},
+        {"timestamp": "2026-09-01T10:00:00"},
+    ]
+
+    assert calculate_leak_trend(occurrences) == "TRENDING_DOWN"
+
+
+def test_leak_trend_can_detect_stable_history():
+    from services.leak_map import calculate_leak_trend
+
+    occurrences = [
+        {"timestamp": "2026-07-01T10:00:00"},
+        {"timestamp": "2026-07-02T10:00:00"},
+        {"timestamp": "2026-08-01T10:00:00"},
+        {"timestamp": "2026-08-02T10:00:00"},
+        {"timestamp": "2026-09-01T10:00:00"},
+        {"timestamp": "2026-09-02T10:00:00"},
+    ]
+
+    assert calculate_leak_trend(occurrences) == "STABLE"

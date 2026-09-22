@@ -285,3 +285,70 @@ def build_leak_map(
         results.append(group)
 
     return results
+
+
+TREND_MIN_OCCURRENCES = 6
+TREND_MIN_PERIODS = 3
+
+
+def calculate_leak_trend(
+    occurrences: list[dict[str, Any]],
+) -> str:
+    """Return a deterministic historical trend state.
+
+    Occurrences must contain a valid ISO-like timestamp under ``timestamp``.
+    The current implementation uses monthly buckets.
+    """
+
+    if not isinstance(occurrences, list):
+        return "INSUFFICIENT_HISTORY"
+
+    dated = []
+
+    for occurrence in occurrences:
+        if not isinstance(occurrence, dict):
+            continue
+
+        timestamp = occurrence.get("timestamp")
+
+        if not isinstance(timestamp, str) or len(timestamp) < 7:
+            continue
+
+        period = timestamp[:7]
+
+        if len(period) == 7 and period[4] == "-":
+            dated.append(period)
+
+    periods = sorted(dated)
+
+    if len(dated) < TREND_MIN_OCCURRENCES:
+        return "INSUFFICIENT_HISTORY"
+
+    distinct_periods = sorted(set(periods))
+
+    if len(distinct_periods) < TREND_MIN_PERIODS:
+        return "INSUFFICIENT_HISTORY"
+
+    counts = [
+        periods.count(period)
+        for period in distinct_periods
+    ]
+
+    midpoint = len(counts) // 2
+
+    first_half = counts[:midpoint]
+    second_half = counts[midpoint:]
+
+    if not first_half or not second_half:
+        return "INSUFFICIENT_HISTORY"
+
+    first_average = sum(first_half) / len(first_half)
+    second_average = sum(second_half) / len(second_half)
+
+    if second_average > first_average:
+        return "TRENDING_UP"
+
+    if second_average < first_average:
+        return "TRENDING_DOWN"
+
+    return "STABLE"
