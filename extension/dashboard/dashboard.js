@@ -401,6 +401,11 @@ function renderLeakMap(payload) {
         heading.append(title, evidence);
         card.appendChild(heading);
 
+        const trend = document.createElement("p");
+        trend.className = "leak-map-card-trend";
+        trend.textContent = `Trend: ${formatLeakTrend(leak.trend)}`;
+        card.appendChild(trend);
+
         const count = document.createElement("div");
         count.className = "leak-map-card-count";
         count.innerHTML = `<strong>${Number(leak.occurrenceCount || 0)}</strong><span>occurrences</span>`;
@@ -470,6 +475,17 @@ function renderLeakMap(payload) {
 
 
 
+function formatLeakTrend(value) {
+    const labels = {
+        TRENDING_UP: "TRENDING UP",
+        TRENDING_DOWN: "TRENDING DOWN",
+        STABLE: "STABLE",
+        INSUFFICIENT_HISTORY: "INSUFFICIENT HISTORY",
+    };
+
+    return labels[value] || "UNKNOWN";
+}
+
 function formatLeakR(value) {
     return value == null ? "—" : `${Number(value).toFixed(2)}R`;
 }
@@ -507,6 +523,7 @@ function openLeakDetails(leak) {
         `${(Number(leak.actualRCoverage || 0) * 100).toFixed(0)}%`
     );
     addSummaryMetric("Evidence", leak.evidenceStrength || "UNKNOWN");
+    addSummaryMetric("Trend", formatLeakTrend(leak.trend));
 
     leakDetailsContent.appendChild(summary);
 

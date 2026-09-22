@@ -41,7 +41,7 @@ from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
 from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
 from services.edge_map import build_edge_map
-from services.leak_map import build_leak_map
+from services.leak_map import build_leak_map, calculate_leak_trend, detect_leaks
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -354,6 +354,21 @@ async def leak_map():
         )
 
         leaks = build_leak_map(trades)
+
+        for leak in leaks:
+            occurrences = []
+
+            for trade in trades:
+                if leak["type"] in {
+                    record["type"]
+                    for record in detect_leaks(trade)
+                }:
+                    occurrences.append({
+                        "tradeId": trade.get("id"),
+                        "timestamp": trade.get("timestamp"),
+                    })
+
+            leak["trend"] = calculate_leak_trend(occurrences)
 
         return {
             "version": 1,
