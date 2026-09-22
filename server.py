@@ -41,6 +41,7 @@ from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
 from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
 from services.edge_map import build_edge_map
+from services.leak_map import build_leak_map
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -342,6 +343,26 @@ async def edge_map(
         }
     except StorageProviderError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/leak-map")
+async def leak_map():
+    try:
+        provider = get_storage_provider()
+        trades = provider.list_trades(
+            limit=provider.historical_candidate_limit()
+        )
+
+        leaks = build_leak_map(trades)
+
+        return {
+            "version": 1,
+            "leaks": leaks,
+            "sampleSize": len(trades),
+        }
+    except StorageProviderError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
 
 
 @app.get("/analytics/summary")
