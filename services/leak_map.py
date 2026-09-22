@@ -169,3 +169,119 @@ def detect_leak_types(trade: dict[str, Any]) -> list[str]:
     """Return detected leak types in stable deterministic order."""
 
     return [record["type"] for record in detect_leaks(trade)]
+
+LEAK_LABELS = {
+    "LATE_ENTRY": "Late entries",
+    "EARLY_EXIT": "Early exits",
+    "STOP_MOVEMENT": "Stop movement",
+    "RULE_VIOLATION": "Rule violations",
+    "COUNTER_STRUCTURE": "Counter-structure trades",
+    "OVERTRADING": "Overtrading",
+    "REVENGE_TRADING": "Revenge trading",
+}
+
+
+def _actual_r(trade: dict[str, Any]) -> float | None:
+    entry = trade.get("entry")
+    stop = trade.get("stopLoss")
+    exit_price = trade.get("exitPrice")
+    direction = _normalise_string(trade.get("direction"))
+
+    if not all(isinstance(value, (int, float)) for value in (entry, stop, exit_price)):
+        return None
+
+    if direction not in {"LONG", "SHORT"}:
+        return None
+
+    risk = abs(float(entry) - float(stop))
+
+    if risk <= 0:
+        return None
+
+    profit = (
+        float(exit_price) - float(entry)
+        if direction == "LONG"
+        else float(entry) - float(exit_price)
+    )
+
+    return round(profit / risk, 6)
+
+
+def _evidence_strength(
+    occurrence_count: int,
+    r_coverage: float,
+) -> str:
+    if occurrence_count <= 0:
+        return "NONE"
+
+    if occurrence_count >= 10 and r_coverage >= 0.8:
+        return "STRONG"
+
+    if occurrence_count >= 5 and r_coverage >= 0.5:
+        return "MODERATE"
+
+    return "LIMITED"
+
+
+def build_leak_map(
+    trades: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Aggregate deterministic leak occurrences across historical trades."""
+
+    grouped: dict[str, dict[str, Any]] = {
+        leak_type: {
+            "type": leak_type,
+            "label": LEAK_LABELS[leak_type],
+            "occurrenceCount": 0,
+            "supportingTradeIds": [],
+            "rImpact": None,
+            "actualRCoverage": 0.0,
+            "evidenceStrength": "NONE",
+            "version": LEAK_MAP_VERSION,
+        }
+        for leak_type in SUPPORTED_LEAK_TYPES
+    }
+
+    r_values: dict[str, list[float]] = {
+        leak_type: []
+        for leak_type in SUPPORTED_LEAK_TYPES
+    }
+
+    for trade in trades:
+        for leak in detect_leaks(trade):
+            leak_type = leak["type"]
+            group = grouped[leak_type]
+            trade_id = leak["tradeId"]
+
+            group["occurrenceCount"] += 1
+
+            if trade_id not in group["supportingTradeIds"]:
+                group["supportingTradeIds"].append(trade_id)
+
+            actual_r = _actual_r(trade)
+
+            if actual_r is not None:
+                r_values[leak_type].append(actual_r)
+
+    results = []
+
+    for leak_type in SUPPORTED_LEAK_TYPES:
+        group = grouped[leak_type]
+        count = group["occurrenceCount"]
+        values = r_values[leak_type]
+
+        if count > 0:
+            group["actualRCoverage"] = round(len(values) / count, 6)
+            group["rImpact"] = (
+                round(sum(values), 6)
+                if values
+                else None
+            )
+            group["evidenceStrength"] = _evidence_strength(
+                count,
+                group["actualRCoverage"],
+            )
+
+        results.append(group)
+
+    return results

@@ -162,3 +162,67 @@ def test_multiple_explicit_leaks_are_returned_in_stable_order():
         "COUNTER_STRUCTURE",
         "REVENGE_TRADING",
     ]
+
+
+def test_build_leak_map_aggregates_supported_leaks():
+    from services.leak_map import build_leak_map
+
+    trades = [
+        {
+            "id": "trade-a",
+            "direction": "LONG",
+            "entry": 100,
+            "stopLoss": 99,
+            "exitPrice": 102,
+            "executionTag": "LATE_ENTRY",
+        },
+        {
+            "id": "trade-b",
+            "direction": "LONG",
+            "entry": 100,
+            "stopLoss": 99,
+            "exitPrice": 99.5,
+            "intelligence": {
+                "setupFingerprint": {
+                    "tags": ["COUNTER_STRUCTURE"],
+                }
+            },
+        },
+        {
+            "id": "trade-c",
+            "executionTag": "LATE_ENTRY",
+        },
+    ]
+
+    result = build_leak_map(trades)
+
+    late_entry = next(item for item in result if item["type"] == "LATE_ENTRY")
+    counter_structure = next(
+        item for item in result if item["type"] == "COUNTER_STRUCTURE"
+    )
+
+    assert late_entry["occurrenceCount"] == 2
+    assert late_entry["supportingTradeIds"] == ["trade-a", "trade-c"]
+    assert late_entry["actualRCoverage"] == 0.5
+    assert late_entry["rImpact"] == 2.0
+    assert late_entry["evidenceStrength"] == "LIMITED"
+
+    assert counter_structure["occurrenceCount"] == 1
+    assert counter_structure["supportingTradeIds"] == ["trade-b"]
+    assert counter_structure["actualRCoverage"] == 1.0
+    assert counter_structure["rImpact"] == -0.5
+
+
+def test_build_leak_map_does_not_turn_missing_evidence_into_occurrences():
+    from services.leak_map import build_leak_map
+
+    result = build_leak_map(
+        [
+            {
+                "id": "trade-a",
+                "result": "LOSS",
+            }
+        ]
+    )
+
+    assert all(item["occurrenceCount"] == 0 for item in result)
