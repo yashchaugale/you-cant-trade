@@ -616,6 +616,143 @@ function renderCompareTradeLinks(container, tradeIds, label = "Supporting trades
 }
 
 
+function renderCompareChangeSummary(payload, container) {
+    const changes = payload?.changes || {};
+
+    const section = document.createElement("section");
+    section.className = "compare-highlights";
+
+    const title = document.createElement("h3");
+    title.textContent = "Largest changes";
+    section.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.className = "compare-highlight-grid";
+
+    const formatMetricValue = (field, value) => {
+        if (field === "winRate") {
+            return formatComparePercent(value);
+        }
+
+        if (field === "averageR" || field === "expectancy") {
+            return formatCompareR(value);
+        }
+
+        return value == null ? "—" : String(value);
+    };
+
+    const formatMetricLabel = field => {
+        const labels = {
+            winRate: "Win rate",
+            averageR: "Average R",
+            expectancy: "Expectancy",
+        };
+
+        return labels[field] || field || "Metric";
+    };
+
+    const addMetricChange = (label, change) => {
+        const card = document.createElement("article");
+        card.className = "compare-highlight-card";
+
+        const heading = document.createElement("span");
+        heading.className = "compare-highlight-label";
+        heading.textContent = label;
+        card.appendChild(heading);
+
+        if (!change) {
+            const empty = document.createElement("p");
+            empty.className = "compare-highlight-empty";
+            empty.textContent = "No comparable change.";
+            card.appendChild(empty);
+            grid.appendChild(card);
+            return;
+        }
+
+        const name = document.createElement("strong");
+        name.textContent = formatMetricLabel(change.field);
+        card.appendChild(name);
+
+        const delta = document.createElement("span");
+        delta.className = "compare-highlight-delta";
+        delta.textContent =
+            `${change.change > 0 ? "+" : ""}${formatMetricValue(change.field, change.change)}`;
+        card.appendChild(delta);
+
+        const values = document.createElement("span");
+        values.className = "compare-highlight-values";
+        values.textContent =
+            `Current ${formatMetricValue(change.field, change.current)} · ` +
+            `Previous ${formatMetricValue(change.field, change.previous)}`;
+        card.appendChild(values);
+
+        grid.appendChild(card);
+    };
+
+    const addDistributionChange = (label, change) => {
+        const card = document.createElement("article");
+        card.className = "compare-highlight-card";
+
+        const heading = document.createElement("span");
+        heading.className = "compare-highlight-label";
+        heading.textContent = label;
+        card.appendChild(heading);
+
+        if (!change) {
+            const empty = document.createElement("p");
+            empty.className = "compare-highlight-empty";
+            empty.textContent = "No comparable change.";
+            card.appendChild(empty);
+            grid.appendChild(card);
+            return;
+        }
+
+        const name = document.createElement("strong");
+        name.textContent = `${change.field || "Composition"} · ${change.value || "—"}`;
+        card.appendChild(name);
+
+        const delta = document.createElement("span");
+        delta.className = "compare-highlight-delta";
+        delta.textContent =
+            `${change.percentagePointChange > 0 ? "+" : ""}` +
+            `${(Number(change.percentagePointChange) * 100).toFixed(1)}pp`;
+        card.appendChild(delta);
+
+        const values = document.createElement("span");
+        values.className = "compare-highlight-values";
+        values.textContent =
+            `Current ${formatComparePercent(change.current?.percentage)} · ` +
+            `Previous ${formatComparePercent(change.previous?.percentage)}`;
+        card.appendChild(values);
+
+        grid.appendChild(card);
+    };
+
+    addMetricChange(
+        "Largest metric increase",
+        changes.largestMetricIncrease,
+    );
+
+    addMetricChange(
+        "Largest metric decrease",
+        changes.largestMetricDecrease,
+    );
+
+    addDistributionChange(
+        "Largest composition increase",
+        changes.largestDistributionIncrease,
+    );
+
+    addDistributionChange(
+        "Largest composition decrease",
+        changes.largestDistributionDecrease,
+    );
+
+    section.appendChild(grid);
+    container.appendChild(section);
+}
+
+
 function renderCompareDistribution(field, payload, container) {
     const section = document.createElement("section");
     section.className = "compare-distribution";
@@ -868,6 +1005,8 @@ function renderCompare(payload) {
 
     performanceSection.appendChild(metrics);
     compareContent.appendChild(performanceSection);
+
+    renderCompareChangeSummary(payload, compareContent);
 
     const distributionsSection = document.createElement("section");
     distributionsSection.className = "compare-distributions";
