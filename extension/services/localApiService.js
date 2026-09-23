@@ -289,3 +289,8 @@ export async function getLocalCompare(currentCount, previousCount) {
 
     return request(`/compare?${params.toString()}`);
 }
+
+
+export async function getLocalMemory() {
+    return request("/memory");
+}
