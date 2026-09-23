@@ -39,6 +39,11 @@ from database.local_database import (
     get_memory_finding,
     list_memory_findings,
     list_memory_verifications,
+    create_memory_finding,
+    challenge_memory_finding,
+    update_memory_finding,
+    retire_memory_finding,
+    save_memory_verification,
 )
 from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
@@ -468,6 +473,96 @@ async def memory_finding(finding_id: str):
         "version": 1,
         "finding": finding,
         "verificationHistory": list_memory_verifications(finding_id),
+    }
+
+
+@app.post("/memory")
+async def create_memory(payload: dict):
+    try:
+        return {
+            "version": 1,
+            "finding": create_memory_finding(payload),
+        }
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.post("/memory/{finding_id}/challenge")
+async def challenge_memory(finding_id: str):
+    finding = challenge_memory_finding(finding_id)
+
+    if finding is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Memory finding not found",
+        )
+
+    return {
+        "version": 1,
+        "finding": finding,
+    }
+
+
+@app.patch("/memory/{finding_id}")
+async def update_memory(finding_id: str, payload: dict):
+    try:
+        finding = update_memory_finding(
+            finding_id,
+            payload.get("statement", ""),
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    if finding is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Memory finding not found",
+        )
+
+    return {
+        "version": 1,
+        "finding": finding,
+    }
+
+
+@app.post("/memory/{finding_id}/recheck")
+async def recheck_memory(finding_id: str, payload: dict):
+    finding = get_memory_finding(finding_id)
+
+    if finding is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Memory finding not found",
+        )
+
+    try:
+        verification = save_memory_verification(
+            finding_id,
+            payload,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    return {
+        "version": 1,
+        "finding": get_memory_finding(finding_id),
+        "verification": verification,
+    }
+
+
+@app.post("/memory/{finding_id}/retire")
+async def retire_memory(finding_id: str):
+    finding = retire_memory_finding(finding_id)
+
+    if finding is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Memory finding not found",
+        )
+
+    return {
+        "version": 1,
+        "finding": finding,
     }
 
 
