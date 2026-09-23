@@ -390,8 +390,6 @@ class LocalDatabaseCompatibilityTests(unittest.TestCase):
         self.assertNotIn("emotions", match)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 
@@ -469,8 +467,22 @@ if __name__ == "__main__":
         )
 
         self.database.delete_trade("MEMORY_TEST_TRADE")
-        self.assertIsNone(
-            self.database.get_memory_finding("MEMORY_TEST_FINDING")
+
+        preserved = self.database.get_memory_finding(
+            "MEMORY_TEST_FINDING"
+        )
+        self.assertIsNotNone(preserved)
+        self.assertEqual(
+            preserved["id"],
+            "MEMORY_TEST_FINDING",
+        )
+        self.assertEqual(
+            preserved["supportingTradeIds"],
+            [],
+        )
+        self.assertEqual(
+            preserved["lastVerified"],
+            "2026-02-01T10:00:00Z",
         )
 
 
@@ -492,3 +504,121 @@ if __name__ == "__main__":
             "FOREIGN KEY" in str(context.exception).upper()
             or "constraint" in str(context.exception).lower()
         )
+
+
+    def test_memory_finding_lifecycle_preserves_identity_and_verification_history(self):
+        finding = self.database.create_memory_finding({
+            "id": "MEMORY_LIFECYCLE_FINDING",
+            "type": "EDGE",
+            "statement": "Original statement.",
+            "sampleSize": 3,
+            "evidenceStrength": "LIMITED",
+            "firstObserved": "2026-01-01T10:00:00Z",
+            "lastVerified": None,
+            "status": "OBSERVED",
+            "contractVersion": 1,
+            "supportingTradeIds": [],
+        })
+
+        self.assertEqual(finding["status"], "OBSERVED")
+        self.assertEqual(
+            finding["firstObserved"],
+            "2026-01-01T10:00:00Z",
+        )
+        self.assertIsNone(finding["lastVerified"])
+
+        challenged = self.database.challenge_memory_finding(
+            "MEMORY_LIFECYCLE_FINDING"
+        )
+        self.assertEqual(challenged["id"], "MEMORY_LIFECYCLE_FINDING")
+        self.assertEqual(challenged["status"], "CHALLENGED")
+        self.assertEqual(
+            challenged["firstObserved"],
+            "2026-01-01T10:00:00Z",
+        )
+        self.assertIsNone(challenged["lastVerified"])
+
+        updated = self.database.update_memory_finding(
+            "MEMORY_LIFECYCLE_FINDING",
+            "Updated descriptive statement.",
+        )
+        self.assertEqual(updated["id"], "MEMORY_LIFECYCLE_FINDING")
+        self.assertEqual(
+            updated["statement"],
+            "Updated descriptive statement.",
+        )
+        self.assertEqual(updated["status"], "CHALLENGED")
+
+        verification = self.database.save_memory_verification(
+            "MEMORY_LIFECYCLE_FINDING",
+            {
+                "id": "MEMORY_LIFECYCLE_VERIFICATION",
+                "verifiedAt": "2026-02-01T10:00:00Z",
+                "status": "ACTIVE",
+                "sampleSize": 4,
+                "evidenceStrength": "MODERATE",
+                "supportingTradeIds": [],
+                "contractVersion": 1,
+            },
+        )
+
+        self.assertEqual(verification["status"], "ACTIVE")
+
+        active = self.database.get_memory_finding(
+            "MEMORY_LIFECYCLE_FINDING"
+        )
+        self.assertEqual(active["status"], "ACTIVE")
+        self.assertEqual(
+            active["lastVerified"],
+            "2026-02-01T10:00:00Z",
+        )
+        self.assertEqual(
+            active["firstObserved"],
+            "2026-01-01T10:00:00Z",
+        )
+
+        retired = self.database.retire_memory_finding(
+            "MEMORY_LIFECYCLE_FINDING"
+        )
+        self.assertEqual(retired["status"], "RETIRED")
+        self.assertEqual(
+            retired["firstObserved"],
+            "2026-01-01T10:00:00Z",
+        )
+        self.assertEqual(
+            retired["lastVerified"],
+            "2026-02-01T10:00:00Z",
+        )
+
+        history = self.database.list_memory_verifications(
+            "MEMORY_LIFECYCLE_FINDING"
+        )
+        self.assertEqual(len(history), 1)
+        self.assertEqual(
+            history[0]["id"],
+            "MEMORY_LIFECYCLE_VERIFICATION",
+        )
+
+
+    def test_memory_finding_update_requires_statement(self):
+        self.database.create_memory_finding({
+            "id": "MEMORY_UPDATE_VALIDATION",
+            "type": "EDGE",
+            "statement": "Original.",
+            "sampleSize": 3,
+            "evidenceStrength": "LIMITED",
+            "firstObserved": "2026-01-01T10:00:00Z",
+            "status": "OBSERVED",
+            "contractVersion": 1,
+            "supportingTradeIds": [],
+        })
+
+        with self.assertRaises(ValueError):
+            self.database.update_memory_finding(
+                "MEMORY_UPDATE_VALIDATION",
+                "",
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

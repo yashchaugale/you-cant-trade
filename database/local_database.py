@@ -1088,3 +1088,52 @@ def list_memory_verifications(finding_id: str) -> list[dict[str, Any]]:
         }
         for row in rows
     ]
+
+
+def challenge_memory_finding(finding_id: str) -> dict[str, Any] | None:
+    """Mark a Memory finding as challenged without altering its evidence."""
+    with connect() as connection:
+        connection.execute(
+            """update memory_findings
+               set status = 'CHALLENGED',
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+               where id = ?""",
+            (finding_id,),
+        )
+
+    return get_memory_finding(finding_id)
+
+
+def update_memory_finding(
+    finding_id: str,
+    statement: str,
+) -> dict[str, Any] | None:
+    """Update a finding's statement while preserving identity and history."""
+    statement = str(statement or "").strip()
+    if not statement:
+        raise ValueError("Memory finding statement is required")
+
+    with connect() as connection:
+        connection.execute(
+            """update memory_findings
+               set statement = ?,
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+               where id = ?""",
+            (statement, finding_id),
+        )
+
+    return get_memory_finding(finding_id)
+
+
+def retire_memory_finding(finding_id: str) -> dict[str, Any] | None:
+    """Retire a Memory finding without deleting its evidence or history."""
+    with connect() as connection:
+        connection.execute(
+            """update memory_findings
+               set status = 'RETIRED',
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+               where id = ?""",
+            (finding_id,),
+        )
+
+    return get_memory_finding(finding_id)
