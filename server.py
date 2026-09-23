@@ -36,6 +36,9 @@ from database.local_database import (
     list_storage_jobs,
     complete_storage_job,
     fail_storage_job,
+    get_memory_finding,
+    list_memory_findings,
+    list_memory_verifications,
 )
 from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
@@ -407,6 +410,65 @@ async def compare(
         raise HTTPException(status_code=400, detail=str(error)) from error
     except StorageProviderError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/memory")
+async def memory(
+    status: str | None = None,
+    finding_type: str | None = None,
+):
+    allowed_statuses = {
+        "OBSERVED",
+        "ACTIVE",
+        "CHALLENGED",
+        "RETIRED",
+    }
+    allowed_types = {
+        "EDGE",
+        "LEAK",
+        "SETUP",
+        "CONTEXT",
+        "BEHAVIOR",
+        "EXECUTION",
+        "EXPERIMENT_RESULT",
+    }
+
+    if status is not None and status not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported Memory status: {status}",
+        )
+
+    if finding_type is not None and finding_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported Memory type: {finding_type}",
+        )
+
+    return {
+        "version": 1,
+        "findings": list_memory_findings(
+            status=status,
+            finding_type=finding_type,
+        ),
+    }
+
+
+@app.get("/memory/{finding_id}")
+async def memory_finding(finding_id: str):
+    finding = get_memory_finding(finding_id)
+
+    if finding is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Memory finding not found",
+        )
+
+    return {
+        "version": 1,
+        "finding": finding,
+        "verificationHistory": list_memory_verifications(finding_id),
+    }
 
 
 @app.get("/analytics/summary")
