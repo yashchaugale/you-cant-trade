@@ -1167,6 +1167,90 @@ function openLeakDetails(leak) {
 }
 
 
+function renderMemory(payload) {
+    if (!memoryContent || !memoryStatus) {
+        return;
+    }
+
+    memoryContent.replaceChildren();
+
+    const findings = Array.isArray(payload?.findings) ? payload.findings : [];
+
+    memoryStatus.textContent =
+        `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
+
+    if (!findings.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No trading memory has been recorded yet.";
+        memoryContent.appendChild(empty);
+        return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "memory-grid";
+
+    const formatDateValue = value => value ? formatDate(value) : "—";
+
+    findings.forEach(finding => {
+        const card = document.createElement("article");
+        card.className = `memory-card ${String(finding.status || "OBSERVED").toLowerCase()}`;
+
+        const heading = document.createElement("div");
+        heading.className = "memory-card-heading";
+
+        const type = document.createElement("span");
+        type.className = "memory-card-type";
+        type.textContent = String(finding.type || "FINDING");
+
+        const status = document.createElement("span");
+        status.className = "memory-card-status";
+        status.textContent = String(finding.status || "OBSERVED");
+
+        heading.append(type, status);
+
+        const statement = document.createElement("h3");
+        statement.className = "memory-card-statement";
+        statement.textContent = finding.statement || "Untitled finding";
+
+        const metrics = document.createElement("div");
+        metrics.className = "memory-card-metrics";
+
+        [
+            ["Sample", finding.sampleSize ?? "—"],
+            ["Evidence", finding.evidenceStrength || "—"],
+            ["First observed", formatDateValue(finding.firstObserved)],
+            ["Last verified", formatDateValue(finding.lastVerified)],
+        ].forEach(([label, value]) => {
+            const metric = document.createElement("div");
+            metric.className = "memory-card-metric";
+
+            const labelElement = document.createElement("span");
+            labelElement.textContent = label;
+
+            const valueElement = document.createElement("strong");
+            valueElement.textContent = String(value);
+
+            metric.append(labelElement, valueElement);
+            metrics.appendChild(metric);
+        });
+
+        const supporting = document.createElement("p");
+        supporting.className = "memory-card-supporting";
+        const tradeCount = Array.isArray(finding.supportingTradeIds)
+            ? finding.supportingTradeIds.length
+            : 0;
+        supporting.textContent =
+            `${tradeCount} supporting trade${tradeCount === 1 ? "" : "s"}`;
+
+        card.append(heading, statement, metrics, supporting);
+        grid.appendChild(card);
+    });
+
+    memoryContent.appendChild(grid);
+}
+
+
 async function loadMemory() {
     if (!memoryContent || !memoryStatus) {
         return;
@@ -1183,18 +1267,7 @@ async function loadMemory() {
     try {
         const payload = await getLocalMemory();
         memoryPayload = payload;
-
-        const findings = Array.isArray(payload?.findings) ? payload.findings : [];
-        memoryStatus.textContent =
-            `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
-
-        if (!findings.length) {
-            memoryContent.replaceChildren();
-            const empty = document.createElement("p");
-            empty.className = "pattern-empty";
-            empty.textContent = "No trading memory has been recorded yet.";
-            memoryContent.appendChild(empty);
-        }
+        renderMemory(payload);
     } catch (error) {
         memoryPayload = null;
         memoryStatus.textContent = "Local service unavailable";
