@@ -193,3 +193,98 @@ def build_memory_evidence(observation: dict) -> dict:
         "evidenceStrength": evidence_strength,
         "memoryVersion": MEMORY_VERSION,
     }
+
+
+def _normalise_timestamp(value):
+    if value is None:
+        return None
+    value = str(value).strip()
+    return value or None
+
+
+def _first_observed_from_trades(
+    observation: dict,
+    trade_timestamps: dict[str, str] | None = None,
+):
+    explicit = _normalise_timestamp(
+        observation.get("firstObserved")
+        or observation.get("first_observed")
+    )
+    if explicit:
+        return explicit
+
+    timestamps = []
+    trade_ids = observation.get(
+        "sourceTradeIds",
+        observation.get("supportingTradeIds", []),
+    )
+
+    if trade_timestamps:
+        for trade_id in trade_ids or []:
+            timestamp = _normalise_timestamp(trade_timestamps.get(trade_id))
+            if timestamp:
+                timestamps.append(timestamp)
+
+    return min(timestamps) if timestamps else None
+
+
+def build_memory_finding(
+    observation: dict,
+    finding_type: str,
+    statement: str,
+    trade_timestamps: dict[str, str] | None = None,
+    finding_id: str | None = None,
+) -> dict:
+    """
+    Build a deterministic Memory Finding candidate from an observation.
+
+    This is a pure constructor. It does not persist anything and does not
+    alter the observation or any canonical Trade Case File.
+    """
+    if not isinstance(observation, dict):
+        raise ValueError("observation must be a dictionary")
+
+    finding_type = str(finding_type or "").strip().upper()
+    if finding_type not in {
+        "EDGE",
+        "LEAK",
+        "SETUP",
+        "CONTEXT",
+        "BEHAVIOR",
+        "EXECUTION",
+        "EXPERIMENT_RESULT",
+    }:
+        raise ValueError(f"unsupported memory finding type: {finding_type}")
+
+    statement = str(statement or "").strip()
+    if not statement:
+        raise ValueError("statement is required")
+
+    evidence = build_memory_evidence(observation)
+
+    first_observed = _first_observed_from_trades(
+        observation,
+        trade_timestamps=trade_timestamps,
+    )
+
+    if not first_observed:
+        raise ValueError("firstObserved requires deterministic evidence timestamp")
+
+    if finding_id is None:
+        finding_id = str(observation.get("findingId") or "").strip() or None
+
+    if not finding_id:
+        raise ValueError("finding_id is required")
+
+    return {
+        "id": finding_id,
+        "type": finding_type,
+        "statement": statement,
+        "sampleSize": evidence["sampleSize"],
+        "evidenceStrength": evidence["evidenceStrength"],
+        "firstObserved": first_observed,
+        "lastVerified": None,
+        "status": "OBSERVED",
+        "contractVersion": MEMORY_VERSION,
+        "supportingTradeIds": evidence["supportingTradeIds"],
+    }

@@ -5,6 +5,7 @@ from services.memory import (
     EVIDENCE_MODERATE,
     EVIDENCE_STRONG,
     build_memory_evidence,
+    build_memory_finding,
     evidence_from_observation,
     leak_evidence_strength,
     pattern_evidence_strength,
@@ -79,3 +80,86 @@ def test_build_memory_evidence_uses_supporting_trade_ids_when_needed():
     assert result["sampleSize"] == 5
     assert result["supportingTradeIds"] == ["t1", "t2", "t3", "t4", "t5"]
     assert result["evidenceStrength"] == EVIDENCE_MODERATE
+
+
+def test_build_memory_finding_creates_observed_finding():
+    result = build_memory_finding(
+        {
+            "source": "PATTERN",
+            "sampleSize": 4,
+            "sourceTradeIds": ["t2", "t1"],
+            "firstObserved": "2026-01-02T10:00:00Z",
+        },
+        finding_type="EDGE",
+        statement="This setup occurred repeatedly.",
+        finding_id="memory-1",
+    )
+
+    assert result == {
+        "id": "memory-1",
+        "type": "EDGE",
+        "statement": "This setup occurred repeatedly.",
+        "sampleSize": 4,
+        "evidenceStrength": EVIDENCE_LIMITED,
+        "firstObserved": "2026-01-02T10:00:00Z",
+        "lastVerified": None,
+        "status": "OBSERVED",
+        "contractVersion": MEMORY_VERSION,
+        "supportingTradeIds": ["t2", "t1"],
+    }
+
+
+def test_build_memory_finding_derives_first_observed_from_supporting_trades():
+    result = build_memory_finding(
+        {
+            "source": "PATTERN",
+            "sampleSize": 3,
+            "sourceTradeIds": ["t2", "t1"],
+        },
+        finding_type="SETUP",
+        statement="The setup appeared in these trades.",
+        trade_timestamps={
+            "t1": "2026-01-01T10:00:00Z",
+            "t2": "2026-01-03T10:00:00Z",
+        },
+        finding_id="memory-2",
+    )
+
+    assert result["firstObserved"] == "2026-01-01T10:00:00Z"
+
+
+def test_build_memory_finding_rejects_missing_first_observed():
+    try:
+        build_memory_finding(
+            {
+                "source": "PATTERN",
+                "sampleSize": 3,
+                "sourceTradeIds": ["t1"],
+            },
+            finding_type="EDGE",
+            statement="Missing timestamp.",
+            finding_id="memory-3",
+        )
+    except ValueError as exc:
+        assert str(exc) == "firstObserved requires deterministic evidence timestamp"
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_build_memory_finding_rejects_invalid_type():
+    try:
+        build_memory_finding(
+            {
+                "source": "PATTERN",
+                "sampleSize": 3,
+                "sourceTradeIds": ["t1"],
+                "firstObserved": "2026-01-01T10:00:00Z",
+            },
+            finding_type="PREDICTION",
+            statement="Invalid.",
+            finding_id="memory-4",
+        )
+    except ValueError as exc:
+        assert str(exc) == "unsupported memory finding type: PREDICTION"
+    else:
+        raise AssertionError("expected ValueError")
