@@ -235,3 +235,73 @@ def test_memory_api_write_returns_404_for_missing_finding():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Memory finding not found"
+
+
+def _valid_memory_payload():
+    return {
+        "id": "memory-api-validation-1",
+        "type": "EDGE",
+        "statement": "Validation test finding",
+        "sampleSize": 3,
+        "evidenceStrength": "LIMITED",
+        "firstObserved": "2026-03-01T10:00:00Z",
+        "status": "OBSERVED",
+        "supportingTradeIds": [],
+        "contractVersion": 1,
+    }
+
+
+def test_memory_api_rejects_invalid_type():
+    payload = _valid_memory_payload()
+    payload["type"] = "INVALID"
+
+    response = TestClient(server.app).post("/memory", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported Memory type: INVALID"
+
+
+def test_memory_api_rejects_invalid_status():
+    payload = _valid_memory_payload()
+    payload["status"] = "INVALID"
+
+    response = TestClient(server.app).post("/memory", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported Memory status: INVALID"
+
+
+def test_memory_api_rejects_invalid_evidence_strength():
+    payload = _valid_memory_payload()
+    payload["evidenceStrength"] = "INVALID"
+
+    response = TestClient(server.app).post("/memory", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Unsupported Memory evidence strength: INVALID"
+    )
+
+
+def test_memory_api_rejects_negative_sample_size():
+    payload = _valid_memory_payload()
+    payload["sampleSize"] = -1
+
+    response = TestClient(server.app).post("/memory", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Memory sampleSize must be a non-negative integer"
+    )
+
+
+def test_memory_api_rejects_non_integer_sample_size():
+    payload = _valid_memory_payload()
+    payload["sampleSize"] = 3.5
+
+    response = TestClient(server.app).post("/memory", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Memory sampleSize must be a non-negative integer"
+    )
