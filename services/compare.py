@@ -236,6 +236,13 @@ def _compare_distribution(
             previous_item["percentage"] if previous_item else 0.0
         )
 
+        percentage_point_change = None
+        if current and previous:
+            percentage_point_change = round(
+                current_percentage - previous_percentage,
+                6,
+            )
+
         values.append(
             {
                 "value": value,
@@ -249,10 +256,7 @@ def _compare_distribution(
                     "percentage": previous_percentage,
                     "tradeIds": previous_item["tradeIds"] if previous_item else [],
                 },
-                "percentagePointChange": round(
-                    current_percentage - previous_percentage,
-                    6,
-                ),
+                "percentagePointChange": percentage_point_change,
             }
         )
 
@@ -389,6 +393,8 @@ def _largest_distribution_change(
         for value in comparison["values"]:
             change = value["percentagePointChange"]
 
+            if change is None:
+                continue
             if direction == "increase" and change <= 0:
                 continue
             if direction == "decrease" and change >= 0:

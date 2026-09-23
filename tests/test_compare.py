@@ -219,6 +219,13 @@ def test_insufficient_history_does_not_fabricate_previous_trades():
     assert result["periods"]["previous"]["actualCount"] == 0
     assert result["periods"]["previous"]["tradeIds"] == []
 
+    for distribution in result["distributions"].values():
+        for value in distribution["values"]:
+            assert value["percentagePointChange"] is None
+
+    assert result["changes"]["largestDistributionIncrease"] is None
+    assert result["changes"]["largestDistributionDecrease"] is None
+
 def test_compare_does_not_report_new_patterns_without_previous_period():
     current = [
         {
