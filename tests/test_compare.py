@@ -218,3 +218,29 @@ def test_insufficient_history_does_not_fabricate_previous_trades():
     assert result["periods"]["current"]["actualCount"] == 2
     assert result["periods"]["previous"]["actualCount"] == 0
     assert result["periods"]["previous"]["tradeIds"] == []
+
+def test_compare_does_not_report_new_patterns_without_previous_period():
+    current = [
+        {
+            **_trade("current-1", 1, result="WIN"),
+            "setup": "BREAKOUT",
+        },
+        {
+            **_trade("current-2", 2, result="LOSS"),
+            "setup": "BREAKOUT",
+        },
+        {
+            **_trade("current-3", 3, result="WIN"),
+            "setup": "BREAKOUT",
+        },
+    ]
+
+    result = compare_periods(
+        current,
+        current_count=3,
+        previous_count=3,
+    )
+
+    assert result["periods"]["previous"]["actualCount"] == 0
+    assert result["patterns"]["newPatterns"] == []
+    assert result["patterns"]["disappearingPatterns"] == []

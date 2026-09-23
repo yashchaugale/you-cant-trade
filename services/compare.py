@@ -349,6 +349,15 @@ def _pattern_changes(
     current: list[dict[str, Any]],
     previous: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    # A missing period is insufficient history, not evidence of a pattern
+    # appearing or disappearing. Keep both change sets empty until both
+    # periods contain observations that can actually be compared.
+    if not current or not previous:
+        return {
+            "newPatterns": [],
+            "disappearingPatterns": [],
+        }
+
     current_patterns = _discover_period_patterns(current)
     previous_patterns = _discover_period_patterns(previous)
 
