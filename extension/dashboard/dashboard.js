@@ -14,6 +14,7 @@ import {
     getLocalEdgeMap,
     getLocalLeakMap,
     getLocalCompare,
+    getLocalMemory,
     analyzeLocalPatterns,
     getSimilarLocalTrades,
     compareLocalTrade,
@@ -44,6 +45,7 @@ let edgeMapSelectedTradeIds = null;
 let edgeMapComparisonCells = [];
 let leakMapPayload = null;
 let comparePayload = null;
+let memoryPayload = null;
 
 const modal = document.getElementById("tradeModal");
 const tradeGrid = document.getElementById("tradeGrid");
@@ -64,6 +66,8 @@ const compareContent = document.getElementById("compareContent");
 const compareStatus = document.getElementById("compareStatus");
 const compareCurrentCount = document.getElementById("compareCurrentCount");
 const comparePreviousCount = document.getElementById("comparePreviousCount");
+const memoryContent = document.getElementById("memoryContent");
+const memoryStatus = document.getElementById("memoryStatus");
 const leakDetails = document.getElementById("leakDetails");
 const leakDetailsTitle = document.getElementById("leakDetailsTitle");
 const leakDetailsContent = document.getElementById("leakDetailsContent");
@@ -1160,6 +1164,47 @@ function openLeakDetails(leak) {
 
     leakDetailsContent.appendChild(supporting);
     leakDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
+async function loadMemory() {
+    if (!memoryContent || !memoryStatus) {
+        return;
+    }
+
+    memoryStatus.textContent = "Loading trading memory…";
+    memoryContent.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.className = "pattern-empty";
+    loading.textContent = "Loading deterministic trading memory…";
+    memoryContent.appendChild(loading);
+
+    try {
+        const payload = await getLocalMemory();
+        memoryPayload = payload;
+
+        const findings = Array.isArray(payload?.findings) ? payload.findings : [];
+        memoryStatus.textContent =
+            `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
+
+        if (!findings.length) {
+            memoryContent.replaceChildren();
+            const empty = document.createElement("p");
+            empty.className = "pattern-empty";
+            empty.textContent = "No trading memory has been recorded yet.";
+            memoryContent.appendChild(empty);
+        }
+    } catch (error) {
+        memoryPayload = null;
+        memoryStatus.textContent = "Local service unavailable";
+        memoryContent.replaceChildren();
+
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "Start the local service to load Trading Memory.";
+        memoryContent.appendChild(empty);
+    }
 }
 
 
@@ -3161,6 +3206,7 @@ loadTrades()
 });
 
 loadLeakMap();
+loadMemory();
 
 
 if (closeLeakDetails) {
