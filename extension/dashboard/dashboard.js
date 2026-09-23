@@ -778,7 +778,7 @@ function renderCompareDistribution(field, payload, container) {
     const head = document.createElement("thead");
     const headRow = document.createElement("tr");
 
-    ["Value", "Current", "Previous", "Change"].forEach(label => {
+    ["Value", "Current", "Previous", "Change", "Supporting trades"].forEach(label => {
         const cell = document.createElement("th");
         cell.scope = "col";
         cell.textContent = label;
@@ -820,14 +820,32 @@ function renderCompareDistribution(field, payload, container) {
             ...(item.previous?.tradeIds || []),
         ];
 
-        if (supportingIds.length) {
-            row.className = "compare-table-row-clickable";
-            row.addEventListener("click", () => {
-                const uniqueIds = [...new Set(supportingIds)];
-                if (uniqueIds.length === 1) {
-                    openTrade(uniqueIds[0]);
-                }
+        const uniqueIds = [...new Set(supportingIds)];
+
+        if (uniqueIds.length) {
+            const supportingCell = document.createElement("td");
+            const supportingList = document.createElement("div");
+            supportingList.className = "compare-inline-trade-list";
+
+            uniqueIds.forEach(tradeId => {
+                const trade = trades.find(candidate => candidate.id === tradeId);
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "compare-inline-trade";
+                button.textContent = trade
+                    ? `${trade.symbol || "Trade"} · ${trade.direction || "—"}`
+                    : tradeId;
+                button.title = tradeId;
+                button.addEventListener("click", () => openTrade(tradeId));
+                supportingList.appendChild(button);
             });
+
+            supportingCell.appendChild(supportingList);
+            row.appendChild(supportingCell);
+        } else {
+            const supportingCell = document.createElement("td");
+            supportingCell.textContent = "—";
+            row.appendChild(supportingCell);
         }
 
         body.appendChild(row);
@@ -885,8 +903,8 @@ function renderComparePatterns(payload, container) {
 
             card.append(name, meta);
 
-            const tradeIds = Array.isArray(pattern.tradeIds)
-                ? pattern.tradeIds
+            const tradeIds = Array.isArray(pattern.sourceTradeIds)
+                ? pattern.sourceTradeIds
                 : [];
 
             if (tradeIds.length) {
@@ -3130,9 +3148,10 @@ bindEdgeMapControls();
 loadEdgeMap();
 
 bindCompareControls();
-loadCompare();
 
-loadTrades().catch(error => {
+loadTrades()
+    .then(() => loadCompare())
+    .catch(error => {
     console.error("❌ DASHBOARD LOAD FAILED", error);
     const status = document.getElementById("searchStatus");
     status.textContent = "Could not load the local journal. Check that the service is running, then reload.";
