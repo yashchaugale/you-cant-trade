@@ -839,3 +839,252 @@ def complete_storage_job(job_id: str) -> None:
 def fail_storage_job(job_id: str, error: str) -> None:
     with connect() as connection:
         connection.execute("update storage_outbox set attempts = attempts + 1, status = 'RETRYING', last_error = ?, next_retry_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+5 minutes') where job_id = ?", (error[:500], job_id))
+
+
+def create_memory_finding(finding: dict[str, Any]) -> dict[str, Any]:
+    """Persist a new Memory finding and its canonical supporting trades."""
+    required = (
+        "id",
+        "type",
+        "statement",
+        "sampleSize",
+        "evidenceStrength",
+        "firstObserved",
+        "status",
+        "contractVersion",
+    )
+    missing = [key for key in required if finding.get(key) is None]
+    if missing:
+        raise ValueError(f"Missing memory finding fields: {', '.join(missing)}")
+
+    supporting_trade_ids = list(dict.fromkeys(
+        trade_id
+        for trade_id in finding.get("supportingTradeIds", [])
+        if trade_id is not None and str(trade_id).strip()
+    ))
+
+    with connect() as connection:
+        connection.execute(
+            """insert into memory_findings (
+                id, type, statement, sample_size, evidence_strength,
+                first_observed, last_verified, status, contract_version
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                finding["id"],
+                finding["type"],
+                finding["statement"],
+                int(finding["sampleSize"]),
+                finding["evidenceStrength"],
+                finding["firstObserved"],
+                finding.get("lastVerified"),
+                finding["status"],
+                int(finding["contractVersion"]),
+            ),
+        )
+
+        for trade_id in supporting_trade_ids:
+            connection.execute(
+                """insert into memory_finding_trades (finding_id, trade_id)
+                   values (?, ?)""",
+                (finding["id"], trade_id),
+            )
+
+    result = get_memory_finding(finding["id"])
+    if result is None:
+        raise RuntimeError("Memory finding was inserted but could not be retrieved")
+    return result
+
+
+def get_memory_finding(finding_id: str) -> dict[str, Any] | None:
+    """Return a Memory finding with its canonical supporting trade IDs."""
+    with connect() as connection:
+        row = connection.execute(
+            """select id, type, statement, sample_size, evidence_strength,
+                      first_observed, last_verified, status, contract_version,
+                      created_at, updated_at
+               from memory_findings
+               where id = ?""",
+            (finding_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        trade_rows = connection.execute(
+            """select trade_id
+               from memory_finding_trades
+               where finding_id = ?
+               order by trade_id""",
+            (finding_id,),
+        ).fetchall()
+
+    return {
+        "id": row["id"],
+        "type": row["type"],
+        "statement": row["statement"],
+        "sampleSize": row["sample_size"],
+        "evidenceStrength": row["evidence_strength"],
+        "firstObserved": row["first_observed"],
+        "lastVerified": row["last_verified"],
+        "status": row["status"],
+        "contractVersion": row["contract_version"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+        "supportingTradeIds": [item["trade_id"] for item in trade_rows],
+    }
+
+
+def list_memory_findings(
+    status: str | None = None,
+    finding_type: str | None = None,
+) -> list[dict[str, Any]]:
+    """List Memory findings with optional deterministic filters."""
+    clauses = []
+    params: list[Any] = []
+
+    if status is not None:
+        clauses.append("status = ?")
+        params.append(status)
+
+    if finding_type is not None:
+        clauses.append("type = ?")
+        params.append(finding_type)
+
+    where = f"where {' and '.join(clauses)}" if clauses else ""
+
+    with connect() as connection:
+        rows = connection.execute(
+            f"""select id
+                from memory_findings
+                {where}
+                order by first_observed asc, id asc""",
+            params,
+        ).fetchall()
+
+    return [
+        finding
+        for row in rows
+        if (finding := get_memory_finding(row["id"])) is not None
+    ]
+
+
+def save_memory_verification(
+    finding_id: str,
+    verification: dict[str, Any],
+) -> dict[str, Any]:
+    """Persist one immutable deterministic Memory verification result."""
+    required = (
+        "id",
+        "verifiedAt",
+        "status",
+        "sampleSize",
+        "evidenceStrength",
+        "contractVersion",
+    )
+    missing = [key for key in required if verification.get(key) is None]
+    if missing:
+        raise ValueError(
+            f"Missing memory verification fields: {', '.join(missing)}"
+        )
+
+    supporting_trade_ids = list(dict.fromkeys(
+        trade_id
+        for trade_id in verification.get("supportingTradeIds", [])
+        if trade_id is not None and str(trade_id).strip()
+    ))
+
+    with connect() as connection:
+        connection.execute(
+            """insert into memory_verifications (
+                id, finding_id, verified_at, status, sample_size,
+                evidence_strength, supporting_trade_count,
+                supporting_trade_ids_json, contract_version
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                verification["id"],
+                finding_id,
+                verification["verifiedAt"],
+                verification["status"],
+                int(verification["sampleSize"]),
+                verification["evidenceStrength"],
+                len(supporting_trade_ids),
+                json.dumps(supporting_trade_ids),
+                int(verification["contractVersion"]),
+            ),
+        )
+
+        connection.execute(
+            """update memory_findings
+               set last_verified = ?, status = ?, sample_size = ?,
+                   evidence_strength = ?, updated_at = strftime(
+                       '%Y-%m-%dT%H:%M:%fZ', 'now'
+                   )
+               where id = ?""",
+            (
+                verification["verifiedAt"],
+                verification["status"],
+                int(verification["sampleSize"]),
+                verification["evidenceStrength"],
+                finding_id,
+            ),
+        )
+
+    with connect() as connection:
+        row = connection.execute(
+            """select id, finding_id, verified_at, status, sample_size,
+                      evidence_strength, supporting_trade_count,
+                      supporting_trade_ids_json, contract_version, created_at
+               from memory_verifications
+               where id = ?""",
+            (verification["id"],),
+        ).fetchone()
+
+    if row is None:
+        raise RuntimeError("Memory verification was inserted but could not be retrieved")
+
+    return {
+        "id": row["id"],
+        "findingId": row["finding_id"],
+        "verifiedAt": row["verified_at"],
+        "status": row["status"],
+        "sampleSize": row["sample_size"],
+        "evidenceStrength": row["evidence_strength"],
+        "supportingTradeCount": row["supporting_trade_count"],
+        "supportingTradeIds": json.loads(
+            row["supporting_trade_ids_json"] or "[]"
+        ),
+        "contractVersion": row["contract_version"],
+        "createdAt": row["created_at"],
+    }
+
+
+def list_memory_verifications(finding_id: str) -> list[dict[str, Any]]:
+    """Return immutable verification history in newest-first order."""
+    with connect() as connection:
+        rows = connection.execute(
+            """select id, finding_id, verified_at, status, sample_size,
+                      evidence_strength, supporting_trade_count,
+                      supporting_trade_ids_json, contract_version, created_at
+               from memory_verifications
+               where finding_id = ?
+               order by verified_at desc, id desc""",
+            (finding_id,),
+        ).fetchall()
+
+    return [
+        {
+            "id": row["id"],
+            "findingId": row["finding_id"],
+            "verifiedAt": row["verified_at"],
+            "status": row["status"],
+            "sampleSize": row["sample_size"],
+            "evidenceStrength": row["evidence_strength"],
+            "supportingTradeCount": row["supporting_trade_count"],
+            "supportingTradeIds": json.loads(
+                row["supporting_trade_ids_json"] or "[]"
+            ),
+            "contractVersion": row["contract_version"],
+            "createdAt": row["created_at"],
+        }
+        for row in rows
+    ]

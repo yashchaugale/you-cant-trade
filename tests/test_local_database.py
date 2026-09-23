@@ -392,3 +392,103 @@ class LocalDatabaseCompatibilityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+
+    def test_memory_finding_persistence_and_verification(self):
+        trade = {
+            "id": "MEMORY_TEST_TRADE",
+            "schemaVersion": 4,
+            "timestamp": "2026-08-27T10:00:00.000Z",
+            "updatedAt": "2026-08-27T10:00:00.000Z",
+            "symbol": "TEST",
+            "direction": "LONG",
+            "entry": 100,
+            "stopLoss": 99,
+            "takeProfit": 102,
+            "intelligence": {"marketContext": {"trend": None}},
+        }
+
+        self.database.upsert_trade(trade)
+
+        finding = self.database.create_memory_finding({
+            "id": "MEMORY_TEST_FINDING",
+            "type": "EDGE",
+            "statement": "Test memory finding.",
+            "sampleSize": 3,
+            "evidenceStrength": "LIMITED",
+            "firstObserved": "2026-01-01T10:00:00Z",
+            "lastVerified": None,
+            "status": "OBSERVED",
+            "contractVersion": 1,
+            "supportingTradeIds": ["MEMORY_TEST_TRADE"],
+        })
+
+        self.assertEqual(finding["id"], "MEMORY_TEST_FINDING")
+        self.assertEqual(
+            finding["supportingTradeIds"],
+            ["MEMORY_TEST_TRADE"],
+        )
+
+        verification = self.database.save_memory_verification(
+            "MEMORY_TEST_FINDING",
+            {
+                "id": "MEMORY_TEST_VERIFICATION",
+                "verifiedAt": "2026-02-01T10:00:00Z",
+                "status": "ACTIVE",
+                "sampleSize": 5,
+                "evidenceStrength": "MODERATE",
+                "supportingTradeIds": ["MEMORY_TEST_TRADE"],
+                "contractVersion": 1,
+            },
+        )
+
+        self.assertEqual(
+            verification["findingId"],
+            "MEMORY_TEST_FINDING",
+        )
+        self.assertEqual(verification["status"], "ACTIVE")
+
+        updated = self.database.get_memory_finding("MEMORY_TEST_FINDING")
+        self.assertEqual(
+            updated["lastVerified"],
+            "2026-02-01T10:00:00Z",
+        )
+        self.assertEqual(updated["status"], "ACTIVE")
+        self.assertEqual(updated["sampleSize"], 5)
+        self.assertEqual(updated["evidenceStrength"], "MODERATE")
+
+        history = self.database.list_memory_verifications(
+            "MEMORY_TEST_FINDING"
+        )
+        self.assertEqual(len(history), 1)
+        self.assertEqual(
+            history[0]["id"],
+            "MEMORY_TEST_VERIFICATION",
+        )
+
+        self.database.delete_trade("MEMORY_TEST_TRADE")
+        self.assertIsNone(
+            self.database.get_memory_finding("MEMORY_TEST_FINDING")
+        )
+
+
+    def test_memory_finding_rejects_unknown_supporting_trade(self):
+        with self.assertRaises(Exception) as context:
+            self.database.create_memory_finding({
+                "id": "MEMORY_BAD_FINDING",
+                "type": "EDGE",
+                "statement": "Should fail.",
+                "sampleSize": 3,
+                "evidenceStrength": "LIMITED",
+                "firstObserved": "2026-01-01T10:00:00Z",
+                "status": "OBSERVED",
+                "contractVersion": 1,
+                "supportingTradeIds": ["DOES_NOT_EXIST"],
+            })
+
+        self.assertTrue(
+            "FOREIGN KEY" in str(context.exception).upper()
+            or "constraint" in str(context.exception).lower()
+        )
