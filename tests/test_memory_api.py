@@ -305,3 +305,73 @@ def test_memory_api_rejects_non_integer_sample_size():
     assert response.json()["detail"] == (
         "Memory sampleSize must be a non-negative integer"
     )
+
+
+def test_memory_api_recheck_rejects_invalid_status():
+    _create_write_test_finding()
+
+    payload = {
+        "id": "verification-api-invalid-status",
+        "verifiedAt": "2026-03-15T10:00:00Z",
+        "status": "INVALID",
+        "sampleSize": 5,
+        "evidenceStrength": "MODERATE",
+        "supportingTradeIds": [],
+        "contractVersion": 1,
+    }
+
+    response = TestClient(server.app).post(
+        "/memory/memory-api-write-1/recheck",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported Memory status: INVALID"
+
+
+def test_memory_api_recheck_rejects_invalid_evidence_strength():
+    _create_write_test_finding()
+
+    payload = {
+        "id": "verification-api-invalid-evidence",
+        "verifiedAt": "2026-03-15T10:00:00Z",
+        "status": "ACTIVE",
+        "sampleSize": 5,
+        "evidenceStrength": "INVALID",
+        "supportingTradeIds": [],
+        "contractVersion": 1,
+    }
+
+    response = TestClient(server.app).post(
+        "/memory/memory-api-write-1/recheck",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Unsupported Memory evidence strength: INVALID"
+    )
+
+
+def test_memory_api_recheck_rejects_invalid_sample_size():
+    _create_write_test_finding()
+
+    payload = {
+        "id": "verification-api-invalid-sample",
+        "verifiedAt": "2026-03-15T10:00:00Z",
+        "status": "ACTIVE",
+        "sampleSize": -1,
+        "evidenceStrength": "MODERATE",
+        "supportingTradeIds": [],
+        "contractVersion": 1,
+    }
+
+    response = TestClient(server.app).post(
+        "/memory/memory-api-write-1/recheck",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Memory sampleSize must be a non-negative integer"
+    )

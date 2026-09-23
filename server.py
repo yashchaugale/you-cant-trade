@@ -585,6 +585,41 @@ async def recheck_memory(finding_id: str, payload: dict):
             detail="Memory finding not found",
         )
 
+    allowed_statuses = {
+        "OBSERVED",
+        "ACTIVE",
+        "CHALLENGED",
+        "RETIRED",
+    }
+    allowed_evidence = {
+        "INSUFFICIENT",
+        "LIMITED",
+        "MODERATE",
+        "STRONG",
+    }
+
+    if payload.get("status") not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported Memory status: {payload.get('status')}",
+        )
+
+    if payload.get("evidenceStrength") not in allowed_evidence:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Unsupported Memory evidence strength: "
+                f"{payload.get('evidenceStrength')}"
+            ),
+        )
+
+    sample_size = payload.get("sampleSize")
+    if not isinstance(sample_size, int) or isinstance(sample_size, bool) or sample_size < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Memory sampleSize must be a non-negative integer",
+        )
+
     try:
         verification = save_memory_verification(
             finding_id,
