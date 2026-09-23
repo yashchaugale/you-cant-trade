@@ -42,6 +42,7 @@ from services.canonical_intelligence import assemble_canonical_intelligence
 from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
 from services.edge_map import build_edge_map
 from services.leak_map import build_leak_map, calculate_leak_trend, detect_leaks
+from services.compare import compare_periods
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -378,6 +379,34 @@ async def leak_map():
     except StorageProviderError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 
+
+
+@app.get("/compare")
+async def compare(
+    current_count: int,
+    previous_count: int,
+):
+    if current_count < 1 or previous_count < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Compare period sizes must be positive",
+        )
+
+    try:
+        provider = get_storage_provider()
+        trades = provider.list_trades(
+            limit=provider.historical_candidate_limit()
+        )
+
+        return compare_periods(
+            trades,
+            current_count=current_count,
+            previous_count=previous_count,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except StorageProviderError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/analytics/summary")
