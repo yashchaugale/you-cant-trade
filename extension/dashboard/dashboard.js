@@ -13,6 +13,7 @@ import {
     getLocalPatterns,
     getLocalEdgeMap,
     getLocalLeakMap,
+    getLocalCompare,
     analyzeLocalPatterns,
     getSimilarLocalTrades,
     compareLocalTrade,
@@ -42,6 +43,7 @@ let edgeMapPayload = null;
 let edgeMapSelectedTradeIds = null;
 let edgeMapComparisonCells = [];
 let leakMapPayload = null;
+let comparePayload = null;
 
 const modal = document.getElementById("tradeModal");
 const tradeGrid = document.getElementById("tradeGrid");
@@ -58,6 +60,10 @@ const edgeMapStatus = document.getElementById("edgeMapStatus");
 const edgeMapDimensionSelect = document.getElementById("edgeMapDimensionSelect");
 const leakMapContent = document.getElementById("leakMapContent");
 const leakMapStatus = document.getElementById("leakMapStatus");
+const compareContent = document.getElementById("compareContent");
+const compareStatus = document.getElementById("compareStatus");
+const compareCurrentCount = document.getElementById("compareCurrentCount");
+const comparePreviousCount = document.getElementById("comparePreviousCount");
 const leakDetails = document.getElementById("leakDetails");
 const leakDetailsTitle = document.getElementById("leakDetailsTitle");
 const leakDetailsContent = document.getElementById("leakDetailsContent");
@@ -473,6 +479,415 @@ function renderLeakMap(payload) {
     leakMapContent.appendChild(grid);
 }
 
+
+
+async function loadCompare() {
+    if (
+        !compareContent ||
+        !compareStatus ||
+        !compareCurrentCount ||
+        !comparePreviousCount
+    ) {
+        return;
+    }
+
+    const currentCount = Number(compareCurrentCount.value);
+    const previousCount = Number(comparePreviousCount.value);
+
+    compareStatus.textContent = "Loading historical comparison…";
+    compareContent.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.className = "pattern-empty";
+    loading.textContent = "Loading deterministic comparison…";
+    compareContent.appendChild(loading);
+
+    try {
+        comparePayload = await getLocalCompare(
+            currentCount,
+            previousCount,
+        );
+
+        renderCompare(comparePayload);
+    } catch (error) {
+        comparePayload = null;
+        compareStatus.textContent = "Local service unavailable";
+        compareContent.replaceChildren();
+
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "Start the local service to load the comparison.";
+        compareContent.appendChild(empty);
+    }
+}
+
+
+function bindCompareControls() {
+    if (!compareCurrentCount || !comparePreviousCount) {
+        return;
+    }
+
+    compareCurrentCount.addEventListener("change", loadCompare);
+    comparePreviousCount.addEventListener("change", loadCompare);
+}
+
+
+function formatComparePercent(value) {
+    return value == null ? "—" : `${(Number(value) * 100).toFixed(1)}%`;
+}
+
+
+function formatCompareR(value) {
+    return value == null ? "—" : `${Number(value).toFixed(2)}R`;
+}
+
+
+function formatCompareChange(value, formatter = formatComparePercent) {
+    return value == null ? "—" : formatter(value);
+}
+
+
+function renderCompareMetric(label, current, previous, change, formatter) {
+    const card = document.createElement("article");
+    card.className = "compare-metric-card";
+
+    const title = document.createElement("span");
+    title.className = "compare-metric-label";
+    title.textContent = label;
+
+    const values = document.createElement("div");
+    values.className = "compare-metric-values";
+
+    const currentValue = document.createElement("strong");
+    currentValue.textContent = formatter(current);
+
+    const previousValue = document.createElement("span");
+    previousValue.textContent = `Previous ${formatter(previous)}`;
+
+    const delta = document.createElement("span");
+    delta.className = "compare-metric-change";
+    delta.textContent = `Δ ${formatCompareChange(change, formatter)}`;
+
+    values.append(currentValue, previousValue, delta);
+    card.append(title, values);
+
+    return card;
+}
+
+
+function renderCompareTradeLinks(container, tradeIds, label = "Supporting trades") {
+    if (!container || !Array.isArray(tradeIds) || !tradeIds.length) {
+        return;
+    }
+
+    const section = document.createElement("section");
+    section.className = "compare-supporting";
+
+    const heading = document.createElement("h4");
+    heading.textContent = `${label} · ${tradeIds.length}`;
+    section.appendChild(heading);
+
+    const list = document.createElement("div");
+    list.className = "compare-trade-list";
+
+    tradeIds.forEach(tradeId => {
+        const trade = trades.find(item => item.id === tradeId);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "compare-trade-row";
+
+        const identity = document.createElement("span");
+        identity.textContent = trade
+            ? `${trade.symbol || "Trade"} · ${trade.direction || "—"}`
+            : tradeId;
+
+        const meta = document.createElement("span");
+        meta.textContent = trade
+            ? `${trade.result || "UNREVIEWED"} · ${formatDate(trade.timestamp)}`
+            : tradeId;
+
+        button.append(identity, meta);
+        button.addEventListener("click", () => openTrade(tradeId));
+        list.appendChild(button);
+    });
+
+    section.appendChild(list);
+    container.appendChild(section);
+}
+
+
+function renderCompareDistribution(field, payload, container) {
+    const section = document.createElement("section");
+    section.className = "compare-distribution";
+
+    const title = document.createElement("h3");
+    title.textContent = field.charAt(0).toUpperCase() + field.slice(1);
+    section.appendChild(title);
+
+    const values = Array.isArray(payload?.values) ? payload.values : [];
+
+    if (!values.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No explicit observations available.";
+        section.appendChild(empty);
+        container.appendChild(section);
+        return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "compare-table";
+
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+
+    ["Value", "Current", "Previous", "Change"].forEach(label => {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        headRow.appendChild(cell);
+    });
+
+    head.appendChild(headRow);
+    table.appendChild(head);
+
+    const body = document.createElement("tbody");
+
+    values.forEach(item => {
+        const row = document.createElement("tr");
+
+        const valueCell = document.createElement("th");
+        valueCell.scope = "row";
+        valueCell.textContent = item.value;
+        row.appendChild(valueCell);
+
+        const currentCell = document.createElement("td");
+        currentCell.textContent =
+            `${item.current?.count || 0} · ${formatComparePercent(item.current?.percentage)}`;
+        row.appendChild(currentCell);
+
+        const previousCell = document.createElement("td");
+        previousCell.textContent =
+            `${item.previous?.count || 0} · ${formatComparePercent(item.previous?.percentage)}`;
+        row.appendChild(previousCell);
+
+        const changeCell = document.createElement("td");
+        changeCell.textContent =
+            item.percentagePointChange == null
+                ? "—"
+                : `${item.percentagePointChange > 0 ? "+" : ""}${(Number(item.percentagePointChange) * 100).toFixed(1)}pp`;
+        row.appendChild(changeCell);
+
+        const supportingIds = [
+            ...(item.current?.tradeIds || []),
+            ...(item.previous?.tradeIds || []),
+        ];
+
+        if (supportingIds.length) {
+            row.className = "compare-table-row-clickable";
+            row.addEventListener("click", () => {
+                const uniqueIds = [...new Set(supportingIds)];
+                if (uniqueIds.length === 1) {
+                    openTrade(uniqueIds[0]);
+                }
+            });
+        }
+
+        body.appendChild(row);
+    });
+
+    table.appendChild(body);
+    section.appendChild(table);
+    container.appendChild(section);
+}
+
+
+function renderComparePatterns(payload, container) {
+    const patterns = payload?.patterns || {};
+
+    const section = document.createElement("section");
+    section.className = "compare-patterns";
+
+    const title = document.createElement("h3");
+    title.textContent = "Pattern changes";
+    section.appendChild(title);
+
+    const groups = [
+        ["New patterns", patterns.newPatterns],
+        ["Disappearing patterns", patterns.disappearingPatterns],
+    ];
+
+    let rendered = false;
+
+    groups.forEach(([label, items]) => {
+        if (!Array.isArray(items) || !items.length) {
+            return;
+        }
+
+        rendered = true;
+
+        const group = document.createElement("div");
+        group.className = "compare-pattern-group";
+
+        const heading = document.createElement("h4");
+        heading.textContent = label;
+        group.appendChild(heading);
+
+        items.forEach(pattern => {
+            const card = document.createElement("article");
+            card.className = "compare-pattern-card";
+
+            const name = document.createElement("strong");
+            name.textContent = `${pattern.dimension || "Pattern"} · ${pattern.value || "—"}`;
+
+            const meta = document.createElement("span");
+            meta.textContent =
+                `${pattern.sampleSize || 0} trades · ` +
+                `Win rate ${formatComparePercent(pattern.winRate)} · ` +
+                `Expectancy ${formatCompareR(pattern.expectancy)}`;
+
+            card.append(name, meta);
+
+            const tradeIds = Array.isArray(pattern.tradeIds)
+                ? pattern.tradeIds
+                : [];
+
+            if (tradeIds.length) {
+                const links = document.createElement("div");
+                renderCompareTradeLinks(links, tradeIds, "Supporting trades");
+                card.appendChild(links);
+            }
+
+            group.appendChild(card);
+        });
+
+        section.appendChild(group);
+    });
+
+    if (!rendered) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No new or disappearing patterns meet the minimum sample.";
+        section.appendChild(empty);
+    }
+
+    container.appendChild(section);
+}
+
+
+function renderCompare(payload) {
+    if (!compareContent || !compareStatus) {
+        return;
+    }
+
+    compareContent.replaceChildren();
+
+    const current = payload?.periods?.current;
+    const previous = payload?.periods?.previous;
+    const performance = payload?.performance;
+
+    const currentCount = Number(current?.actualCount || 0);
+    const previousCount = Number(previous?.actualCount || 0);
+
+    compareStatus.textContent =
+        `${currentCount} current · ${previousCount} previous trades`;
+
+    const periodNote = document.createElement("p");
+    periodNote.className = "compare-period-note";
+
+    if (!previousCount) {
+        periodNote.textContent =
+            "Previous period has insufficient history. Changes requiring a previous period are shown as unknown.";
+    } else {
+        periodNote.textContent =
+            `Current: last ${current?.requestedCount || 0} trades · ` +
+            `Previous: preceding ${previous?.requestedCount || 0} trades.`;
+    }
+
+    compareContent.appendChild(periodNote);
+
+    const performanceSection = document.createElement("section");
+    performanceSection.className = "compare-performance";
+
+    const performanceTitle = document.createElement("h3");
+    performanceTitle.textContent = "Performance";
+    performanceSection.appendChild(performanceTitle);
+
+    const metrics = document.createElement("div");
+    metrics.className = "compare-metrics";
+
+    metrics.appendChild(
+        renderCompareMetric(
+            "Win rate",
+            performance?.winRate?.current,
+            performance?.winRate?.previous,
+            performance?.winRate?.change,
+            formatComparePercent,
+        ),
+    );
+
+    metrics.appendChild(
+        renderCompareMetric(
+            "Average R",
+            performance?.averageR?.current,
+            performance?.averageR?.previous,
+            performance?.averageR?.change,
+            formatCompareR,
+        ),
+    );
+
+    metrics.appendChild(
+        renderCompareMetric(
+            "Expectancy",
+            performance?.expectancy?.current,
+            performance?.expectancy?.previous,
+            performance?.expectancy?.change,
+            formatCompareR,
+        ),
+    );
+
+    metrics.appendChild(
+        renderCompareMetric(
+            "Actual R coverage",
+            performance?.actualR?.current?.coverage,
+            performance?.actualR?.previous?.coverage,
+            null,
+            formatComparePercent,
+        ),
+    );
+
+    metrics.appendChild(
+        renderCompareMetric(
+            "Sample size",
+            performance?.sampleSize?.current,
+            performance?.sampleSize?.previous,
+            performance?.sampleSize?.change,
+            value => value == null ? "—" : String(value),
+        ),
+    );
+
+    performanceSection.appendChild(metrics);
+    compareContent.appendChild(performanceSection);
+
+    const distributionsSection = document.createElement("section");
+    distributionsSection.className = "compare-distributions";
+
+    const distributionsTitle = document.createElement("h3");
+    distributionsTitle.textContent = "Trading composition";
+    distributionsSection.appendChild(distributionsTitle);
+
+    Object.entries(payload?.distributions || {}).forEach(([field, distribution]) => {
+        renderCompareDistribution(
+            field,
+            distribution,
+            distributionsSection,
+        );
+    });
+
+    compareContent.appendChild(distributionsSection);
+
+    renderComparePatterns(payload, compareContent);
+}
 
 
 function formatLeakTrend(value) {
@@ -2574,6 +2989,9 @@ document.addEventListener("keydown", event => {
 
 bindEdgeMapControls();
 loadEdgeMap();
+
+bindCompareControls();
+loadCompare();
 
 loadTrades().catch(error => {
     console.error("❌ DASHBOARD LOAD FAILED", error);

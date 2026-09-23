@@ -279,3 +279,13 @@ export async function analyzeLocalTrade(tradeId) {
 export async function getLocalLeakMap() {
     return request("/leak-map");
 }
+
+
+export async function getLocalCompare(currentCount, previousCount) {
+    const params = new URLSearchParams({
+        current_count: String(currentCount),
+        previous_count: String(previousCount),
+    });
+
+    return request(`/compare?${params.toString()}`);
+}

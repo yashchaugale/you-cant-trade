@@ -242,6 +242,37 @@
         </section>
 
 
+        <section id="compare" class="compare" aria-labelledby="compareTitle">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">What changed in your trading</p>
+                    <h2 id="compareTitle">Compare</h2>
+                </div>
+                <p id="compareStatus" class="review-period">Loading historical comparison…</p>
+            </div>
+
+            <div class="compare-controls">
+                <label for="compareCurrentCount">Current</label>
+                <select id="compareCurrentCount">
+                    <option value="30">Last 30 trades</option>
+                    <option value="50">Last 50 trades</option>
+                    <option value="100">Last 100 trades</option>
+                </select>
+
+                <label for="comparePreviousCount">Previous</label>
+                <select id="comparePreviousCount">
+                    <option value="30">Previous 30 trades</option>
+                    <option value="50">Previous 50 trades</option>
+                    <option value="100">Previous 100 trades</option>
+                </select>
+            </div>
+
+            <div id="compareContent" class="compare-content">
+                <p class="pattern-empty">Loading deterministic comparison…</p>
+            </div>
+        </section>
+
+
         <section id="leakDetails" class="leak-details" aria-labelledby="leakDetailsTitle" hidden>
             <div class="section-heading">
                 <div>
