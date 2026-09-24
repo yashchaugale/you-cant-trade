@@ -283,6 +283,58 @@
                 <p id="memoryStatus" class="review-period">Loading trading memory…</p>
             </div>
 
+            <div class="memory-filters" aria-label="Memory filters">
+                <label class="memory-filter-search">
+                    <span>Search</span>
+                    <input
+                        id="memorySearch"
+                        type="search"
+                        placeholder="Search findings…"
+                        autocomplete="off"
+                    >
+                </label>
+
+                <label>
+                    <span>Type</span>
+                    <select id="memoryTypeFilter">
+                        <option value="">All types</option>
+                        <option value="EDGE">Edge</option>
+                        <option value="LEAK">Leak</option>
+                        <option value="SETUP">Setup</option>
+                        <option value="CONTEXT">Context</option>
+                        <option value="BEHAVIOR">Behavior</option>
+                        <option value="EXECUTION">Execution</option>
+                        <option value="EXPERIMENT_RESULT">Experiment result</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Status</span>
+                    <select id="memoryStatusFilter">
+                        <option value="">All statuses</option>
+                        <option value="OBSERVED">Observed</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="CHALLENGED">Challenged</option>
+                        <option value="RETIRED">Retired</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Evidence</span>
+                    <select id="memoryEvidenceFilter">
+                        <option value="">All evidence</option>
+                        <option value="INSUFFICIENT">Insufficient</option>
+                        <option value="LIMITED">Limited</option>
+                        <option value="MODERATE">Moderate</option>
+                        <option value="STRONG">Strong</option>
+                    </select>
+                </label>
+
+                <button id="clearMemoryFilters" class="clear-filters" type="button">
+                    Clear
+                </button>
+            </div>
+
             <div id="memoryContent" class="memory-content">
                 <p class="pattern-empty">Loading deterministic trading memory…</p>
             </div>
