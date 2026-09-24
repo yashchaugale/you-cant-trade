@@ -1458,9 +1458,32 @@ function renderMemory(payload) {
     memoryContent.replaceChildren();
 
     const findings = Array.isArray(payload?.findings) ? payload.findings : [];
+    const searchValue = memorySearch?.value.trim().toLowerCase() || "";
+    const typeValue = memoryTypeFilter?.value || "";
+    const statusValue = memoryStatusFilter?.value || "";
+    const evidenceValue = memoryEvidenceFilter?.value || "";
 
-    memoryStatus.textContent =
-        `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
+    const filteredFindings = findings.filter(finding => {
+        const statement = String(finding.statement || "").toLowerCase();
+        const type = String(finding.type || "");
+        const status = String(finding.status || "");
+        const evidence = String(finding.evidenceStrength || "");
+
+        return (
+            (!searchValue || statement.includes(searchValue))
+            && (!typeValue || type === typeValue)
+            && (!statusValue || status === statusValue)
+            && (!evidenceValue || evidence === evidenceValue)
+        );
+    });
+
+    const hasFilters = Boolean(
+        searchValue || typeValue || statusValue || evidenceValue
+    );
+
+    memoryStatus.textContent = hasFilters
+        ? `${filteredFindings.length} of ${findings.length} finding${findings.length === 1 ? "" : "s"}`
+        : `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
 
     if (!findings.length) {
         const empty = document.createElement("p");
@@ -1470,12 +1493,20 @@ function renderMemory(payload) {
         return;
     }
 
+    if (!filteredFindings.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No memory findings match the current filters.";
+        memoryContent.appendChild(empty);
+        return;
+    }
+
     const grid = document.createElement("div");
     grid.className = "memory-grid";
 
     const formatDateValue = value => value ? formatDate(value) : "—";
 
-    findings.forEach(finding => {
+    filteredFindings.forEach(finding => {
         const card = document.createElement("article");
         card.className = `memory-card ${String(finding.status || "OBSERVED").toLowerCase()}`;
 
