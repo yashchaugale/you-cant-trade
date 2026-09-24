@@ -1254,6 +1254,117 @@ function openMemoryDetails(finding) {
     }
 
     memoryDetailsContent.appendChild(supporting);
+
+    const actions = document.createElement("div");
+    actions.className = "memory-details-actions";
+
+    const actionStatus = document.createElement("p");
+    actionStatus.className = "memory-details-action-status";
+    actionStatus.setAttribute("aria-live", "polite");
+
+    const refreshMemoryView = async () => {
+        await loadMemory();
+        const refreshed = memoryPayload?.findings?.find(item => item.id === finding.id);
+        if (refreshed) {
+            openMemoryDetails(refreshed);
+        } else {
+            memoryDetails.hidden = true;
+        }
+    };
+
+    const runAction = async (action, successMessage) => {
+        actionStatus.textContent = "Updating memory…";
+        actions.querySelectorAll("button").forEach(button => {
+            button.disabled = true;
+        });
+
+        try {
+            await action();
+            actionStatus.textContent = successMessage;
+            await refreshMemoryView();
+        } catch (error) {
+            actionStatus.textContent =
+                error?.message || "Memory update failed.";
+            actions.querySelectorAll("button").forEach(button => {
+                button.disabled = false;
+            });
+        }
+    };
+
+    const addActionButton = (label, handler) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "clear-filters";
+        button.textContent = label;
+        button.addEventListener("click", handler);
+        actions.appendChild(button);
+    };
+
+    const status = String(finding.status || "OBSERVED");
+
+    if (status === "OBSERVED" || status === "ACTIVE") {
+        addActionButton("Challenge", () => runAction(
+            () => challengeLocalMemory(finding.id),
+            "Finding challenged."
+        ));
+    }
+
+    if (status !== "RETIRED") {
+        addActionButton("Update", () => {
+            const statement = window.prompt(
+                "Update this finding statement:",
+                finding.statement || ""
+            );
+
+            if (statement === null) {
+                return;
+            }
+
+            const trimmed = statement.trim();
+            if (!trimmed) {
+                actionStatus.textContent = "Finding statement cannot be empty.";
+                return;
+            }
+
+            return runAction(
+                () => updateLocalMemory(finding.id, trimmed),
+                "Finding updated."
+            );
+        });
+
+        addActionButton("Retire", () => runAction(
+            () => retireLocalMemory(finding.id),
+            "Finding retired."
+        ));
+    }
+
+    addActionButton("Recheck", () => {
+        const sampleSize = Number(window.prompt(
+            "Recheck sample size:",
+            String(finding.sampleSize ?? 0)
+        ));
+
+        if (!Number.isInteger(sampleSize) || sampleSize < 0) {
+            actionStatus.textContent =
+                "Sample size must be a non-negative integer.";
+            return;
+        }
+
+        return runAction(
+            () => recheckLocalMemory(finding.id, {
+                status: finding.status || "OBSERVED",
+                sampleSize,
+                evidenceStrength: finding.evidenceStrength || "INSUFFICIENT",
+                supportingTradeIds: Array.isArray(finding.supportingTradeIds)
+                    ? finding.supportingTradeIds
+                    : [],
+            }),
+            "Finding rechecked."
+        );
+    });
+
+    actions.appendChild(actionStatus);
+    memoryDetailsContent.appendChild(actions);
     memoryDetails.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
