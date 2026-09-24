@@ -1275,6 +1275,67 @@ async function openMemoryDetails(finding) {
 
     memoryDetailsContent.appendChild(supporting);
 
+    const historySection = document.createElement("section");
+    historySection.className = "memory-details-history";
+
+    const historyHeading = document.createElement("h3");
+    historyHeading.textContent =
+        `Verification history · ${verificationHistory.length}`;
+    historySection.appendChild(historyHeading);
+
+    if (!verificationHistory.length) {
+        const emptyHistory = document.createElement("p");
+        emptyHistory.className = "pattern-empty";
+        emptyHistory.textContent = "No verification has been recorded yet.";
+        historySection.appendChild(emptyHistory);
+    } else {
+        const historyList = document.createElement("div");
+        historyList.className = "memory-details-history-list";
+
+        verificationHistory.forEach(verification => {
+            const row = document.createElement("article");
+            row.className = "memory-details-history-row";
+
+            const date = document.createElement("strong");
+            date.textContent = verification.verifiedAt
+                ? formatDate(verification.verifiedAt)
+                : "Unknown date";
+
+            const meta = document.createElement("div");
+            meta.className = "memory-details-history-meta";
+
+            [
+                ["Status", verification.status || "—"],
+                ["Sample", verification.sampleSize ?? "—"],
+                ["Evidence", verification.evidenceStrength || "—"],
+                [
+                    "Supporting trades",
+                    verification.supportingTradeCount ?? "—",
+                ],
+            ].forEach(([label, value]) => {
+                const item = document.createElement("span");
+                item.textContent = `${label}: ${value}`;
+                meta.appendChild(item);
+            });
+
+            const tradeIds = Array.isArray(verification.supportingTradeIds)
+                ? verification.supportingTradeIds
+                : [];
+
+            const tradeReference = document.createElement("p");
+            tradeReference.textContent = tradeIds.length
+                ? `Trade IDs: ${tradeIds.join(", ")}`
+                : "Trade IDs: none recorded";
+
+            row.append(date, meta, tradeReference);
+            historyList.appendChild(row);
+        });
+
+        historySection.appendChild(historyList);
+    }
+
+    memoryDetailsContent.appendChild(historySection);
+
     const actions = document.createElement("div");
     actions.className = "memory-details-actions";
 
