@@ -73,6 +73,11 @@ const compareCurrentCount = document.getElementById("compareCurrentCount");
 const comparePreviousCount = document.getElementById("comparePreviousCount");
 const memoryContent = document.getElementById("memoryContent");
 const memoryStatus = document.getElementById("memoryStatus");
+const memorySearch = document.getElementById("memorySearch");
+const memoryTypeFilter = document.getElementById("memoryTypeFilter");
+const memoryStatusFilter = document.getElementById("memoryStatusFilter");
+const memoryEvidenceFilter = document.getElementById("memoryEvidenceFilter");
+const clearMemoryFilters = document.getElementById("clearMemoryFilters");
 const memoryDetails = document.getElementById("memoryDetails");
 const memoryDetailsTitle = document.getElementById("memoryDetailsTitle");
 const memoryDetailsContent = document.getElementById("memoryDetailsContent");
@@ -1575,6 +1580,34 @@ function renderMemory(payload) {
 
     memoryContent.appendChild(grid);
 }
+
+
+function refreshMemoryFilters() {
+    if (memoryPayload) {
+        renderMemory(memoryPayload);
+    }
+}
+
+memorySearch?.addEventListener("input", refreshMemoryFilters);
+memoryTypeFilter?.addEventListener("change", refreshMemoryFilters);
+memoryStatusFilter?.addEventListener("change", refreshMemoryFilters);
+memoryEvidenceFilter?.addEventListener("change", refreshMemoryFilters);
+
+clearMemoryFilters?.addEventListener("click", () => {
+    if (memorySearch) {
+        memorySearch.value = "";
+    }
+    if (memoryTypeFilter) {
+        memoryTypeFilter.value = "";
+    }
+    if (memoryStatusFilter) {
+        memoryStatusFilter.value = "";
+    }
+    if (memoryEvidenceFilter) {
+        memoryEvidenceFilter.value = "";
+    }
+    refreshMemoryFilters();
+});
 
 
 async function loadMemory() {
