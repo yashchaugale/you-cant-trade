@@ -15,6 +15,7 @@ import {
     getLocalLeakMap,
     getLocalCompare,
     getLocalMemory,
+    getLocalMemoryFinding,
     challengeLocalMemory,
     updateLocalMemory,
     recheckLocalMemory,
