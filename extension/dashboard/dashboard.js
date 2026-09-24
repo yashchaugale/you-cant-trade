@@ -1176,25 +1176,44 @@ function openLeakDetails(leak) {
 }
 
 
-function openMemoryDetails(finding) {
+async function openMemoryDetails(finding) {
     if (!memoryDetails || !memoryDetailsContent || !memoryDetailsTitle) {
         return;
     }
 
+    let detail = {
+        finding,
+        verificationHistory: [],
+    };
+
+    const currentFinding = finding;
+
+    try {
+        detail = await getLocalMemoryFinding(currentFinding.id);
+    } catch (error) {
+        // Fall back to the already-loaded finding if the detail request fails.
+    }
+
+    const resolvedFinding = detail?.finding || currentFinding;
+    const verificationHistory = Array.isArray(detail?.verificationHistory)
+        ? detail.verificationHistory
+        : [];
+
     memoryDetails.hidden = false;
-    memoryDetailsTitle.textContent = finding.statement || "Selected finding";
+    memoryDetailsTitle.textContent =
+        resolvedFinding.statement || "Selected finding";
     memoryDetailsContent.replaceChildren();
 
     const summary = document.createElement("div");
     summary.className = "memory-details-summary";
 
     [
-        ["Type", finding.type || "—"],
-        ["Status", finding.status || "—"],
-        ["Sample size", finding.sampleSize ?? "—"],
-        ["Evidence strength", finding.evidenceStrength || "—"],
-        ["First observed", finding.firstObserved ? formatDate(finding.firstObserved) : "—"],
-        ["Last verified", finding.lastVerified ? formatDate(finding.lastVerified) : "—"],
+        ["Type", resolvedFinding.type || "—"],
+        ["Status", resolvedFinding.status || "—"],
+        ["Sample size", resolvedFinding.sampleSize ?? "—"],
+        ["Evidence strength", resolvedFinding.evidenceStrength || "—"],
+        ["First observed", resolvedFinding.firstObserved ? formatDate(resolvedFinding.firstObserved) : "—"],
+        ["Last verified", resolvedFinding.lastVerified ? formatDate(resolvedFinding.lastVerified) : "—"],
     ].forEach(([label, value]) => {
         const item = document.createElement("div");
         item.className = "memory-details-summary-item";
@@ -1215,8 +1234,8 @@ function openMemoryDetails(finding) {
     supporting.className = "memory-details-supporting";
 
     const heading = document.createElement("h3");
-    const tradeIds = Array.isArray(finding.supportingTradeIds)
-        ? finding.supportingTradeIds
+    const tradeIds = Array.isArray(resolvedFinding.supportingTradeIds)
+        ? resolvedFinding.supportingTradeIds
         : [];
     heading.textContent =
         `Supporting trades · ${tradeIds.length}`;
@@ -1265,7 +1284,7 @@ function openMemoryDetails(finding) {
 
     const refreshMemoryView = async () => {
         await loadMemory();
-        const refreshed = memoryPayload?.findings?.find(item => item.id === finding.id);
+        const refreshed = memoryPayload?.findings?.find(item => item.id === resolvedFinding.id);
         if (refreshed) {
             openMemoryDetails(refreshed);
         } else {
@@ -1301,11 +1320,11 @@ function openMemoryDetails(finding) {
         actions.appendChild(button);
     };
 
-    const status = String(finding.status || "OBSERVED");
+    const status = String(resolvedFinding.status || "OBSERVED");
 
     if (status === "OBSERVED" || status === "ACTIVE") {
         addActionButton("Challenge", () => runAction(
-            () => challengeLocalMemory(finding.id),
+            () => challengeLocalMemory(resolvedFinding.id),
             "Finding challenged."
         ));
     }
@@ -1314,7 +1333,7 @@ function openMemoryDetails(finding) {
         addActionButton("Update", () => {
             const statement = window.prompt(
                 "Update this finding statement:",
-                finding.statement || ""
+                resolvedFinding.statement || ""
             );
 
             if (statement === null) {
@@ -1328,13 +1347,13 @@ function openMemoryDetails(finding) {
             }
 
             return runAction(
-                () => updateLocalMemory(finding.id, trimmed),
+                () => updateLocalMemory(resolvedFinding.id, trimmed),
                 "Finding updated."
             );
         });
 
         addActionButton("Retire", () => runAction(
-            () => retireLocalMemory(finding.id),
+            () => retireLocalMemory(resolvedFinding.id),
             "Finding retired."
         ));
     }
@@ -1342,7 +1361,7 @@ function openMemoryDetails(finding) {
     addActionButton("Recheck", () => {
         const sampleSize = Number(window.prompt(
             "Recheck sample size:",
-            String(finding.sampleSize ?? 0)
+            String(resolvedFinding.sampleSize ?? 0)
         ));
 
         if (!Number.isInteger(sampleSize) || sampleSize < 0) {
@@ -1352,12 +1371,12 @@ function openMemoryDetails(finding) {
         }
 
         return runAction(
-            () => recheckLocalMemory(finding.id, {
-                status: finding.status || "OBSERVED",
+            () => recheckLocalMemory(resolvedFinding.id, {
+                status: resolvedFinding.status || "OBSERVED",
                 sampleSize,
-                evidenceStrength: finding.evidenceStrength || "INSUFFICIENT",
-                supportingTradeIds: Array.isArray(finding.supportingTradeIds)
-                    ? finding.supportingTradeIds
+                evidenceStrength: resolvedFinding.evidenceStrength || "INSUFFICIENT",
+                supportingTradeIds: Array.isArray(resolvedFinding.supportingTradeIds)
+                    ? resolvedFinding.supportingTradeIds
                     : [],
             }),
             "Finding rechecked."
