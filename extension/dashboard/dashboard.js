@@ -68,6 +68,10 @@ const compareCurrentCount = document.getElementById("compareCurrentCount");
 const comparePreviousCount = document.getElementById("comparePreviousCount");
 const memoryContent = document.getElementById("memoryContent");
 const memoryStatus = document.getElementById("memoryStatus");
+const memoryDetails = document.getElementById("memoryDetails");
+const memoryDetailsTitle = document.getElementById("memoryDetailsTitle");
+const memoryDetailsContent = document.getElementById("memoryDetailsContent");
+const closeMemoryDetails = document.getElementById("closeMemoryDetails");
 const leakDetails = document.getElementById("leakDetails");
 const leakDetailsTitle = document.getElementById("leakDetailsTitle");
 const leakDetailsContent = document.getElementById("leakDetailsContent");
@@ -1167,6 +1171,89 @@ function openLeakDetails(leak) {
 }
 
 
+function openMemoryDetails(finding) {
+    if (!memoryDetails || !memoryDetailsContent || !memoryDetailsTitle) {
+        return;
+    }
+
+    memoryDetails.hidden = false;
+    memoryDetailsTitle.textContent = finding.statement || "Selected finding";
+    memoryDetailsContent.replaceChildren();
+
+    const summary = document.createElement("div");
+    summary.className = "memory-details-summary";
+
+    [
+        ["Type", finding.type || "—"],
+        ["Status", finding.status || "—"],
+        ["Sample size", finding.sampleSize ?? "—"],
+        ["Evidence strength", finding.evidenceStrength || "—"],
+        ["First observed", finding.firstObserved ? formatDate(finding.firstObserved) : "—"],
+        ["Last verified", finding.lastVerified ? formatDate(finding.lastVerified) : "—"],
+    ].forEach(([label, value]) => {
+        const item = document.createElement("div");
+        item.className = "memory-details-summary-item";
+
+        const labelElement = document.createElement("span");
+        labelElement.textContent = label;
+
+        const valueElement = document.createElement("strong");
+        valueElement.textContent = String(value);
+
+        item.append(labelElement, valueElement);
+        summary.appendChild(item);
+    });
+
+    memoryDetailsContent.appendChild(summary);
+
+    const supporting = document.createElement("section");
+    supporting.className = "memory-details-supporting";
+
+    const heading = document.createElement("h3");
+    const tradeIds = Array.isArray(finding.supportingTradeIds)
+        ? finding.supportingTradeIds
+        : [];
+    heading.textContent =
+        `Supporting trades · ${tradeIds.length}`;
+
+    supporting.appendChild(heading);
+
+    if (!tradeIds.length) {
+        const empty = document.createElement("p");
+        empty.className = "pattern-empty";
+        empty.textContent = "No supporting trades are linked to this finding.";
+        supporting.appendChild(empty);
+    } else {
+        const list = document.createElement("div");
+        list.className = "memory-details-trade-list";
+
+        tradeIds.forEach(tradeId => {
+            const trade = trades.find(item => item.id === tradeId);
+            const item = document.createElement("div");
+            item.className = "memory-details-trade-row";
+
+            const identity = document.createElement("strong");
+            identity.textContent = trade
+                ? `${trade.symbol || "Trade"} · ${trade.direction || "—"}`
+                : tradeId;
+
+            const meta = document.createElement("span");
+            meta.textContent = trade
+                ? `${trade.result || "UNREVIEWED"} · ${formatDate(trade.timestamp)}`
+                : "Trade not currently loaded";
+
+            item.append(identity, meta);
+            list.appendChild(item);
+        });
+
+        supporting.appendChild(list);
+    }
+
+    memoryDetailsContent.appendChild(supporting);
+    memoryDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
 function renderMemory(payload) {
     if (!memoryContent || !memoryStatus) {
         return;
@@ -1244,6 +1331,18 @@ function renderMemory(payload) {
             `${tradeCount} supporting trade${tradeCount === 1 ? "" : "s"}`;
 
         card.append(heading, statement, metrics, supporting);
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+
+        const openDetails = () => openMemoryDetails(finding);
+        card.addEventListener("click", openDetails);
+        card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openDetails();
+            }
+        });
+
         grid.appendChild(card);
     });
 
@@ -3280,6 +3379,16 @@ loadTrades()
 
 loadLeakMap();
 loadMemory();
+
+
+if (closeMemoryDetails) {
+    closeMemoryDetails.addEventListener("click", () => {
+        if (memoryDetails) {
+            memoryDetails.hidden = true;
+        }
+        memoryContent?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+}
 
 
 if (closeLeakDetails) {
