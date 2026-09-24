@@ -294,3 +294,29 @@ export async function getLocalCompare(currentCount, previousCount) {
 export async function getLocalMemory() {
     return request("/memory");
 }
+
+export async function challengeLocalMemory(findingId) {
+    return request(`/memory/${encodeURIComponent(findingId)}/challenge`, {
+        method: "POST",
+    });
+}
+
+export async function updateLocalMemory(findingId, statement) {
+    return request(`/memory/${encodeURIComponent(findingId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ statement }),
+    });
+}
+
+export async function recheckLocalMemory(findingId, payload) {
+    return request(`/memory/${encodeURIComponent(findingId)}/recheck`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function retireLocalMemory(findingId) {
+    return request(`/memory/${encodeURIComponent(findingId)}/retire`, {
+        method: "POST",
+    });
+}
