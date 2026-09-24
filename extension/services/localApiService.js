@@ -295,6 +295,10 @@ export async function getLocalMemory() {
     return request("/memory");
 }
 
+export async function getLocalMemoryFinding(findingId) {
+    return request(`/memory/${encodeURIComponent(findingId)}`);
+}
+
 export async function challengeLocalMemory(findingId) {
     return request(`/memory/${encodeURIComponent(findingId)}/challenge`, {
         method: "POST",
