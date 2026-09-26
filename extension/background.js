@@ -7,6 +7,15 @@ console.log(
 let captureInProgress = false;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === "OPEN_DASHBOARD") {
+        chrome.tabs.create({
+            url: chrome.runtime.getURL("dashboard/dashboard.html")
+        });
+
+        sendResponse({ ok: true });
+        return;
+    }
+
     if (request.type !== "CAPTURE_TRADE") {
         return;
     }

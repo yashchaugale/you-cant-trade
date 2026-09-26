@@ -316,6 +316,25 @@ function createYCTPanel(button) {
         >
             Capture Trade
         </button>
+
+        <button
+            type="button"
+            data-yct-dashboard
+            style="
+                width:100%;
+                height:32px;
+                margin-top:8px;
+                border:1px solid rgba(245,241,232,0.16);
+                border-radius:7px;
+                background:transparent;
+                color:#F5F1E8;
+                font:700 10px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+                letter-spacing:0.02em;
+                cursor:pointer;
+            "
+        >
+            Open Dashboard →
+        </button>
     `;
 
     document.body.appendChild(panel);
@@ -486,6 +505,16 @@ function createYCTPanel(button) {
         }
 
         updateRR();
+    });
+
+    const dashboardButton = panel.querySelector("[data-yct-dashboard]");
+
+    dashboardButton.addEventListener("click", event => {
+        event.stopPropagation();
+
+        chrome.runtime.sendMessage({
+            type: "OPEN_DASHBOARD"
+        });
     });
 
     const captureButton = panel.querySelector("[data-yct-capture]");
