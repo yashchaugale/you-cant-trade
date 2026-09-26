@@ -2,33 +2,35 @@ import { captureTrade } from "./services/tradeService.js";
 
 const captureButton = document.getElementById("captureBtn");
 const captureStatus = document.getElementById("captureStatus");
-
+const dashboardButton = document.getElementById("openDashboard");
 
 function setCaptureStatus(message, state = "") {
-
     captureStatus.textContent = message;
     captureStatus.className = `capture-status ${state}`;
 }
 
-captureButton.addEventListener("click", async () => {
+dashboardButton.addEventListener("click", () => {
+    chrome.tabs.create({
+        url: chrome.runtime.getURL("dashboard/dashboard.html")
+    });
+});
 
+captureButton.addEventListener("click", async () => {
     captureButton.disabled = true;
     captureButton.textContent = "Capturing…";
     setCaptureStatus("Reading the visible TradingView chart…");
 
     try {
-
         const trade = await captureTrade();
 
-        console.log(trade);
+        console.log("✅ TRADE CAPTURED:", trade);
 
         setCaptureStatus(
-            "Trade captured. Open the trade library to finish its review.",
+            "Trade captured successfully.",
             "success"
         );
 
     } catch (error) {
-
         console.error("❌ TRADE CAPTURE FAILED", error);
 
         setCaptureStatus(
@@ -38,21 +40,7 @@ captureButton.addEventListener("click", async () => {
         );
 
     } finally {
-
         captureButton.disabled = false;
         captureButton.textContent = "Capture Trade";
     }
-
 });
-
-document
-    .getElementById("openDashboard")
-    .addEventListener("click", () => {
-
-        chrome.tabs.create({
-            url: chrome.runtime.getURL(
-                "dashboard/dashboard.html"
-            )
-        });
-
-    });

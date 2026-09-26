@@ -8,27 +8,60 @@
 </head>
 <body>
     <main class="popup-shell">
+
         <header class="brand-header">
-            <div class="brand-mark" aria-hidden="true">VF</div>
-            <div>
-                <p class="eyebrow">You Can't Trade</p>
-                <h1>Journal the decision.</h1>
+            <img
+                class="brand-logo"
+                src="assets/yct-logo.svg"
+                alt="You Can't Trade"
+            >
+
+            <div class="brand-copy">
+                <p class="brand-name">YOU CAN'T TRADE</p>
+                <p class="brand-tagline">Your trading laboratory.</p>
             </div>
         </header>
 
-        <section class="capture-card" aria-labelledby="captureTitle">
-            <p class="eyebrow">Post-trade capture</p>
-            <h2 id="captureTitle">Save the chart while it still tells the story.</h2>
-            <p>Keep the finished trade and its Risk/Reward tool visible in TradingView. We capture the context; you review it later.</p>
-            <button id="captureBtn" class="capture-button" type="button">Capture Trade</button>
-            <p id="captureStatus" class="capture-status" role="status" aria-live="polite">Nothing is captured automatically.</p>
+        <section class="dashboard-card">
+            <div>
+                <p class="section-label">YOUR LAB</p>
+                <h1>See what your trading is actually doing.</h1>
+                <p class="section-description">
+                    Review trades, patterns, leaks, memory, and experiments in one place.
+                </p>
+            </div>
+
+            <button id="openDashboard" class="dashboard-button" type="button">
+                <span>Open Dashboard</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+            </button>
         </section>
 
-        <button id="openDashboard" class="dashboard-button" type="button">
-            Open trade library <span aria-hidden="true">→</span>
-        </button>
+        <section class="capture-section">
+            <div class="section-heading">
+                <div>
+                    <p class="section-label">TRADINGVIEW</p>
+                    <h2>Capture a trade</h2>
+                </div>
 
-        <footer>Local-first · No broker connection</footer>
+                <span class="capture-dot" aria-hidden="true"></span>
+            </div>
+
+            <p class="capture-description">
+                Capture the current TradingView setup and save it to your trade history.
+            </p>
+
+            <button id="captureBtn" class="capture-button" type="button">
+                Capture Trade
+            </button>
+
+            <p id="captureStatus" class="capture-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <footer>
+            Local-first · No broker connection
+        </footer>
+
     </main>
 
     <script type="module" src="popup.js"></script>
