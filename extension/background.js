@@ -8,8 +8,16 @@ let captureInProgress = false;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === "OPEN_DASHBOARD") {
+        const dashboardUrl = new URL(
+            chrome.runtime.getURL("dashboard/dashboard.html")
+        );
+
+        if (request.tradeId) {
+            dashboardUrl.searchParams.set("tradeId", request.tradeId);
+        }
+
         chrome.tabs.create({
-            url: chrome.runtime.getURL("dashboard/dashboard.html")
+            url: dashboardUrl.toString()
         });
 
         sendResponse({ ok: true });

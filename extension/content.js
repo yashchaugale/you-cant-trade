@@ -667,6 +667,25 @@ function createYCTPanel(button) {
                         ">
                             Trade ID: ${String(response.tradeId || "").slice(0, 8)}
                         </div>
+
+                        <button
+                            type="button"
+                            data-yct-view-trade
+                            style="
+                                width:100%;
+                                height:32px;
+                                margin-top:10px;
+                                border:1px solid rgba(245,241,232,0.16);
+                                border-radius:7px;
+                                background:#FF5A1F;
+                                color:#111111;
+                                font:700 10px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+                                letter-spacing:0.02em;
+                                cursor:pointer;
+                            "
+                        >
+                            View Trade →
+                        </button>
                     `;
 
                     panel
@@ -676,11 +695,18 @@ function createYCTPanel(button) {
                             panel.remove();
                         });
 
-                    setTimeout(() => {
-                        if (document.body.contains(panel)) {
-                            panel.remove();
-                        }
-                    }, 1400);
+                    panel
+                        .querySelector("[data-yct-view-trade]")
+                        ?.addEventListener("click", event => {
+                            event.stopPropagation();
+
+                            chrome.runtime.sendMessage({
+                                type: "OPEN_DASHBOARD",
+                                tradeId: response.tradeId
+                            });
+                        });
+
+
                     }
                 );
             });

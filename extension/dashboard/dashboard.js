@@ -3627,7 +3627,15 @@ loadEdgeMap();
 bindCompareControls();
 
 loadTrades()
-    .then(() => loadCompare())
+    .then(() => {
+        const tradeId = new URLSearchParams(window.location.search).get("tradeId");
+
+        if (tradeId) {
+            openTrade(tradeId);
+        }
+
+        return loadCompare();
+    })
     .catch(error => {
     console.error("❌ DASHBOARD LOAD FAILED", error);
     const status = document.getElementById("searchStatus");
