@@ -3,28 +3,23 @@
   "name": "You Can't Trade",
   "version": "0.1.0",
   "description": "AI-powered trading journal.",
-
   "permissions": [
     "activeTab",
     "storage",
     "tabs"
   ],
-
   "host_permissions": [
     "https://*.tradingview.com/*",
     "http://127.0.0.1:8765/*",
     "http://localhost:8765/*"
   ],
-
   "action": {
     "default_popup": "popup.html"
   },
-
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-
   "content_scripts": [
     {
       "matches": [
@@ -44,12 +39,12 @@
       "world": "MAIN"
     }
   ],
-
   "web_accessible_resources": [
     {
       "resources": [
         "dashboard/dashboard.html",
-        "dashboard/dashboard.js"
+        "dashboard/dashboard.js",
+        "assets/yct-logo.svg"
       ],
       "matches": [
         "https://*.tradingview.com/*"
