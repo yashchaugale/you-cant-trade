@@ -816,6 +816,7 @@ body { min-height: 100vh; background: radial-gradient(circle at 78% -12%, rgba(1
 .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 4; display: flex; width: 232px; flex-direction: column; padding: 28px 16px 20px; border-right: 1px solid var(--vf-border-subtle); background: rgba(13,16,22,.88); backdrop-filter: blur(18px); }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; margin: 0 10px 44px; color: var(--vf-text-primary); font-size: 15px; font-weight: 750; letter-spacing: -.02em; text-decoration: none; }
 .sidebar-mark { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--vf-accent); border-radius: 9px; color: var(--vf-accent); font-weight: 900; }
+.sidebar-mark img { width: 24px; height: 24px; display: block; object-fit: contain; }
 .sidebar-nav { display: grid; gap: 5px; }
 .sidebar-link { display: flex; align-items: center; gap: 11px; min-height: 38px; padding: 0 11px; border-radius: 8px; color: var(--vf-text-muted); font-size: 13px; text-decoration: none; transition: background 150ms ease, color 150ms ease; }
 .sidebar-link:hover, .sidebar-link.active { background: var(--vf-accent-soft); color: var(--vf-text-primary); }
