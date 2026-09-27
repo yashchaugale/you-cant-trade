@@ -3250,11 +3250,11 @@ function renderHomeUnderstanding(payload, tradeCount) {
         container.appendChild(
             createHomeBlock(
                 "home-primary",
-                "WHAT I'M SEEING",
+                null,
                 observation.statement,
                 evidence.length
-                    ? `${evidence.join(" · ")}. This is an observation from your recorded trades, not a prediction.`
-                    : "This is an observation from your recorded trades, not a prediction."
+                    ? `${evidence.join(" · ")}.`
+                    : "Based on your recorded trades."
             )
         );
     }
@@ -3266,17 +3266,8 @@ function renderHomeUnderstanding(payload, tradeCount) {
                 "WORTH WATCHING",
                 watch.statement,
                 watch.evidenceStrength
-                    ? `${watch.evidenceStrength.toLowerCase()} evidence. This is something showing up negatively in the recorded data.`
-                    : "This is something showing up negatively in the recorded data."
-            )
-        );
-    } else {
-        container.appendChild(
-            createHomeBlock(
-                "home-secondary",
-                "WORTH WATCHING",
-                "Nothing negative stands out yet.",
-                "The current evidence does not show a measured negative leak strong enough to call out here."
+                    ? `${watch.evidenceStrength.toLowerCase()} evidence from your recorded trades.`
+                    : "This is a measured negative finding from your recorded trades."
             )
         );
     }
@@ -3287,14 +3278,13 @@ function renderHomeUnderstanding(payload, tradeCount) {
                 "home-focus",
                 "WHAT CHANGED",
                 recentChange.statement,
-                "This compares your recent recorded trades with the preceding period."
+                "A comparison of your recent recorded trades with the preceding period."
             )
         );
     }
 
     meta.textContent = `${count} ${count === 1 ? "trade" : "trades"} informing this picture`;
 }
-
 
 async function loadHomeUnderstanding(tradeCount) {
     try {
