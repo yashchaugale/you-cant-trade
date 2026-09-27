@@ -1,20 +1,20 @@
 :root {
-    --bg-base: #0F1117;
-    --bg-surface: #181B23;
-    --bg-surface-hover: #20242D;
-    --text-primary: #F8FAFC;
-    --text-muted: #9CA3AF;
-    --accent-primary: #60A5FA;
-    --accent-primary-hover: #3B82F6;
-    --border-default: #292D36;
-    --state-error: #F87171;
-    --state-success: #4ADE80;
-    --state-warning: #FBBF24;
+    --bg-base: #F5F1E8;
+    --bg-surface: #FBF9F4;
+    --bg-surface-hover: #ECE7DC;
+    --text-primary: #111111;
+    --text-muted: #6F6A61;
+    --accent-primary: #FF5A1F;
+    --accent-primary-hover: #E94E17;
+    --border-default: #D8D0C4;
+    --state-error: #111111;
+    --state-success: #111111;
+    --state-warning: #111111;
     --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
 }
 
 * { box-sizing: border-box; }
@@ -25,6 +25,7 @@ body {
     background: var(--bg-base);
     color: var(--text-primary);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -42,7 +43,7 @@ textarea:focus-visible,
 .workspace {
     width: min(1440px, 100%);
     margin: 0 auto;
-    padding: 48px 32px 64px;
+    padding: 54px clamp(28px, 5vw, 76px) 88px;
 }
 
 .page-header,
@@ -66,8 +67,19 @@ textarea:focus-visible,
 
 h1, h2, h3, p { margin-top: 0; }
 
-h1 { margin-bottom: 10px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.04em; }
-h2 { margin-bottom: 0; font-size: 24px; letter-spacing: -0.02em; }
+h1 {
+    margin-bottom: 10px;
+    font-size: clamp(34px, 4.2vw, 54px);
+    font-weight: 500;
+    letter-spacing: -0.055em;
+}
+
+h2 {
+    margin-bottom: 0;
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+}
 h3 { margin-bottom: 8px; }
 
 .subtitle,
@@ -787,33 +799,33 @@ textarea { resize: vertical; }
 
 /* You Can't Trade product design system */
 :root {
-    --vf-bg-0: #090B10;
-    --vf-bg-1: #0D1016;
-    --vf-bg-2: #12161E;
-    --vf-bg-3: #171C25;
-    --vf-surface: #151A22;
-    --vf-surface-raised: #1A202A;
-    --vf-surface-hover: #202733;
-    --vf-border-subtle: rgba(255,255,255,.055);
-    --vf-border: rgba(255,255,255,.09);
-    --vf-border-strong: rgba(255,255,255,.14);
-    --vf-text-primary: #F4F7FB;
-    --vf-text-secondary: #B1BAC8;
-    --vf-text-muted: #737E8E;
-    --vf-accent: #6EA8FE;
-    --vf-accent-hover: #82B5FF;
-    --vf-accent-soft: rgba(110,168,254,.10);
-    --vf-accent-border: rgba(110,168,254,.38);
-    --vf-success-soft: rgba(61,220,151,.09);
-    --vf-danger-soft: rgba(255,107,122,.09);
-    --vf-success: #3DDC97;
-    --vf-danger: #FF6B7A;
-    --vf-warning: #F4C95D;
+    --vf-bg-0: #F5F1E8;
+    --vf-bg-1: #FBF9F4;
+    --vf-bg-2: #F0ECE3;
+    --vf-bg-3: #E8E2D7;
+    --vf-surface: #FBF9F4;
+    --vf-surface-raised: #FFFFFF;
+    --vf-surface-hover: #ECE7DC;
+    --vf-border-subtle: #E5DED2;
+    --vf-border: #D8D0C4;
+    --vf-border-strong: #C8BFB1;
+    --vf-text-primary: #111111;
+    --vf-text-secondary: #4F4A43;
+    --vf-text-muted: #6F6A61;
+    --vf-accent: #FF5A1F;
+    --vf-accent-hover: #E94E17;
+    --vf-accent-soft: rgba(255,90,31,.08);
+    --vf-accent-border: rgba(255,90,31,.35);
+    --vf-success-soft: rgba(47,107,79,.08);
+    --vf-danger-soft: rgba(138,61,50,.08);
+    --vf-success: #2F6B4F;
+    --vf-danger: #8A3D32;
+    --vf-warning: #8A6A2B;
 }
 
 html { scroll-behavior: smooth; }
-body { min-height: 100vh; background: radial-gradient(circle at 78% -12%, rgba(110,168,254,.07), transparent 34%), var(--vf-bg-0); color: var(--vf-text-primary); }
-.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 4; display: flex; width: 232px; flex-direction: column; padding: 28px 16px 20px; border-right: 1px solid var(--vf-border-subtle); background: rgba(13,16,22,.88); backdrop-filter: blur(18px); }
+body { min-height: 100vh; background: var(--vf-bg-0); color: var(--vf-text-primary); }
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 4; display: flex; width: 232px; flex-direction: column; padding: 28px 16px 20px; border-right: 1px solid var(--vf-border-subtle); background: var(--vf-bg-0); }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; margin: 0 10px 44px; color: var(--vf-text-primary); font-size: 15px; font-weight: 750; letter-spacing: -.02em; text-decoration: none; }
 .sidebar-mark { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--vf-accent); border-radius: 9px; color: var(--vf-accent); font-weight: 900; }
 .sidebar-mark img { width: 24px; height: 24px; display: block; object-fit: contain; }
