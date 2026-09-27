@@ -175,20 +175,15 @@ def _format_pattern_observation(selected: dict[str, Any]) -> dict[str, Any]:
     average_r = selected["averageR"]
     win_rate = pattern.get("winRate")
 
-    if average_r is not None:
-        result = f"{average_r:+.2f}R average actual R"
-    elif win_rate is not None:
-        result = f"{float(win_rate) * 100:.0f}% win rate"
-    else:
-        result = "historical results"
-
     context_map = {
         "day": f"{value} trades",
         "direction": f"{value} trades",
-        "setup": f"{value} setup trades",
-        "session": f"{value} session trades",
+        "setup": f"{value} setup",
+        "session": f"{value} session",
         "market_regime": f"{value} market-regime trades",
-        "structure_state": f"{value} structure-state trades",
+        "structure_state": f"{value} market-structure trades",
+        "setup_session": f"{value} trades",
+        "setup_direction": f"{value} trades",
     }
 
     context = context_map.get(
@@ -196,9 +191,24 @@ def _format_pattern_observation(selected: dict[str, Any]) -> dict[str, Any]:
         f"{dimension}={value}",
     )
 
+    if average_r is not None:
+        result = f"{average_r:+.2f}R on average"
+    elif win_rate is not None:
+        result = f"a {float(win_rate) * 100:.0f}% win rate"
+    else:
+        result = "a mixed set of historical results"
+
+    if average_r is not None and average_r > 0:
+        opening = f"One thing that stands out is your {context}."
+    elif average_r is not None and average_r < 0:
+        opening = f"Your {context} is worth keeping an eye on."
+    elif win_rate is not None:
+        opening = f"There's an early signal around your {context}."
+    else:
+        opening = f"Your {context} hasn't shown a clear pattern yet."
+
     statement = (
-        f"Your {context} have produced "
-        f"{result} across {sample} trades."
+        f"{opening} Across {sample} trades, you've seen {result}."
     )
 
     return {
