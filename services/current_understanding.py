@@ -191,25 +191,30 @@ def _format_pattern_observation(selected: dict[str, Any]) -> dict[str, Any]:
         f"{dimension}={value}",
     )
 
-    if average_r is not None:
-        result = f"{average_r:+.2f}R on average"
-    elif win_rate is not None:
-        result = f"a {float(win_rate) * 100:.0f}% win rate"
-    else:
-        result = "a mixed set of historical results"
-
     if average_r is not None and average_r > 0:
-        opening = f"One thing that stands out is your {context}."
+        opening = f"The {context} is starting to stand out."
+        statement = (
+            f"{opening} Across {sample} trades, they've averaged "
+            f"{average_r:+.2f}R."
+        )
     elif average_r is not None and average_r < 0:
-        opening = f"Your {context} is worth keeping an eye on."
+        opening = f"The {context} is starting to stand out for the wrong reason."
+        statement = (
+            f"{opening} Across {sample} trades, they've averaged "
+            f"{average_r:+.2f}R."
+        )
     elif win_rate is not None:
         opening = f"There's an early signal around your {context}."
+        statement = (
+            f"{opening} You've taken {sample} and won "
+            f"{float(win_rate) * 100:.0f}% of them."
+        )
     else:
         opening = f"Your {context} hasn't shown a clear pattern yet."
-
-    statement = (
-        f"{opening} Across {sample} trades, you've seen {result}."
-    )
+        statement = (
+            f"{opening} Across {sample} trades, you've seen "
+            "a mixed set of historical results."
+        )
 
     return {
         "type": "PATTERN",
