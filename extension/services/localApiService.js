@@ -151,6 +151,18 @@ export async function retryStorageOutbox() {
 }
 
 
+export async function getLocalCurrentUnderstanding(tradeIds = []) {
+    const ids = Array.isArray(tradeIds)
+        ? tradeIds.filter(Boolean)
+        : [];
+
+    const query = ids.length
+        ? `?trade_ids=${encodeURIComponent(ids.join(","))}`
+        : "";
+
+    return request(`/current-understanding${query}`);
+}
+
 export async function getLocalAnalytics() {
     return request("/analytics/summary");
 }

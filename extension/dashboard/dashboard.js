@@ -9,6 +9,7 @@ import {
     getLocalInsight,
     LocalApiUnavailableError,
     searchLocalTrades,
+    getLocalCurrentUnderstanding,
     getLocalAnalytics,
     getLocalPatterns,
     getLocalEdgeMap,
@@ -3167,7 +3168,7 @@ function createHomeBlock(className, label, title, copy) {
 }
 
 
-function renderHomeUnderstanding(analytics, patternPayload, tradeCount) {
+function renderHomeUnderstanding(payload, tradeCount) {
     const container = document.getElementById("homeUnderstandingContent");
     const meta = document.getElementById("homeEvidenceMeta");
 
@@ -3177,17 +3178,10 @@ function renderHomeUnderstanding(analytics, patternPayload, tradeCount) {
 
     container.replaceChildren();
 
-    const minimumSample = Number(patternPayload?.minimumSample || 3);
+    const count = Number(payload?.tradeCount ?? tradeCount ?? 0);
+    const status = payload?.status || (count ? "LEARNING" : "NO_TRADES");
 
-    const patterns = Array.isArray(patternPayload?.patterns)
-        ? patternPayload.patterns.filter(pattern =>
-            Number(pattern.sampleSize || 0) >= minimumSample
-        )
-        : [];
-
-    const reviewedTrades = Number(analytics?.reviewedTrades || 0);
-
-    if (!tradeCount) {
+    if (status === "NO_TRADES" || !count) {
         container.appendChild(
             createHomeBlock(
                 "home-primary",
@@ -3201,31 +3195,27 @@ function renderHomeUnderstanding(analytics, patternPayload, tradeCount) {
         return;
     }
 
-    if (!analytics || !patternPayload) {
+    if (!payload) {
         container.appendChild(
             createHomeBlock(
                 "home-primary",
                 null,
-                "Your trades are safe, but I can't read the current picture yet.",
-                "The local intelligence service is unavailable. Start it and I'll refresh this view."
+                "I'm still building your trading picture.",
+                "Your trades are safe. I'll show the current understanding as soon as the local intelligence service is available."
             )
         );
 
-        meta.textContent = `${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} captured`;
+        meta.textContent = `${count} ${count === 1 ? "trade" : "trades"} captured`;
         return;
     }
 
-    if (!patterns.length) {
-        const reviewedText = reviewedTrades
-            ? `${reviewedTrades} of your ${tradeCount} captured trades have a recorded outcome.`
-            : `You've captured ${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} so far.`;
-
+    if (status === "LEARNING") {
         container.appendChild(
             createHomeBlock(
                 "home-primary",
                 null,
                 "I'm still learning your trading.",
-                `${reviewedText} I need at least ${minimumSample} supporting trades before I treat a recurring context as a meaningful pattern.`
+                `You've captured ${count} ${count === 1 ? "trade" : "trades"}. I don't have enough repeated evidence yet to tell you what consistently matters.`
             )
         );
 
@@ -3233,92 +3223,90 @@ function renderHomeUnderstanding(analytics, patternPayload, tradeCount) {
             createHomeBlock(
                 "home-secondary",
                 "WHAT HAPPENS NEXT",
-                "Keep capturing and reviewing your trades.",
-                "As the evidence builds, I'll start connecting recurring contexts and showing you what appears to matter."
+                "Keep capturing your decisions.",
+                "As the evidence builds, I'll start showing you the patterns that are actually supported by your trades."
             )
         );
 
-        meta.textContent = `${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} analyzed`;
+        meta.textContent = `${count} ${count === 1 ? "trade" : "trades"} captured`;
         return;
     }
 
-    const strongest = [...patterns].sort((a, b) => {
-        const aCoverage = Number(a.evidenceStrength?.actualRCoverage || 0);
-        const bCoverage = Number(b.evidenceStrength?.actualRCoverage || 0);
+    const observation = payload.observation;
+    const watch = payload.watch;
+    const recentChange = payload.recentChange;
 
-        if (bCoverage !== aCoverage) {
-            return bCoverage - aCoverage;
+    if (observation?.statement) {
+        const evidence = [];
+
+        if (observation.evidenceStrength) {
+            evidence.push(`${observation.evidenceStrength.toLowerCase()} evidence`);
         }
 
-        const aSample = Number(a.sampleSize || 0);
-        const bSample = Number(b.sampleSize || 0);
-
-        if (bSample !== aSample) {
-            return bSample - aSample;
+        if (observation.sampleSize != null) {
+            evidence.push(`${observation.sampleSize} supporting trades`);
         }
-
-        return (
-            Number(b.actualR?.average ?? -Infinity) -
-            Number(a.actualR?.average ?? -Infinity)
-        );
-    })[0];
-
-    const evidence = [`${strongest.sampleSize} supporting trades`];
-
-    if (strongest.actualR?.average != null) {
-        evidence.push(`${Number(strongest.actualR.average).toFixed(2)}R average`);
-    }
-
-    if (strongest.winRate != null) {
-        evidence.push(`${(Number(strongest.winRate) * 100).toFixed(1)}% win rate`);
-    }
-
-    container.appendChild(
-        createHomeBlock(
-            "home-primary",
-            "WHAT'S WORKING",
-            `${strongest.dimension}: ${strongest.value}`,
-            `This is the strongest recurring context I can currently support in your data. ${evidence.join(" · ")}.`
-        )
-    );
-
-    if (patterns.length > 1) {
-        const second = patterns[1];
 
         container.appendChild(
             createHomeBlock(
-                "home-secondary",
-                "ANOTHER THING I'M SEEING",
-                `${second.dimension}: ${second.value}`,
-                `${second.sampleSize} supporting trades${second.actualR?.average != null ? ` · ${Number(second.actualR.average).toFixed(2)}R average` : ""}. This is another recurring context worth keeping an eye on.`
+                "home-primary",
+                "WHAT I'M SEEING",
+                observation.statement,
+                evidence.length
+                    ? `${evidence.join(" · ")}. This is an observation from your recorded trades, not a prediction.`
+                    : "This is an observation from your recorded trades, not a prediction."
             )
         );
     }
 
-    container.appendChild(
-        createHomeBlock(
-            "home-focus",
-            "RIGHT NOW",
-            "Keep watching the contexts that repeat.",
-            "These are observations from your recorded trades, not predictions. More evidence can change the picture."
-        )
-    );
+    if (watch) {
+        container.appendChild(
+            createHomeBlock(
+                "home-secondary",
+                "WORTH WATCHING",
+                watch.statement,
+                watch.evidenceStrength
+                    ? `${watch.evidenceStrength.toLowerCase()} evidence. This is something showing up negatively in the recorded data.`
+                    : "This is something showing up negatively in the recorded data."
+            )
+        );
+    } else {
+        container.appendChild(
+            createHomeBlock(
+                "home-secondary",
+                "WORTH WATCHING",
+                "Nothing negative stands out yet.",
+                "The current evidence does not show a measured negative leak strong enough to call out here."
+            )
+        );
+    }
 
-    meta.textContent = `${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} analyzed`;
+    if (recentChange?.statement) {
+        container.appendChild(
+            createHomeBlock(
+                "home-focus",
+                "WHAT CHANGED",
+                recentChange.statement,
+                "This compares your recent recorded trades with the preceding period."
+            )
+        );
+    }
+
+    meta.textContent = `${count} ${count === 1 ? "trade" : "trades"} informing this picture`;
 }
 
 
 async function loadHomeUnderstanding(tradeCount) {
     try {
-        const [analytics, patterns] = await Promise.all([
-            getLocalAnalytics(),
-            getLocalPatterns()
-        ]);
+        const currentTradeIds = trades
+            .map(trade => trade?.id)
+            .filter(Boolean);
 
-        renderHomeUnderstanding(analytics, patterns, tradeCount);
+        const payload = await getLocalCurrentUnderstanding(currentTradeIds);
+        renderHomeUnderstanding(payload, tradeCount);
     } catch (error) {
         console.error("❌ HOME UNDERSTANDING FAILED", error);
-        renderHomeUnderstanding(null, null, tradeCount);
+        renderHomeUnderstanding(null, tradeCount);
     }
 }
 

@@ -51,6 +51,7 @@ from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
 from services.edge_map import build_edge_map
 from services.leak_map import build_leak_map, calculate_leak_trend, detect_leaks
 from services.compare import compare_periods
+from services.current_understanding import build_current_understanding
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -297,6 +298,46 @@ async def patterns():
             "sampleSize": len(trades),
             "minimumSample": MIN_PATTERN_SAMPLE,
         }
+    except StorageProviderError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/current-understanding")
+async def current_understanding(trade_ids: str | None = None):
+    try:
+        provider = get_storage_provider()
+        trades = provider.list_trades(
+            limit=provider.historical_candidate_limit()
+        )
+
+        requested_ids = {
+            trade_id.strip()
+            for trade_id in (trade_ids or "").split(",")
+            if trade_id.strip()
+        }
+
+        if requested_ids:
+            trades = [
+                trade
+                for trade in trades
+                if trade.get("id") in requested_ids
+            ]
+
+        patterns = discover_patterns(
+            trades,
+            min_sample=MIN_PATTERN_SAMPLE,
+        )
+
+        leaks = build_leak_map(trades)
+
+        compare = compare_periods(trades)
+
+        return build_current_understanding(
+            trade_count=len(trades),
+            patterns=patterns,
+            leaks=leaks,
+            compare=compare,
+        )
     except StorageProviderError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 
