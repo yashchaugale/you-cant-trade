@@ -204,7 +204,7 @@ def _format_pattern_observation(selected: dict[str, Any]) -> dict[str, Any]:
             f"{average_r:+.2f}R."
         )
     elif win_rate is not None:
-        opening = f"There's an early signal around your {context}."
+        opening = f"Your {context} are starting to stand out."
         statement = (
             f"{opening} You've taken {sample} and won "
             f"{float(win_rate) * 100:.0f}% of them."
