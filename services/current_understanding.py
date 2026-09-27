@@ -194,13 +194,13 @@ def _format_pattern_observation(selected: dict[str, Any]) -> dict[str, Any]:
     if average_r is not None and average_r > 0:
         opening = f"The {context} is starting to stand out."
         statement = (
-            f"{opening} Across {sample} trades, they've averaged "
+            f"{opening} Across {sample} trades, you're averaging "
             f"{average_r:+.2f}R."
         )
     elif average_r is not None and average_r < 0:
         opening = f"The {context} is starting to stand out for the wrong reason."
         statement = (
-            f"{opening} Across {sample} trades, they've averaged "
+            f"{opening} Across {sample} trades, you're averaging "
             f"{average_r:+.2f}R."
         )
     elif win_rate is not None:
