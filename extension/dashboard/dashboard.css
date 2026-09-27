@@ -2312,3 +2312,317 @@ body { min-height: 100vh; background: var(--vf-bg-0); color: var(--vf-text-prima
         flex-direction: column;
     }
 }
+
+/* YCT Trades — editorial decision cards */
+
+body[data-yct-view="trades"] .trade-card .card-date {
+    margin-bottom: 9px;
+    color: var(--vf-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+body[data-yct-view="trades"] .trade-card .badge-win,
+body[data-yct-view="trades"] .trade-card .badge-loss,
+body[data-yct-view="trades"] .trade-card .badge-be,
+body[data-yct-view="trades"] .trade-card .badge-captured {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .09em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+body[data-yct-view="trades"] .trade-card .badge-win {
+    color: var(--vf-accent);
+}
+
+body[data-yct-view="trades"] .trade-card .badge-loss {
+    color: var(--vf-danger);
+}
+
+body[data-yct-view="trades"] .trade-card .badge-be,
+body[data-yct-view="trades"] .trade-card .badge-captured {
+    color: var(--vf-text-muted);
+}
+body[data-yct-view="trades"] .library {
+    margin-top: 42px;
+}
+
+body[data-yct-view="trades"] .section-heading {
+    align-items: end;
+    margin-bottom: 22px;
+}
+
+body[data-yct-view="trades"] .section-heading h2 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+}
+
+body[data-yct-view="trades"] .library-count {
+    font-size: 12px;
+}
+
+body[data-yct-view="trades"] .library-search {
+    margin: 0 0 14px;
+}
+
+body[data-yct-view="trades"] .library-search > label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--vf-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+body[data-yct-view="trades"] .search-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+body[data-yct-view="trades"] .search-row input {
+    min-height: 44px;
+    border-radius: 0;
+    background: transparent;
+}
+
+body[data-yct-view="trades"] .filters {
+    display: flex;
+    align-items: end;
+    gap: 10px;
+    margin: 0 0 34px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+body[data-yct-view="trades"] .filters label {
+    min-width: 140px;
+}
+
+body[data-yct-view="trades"] .filters select {
+    min-height: 38px;
+    border-radius: 0;
+    background: transparent;
+}
+
+body[data-yct-view="trades"] .trade-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+body[data-yct-view="trades"] .trade-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--vf-border);
+    border-radius: 3px;
+    background: var(--vf-surface);
+    cursor: pointer;
+    transition:
+        border-color 150ms ease,
+        transform 150ms ease;
+}
+
+body[data-yct-view="trades"] .trade-card:hover {
+    border-color: var(--vf-border-strong);
+    transform: translateY(-2px);
+}
+
+body[data-yct-view="trades"] .trade-card:focus-visible {
+    outline: 2px solid var(--vf-accent);
+    outline-offset: 3px;
+}
+
+body[data-yct-view="trades"] .trade-card .card-image,
+body[data-yct-view="trades"] .trade-card .image-placeholder {
+    width: 100%;
+    height: 160px;
+    flex: 0 0 160px;
+    object-fit: cover;
+    border: 0;
+    border-bottom: 1px solid var(--vf-border);
+    border-radius: 0;
+    background: var(--vf-bg-2);
+}
+
+body[data-yct-view="trades"] .trade-card .card-image {
+    transform: none;
+}
+
+body[data-yct-view="trades"] .trade-card:hover .card-image {
+    transform: none;
+}
+
+body[data-yct-view="trades"] .trade-card .image-placeholder {
+    display: grid;
+    place-items: center;
+    color: var(--vf-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+body[data-yct-view="trades"] .trade-card .card-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 14px 15px 13px;
+}
+
+body[data-yct-view="trades"] .trade-card .card-topline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+body[data-yct-view="trades"] .trade-card .card-title {
+    margin: 0;
+    color: var(--vf-text-primary);
+    font-size: 19px;
+    font-weight: 550;
+    letter-spacing: -.035em;
+    line-height: 1.05;
+}
+
+body[data-yct-view="trades"] .trade-card .card-meta {
+    margin: 0;
+    color: var(--vf-text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body[data-yct-view="trades"] .trade-card .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 9px;
+    border-top: 1px solid var(--vf-border-subtle);
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+}
+
+body[data-yct-view="trades"] .trade-card .card-delete-button {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    z-index: 2;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    padding: 0;
+    border: 1px solid var(--vf-border);
+    border-radius: 50%;
+    background: var(--vf-surface);
+    color: var(--vf-text-muted);
+    font-size: 0;
+    line-height: 20px;
+    text-align: center;
+    opacity: 0;
+}
+
+body[data-yct-view="trades"] .trade-card .card-delete-button::before {
+    content: "×";
+    font-size: 15px;
+    font-weight: 400;
+}
+
+body[data-yct-view="trades"] .trade-card:hover .card-delete-button,
+body[data-yct-view="trades"] .trade-card:focus-within .card-delete-button {
+    opacity: 1;
+}
+
+body[data-yct-view="trades"] .trade-card .badge-win,
+body[data-yct-view="trades"] .trade-card .badge-loss,
+body[data-yct-view="trades"] .trade-card .badge-be {
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--vf-accent);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+body[data-yct-view="trades"] .trade-card .badge-loss {
+    color: var(--vf-danger);
+}
+
+body[data-yct-view="trades"] .trade-card .badge-be {
+    color: var(--vf-text-muted);
+}
+
+@media (max-width: 1250px) {
+    body[data-yct-view="trades"] .trade-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    body[data-yct-view="trades"] .trade-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body[data-yct-view="trades"] .trade-card .card-image,
+    body[data-yct-view="trades"] .trade-card .image-placeholder {
+        height: 180px;
+        flex-basis: 180px;
+    }
+}
+
+@media (max-width: 760px) {
+    body[data-yct-view="trades"] .filters {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    body[data-yct-view="trades"] .filters label {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    body[data-yct-view="trades"] .trade-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body[data-yct-view="trades"] .trade-card .card-image,
+    body[data-yct-view="trades"] .trade-card .image-placeholder {
+        height: 220px;
+        flex-basis: 220px;
+    }
+
+    body[data-yct-view="trades"] .trade-card .card-content {
+        padding: 16px;
+    }
+}
+
+

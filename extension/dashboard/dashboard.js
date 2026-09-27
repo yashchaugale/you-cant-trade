@@ -2970,11 +2970,13 @@ function getFilteredTrades() {
 }
 
 function createTradeCard(trade) {
-
     const card = document.createElement("article");
     card.className = "trade-card";
     card.tabIndex = 0;
-    card.setAttribute("role", "button");
+    card.setAttribute(
+        "role",
+        "button"
+    );
     card.setAttribute(
         "aria-label",
         `Open review for ${trade.symbol || "captured trade"}`
@@ -2996,6 +2998,10 @@ function createTradeCard(trade) {
     const content = document.createElement("div");
     content.className = "card-content";
 
+    const date = document.createElement("div");
+    date.className = "card-date";
+    date.textContent = formatDate(trade.chartAnchorTime || trade.timestamp);
+
     const topline = document.createElement("div");
     topline.className = "card-topline";
 
@@ -3005,7 +3011,7 @@ function createTradeCard(trade) {
 
     const result = document.createElement("span");
     result.className = getResultClass(trade.result);
-    result.textContent = getResultLabel(trade.result);
+    result.textContent = getResultLabel(trade.result).toUpperCase();
 
     topline.append(title, result);
 
@@ -3014,11 +3020,7 @@ function createTradeCard(trade) {
     meta.textContent = [
         trade.timeframe || "No timeframe",
         trade.direction || "No direction",
-        trade.setup || null,
-        trade.chartAnchorTime
-            ? `Chart ${formatDate(trade.chartAnchorTime)}`
-            : null,
-        formatDate(trade.timestamp)
+        trade.setup || null
     ].filter(Boolean).join(" · ");
 
     const footer = document.createElement("div");
@@ -3031,23 +3033,28 @@ function createTradeCard(trade) {
     actualR.textContent = `Actual ${formatR(calculateActualR(trade))}`;
 
     footer.append(plannedR, actualR);
-    content.append(topline, meta, footer);
+    content.append(date, topline, meta, footer);
     card.appendChild(content);
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.className = "card-delete-button";
     deleteButton.textContent = "Delete";
-    deleteButton.setAttribute("aria-label", `Delete ${trade.symbol || "trade"}`);
+    deleteButton.setAttribute(
+        "aria-label",
+        `Delete ${trade.symbol || "trade"}`
+    );
+
     deleteButton.addEventListener("click", event => {
         event.stopPropagation();
         deleteTradeById(trade.id);
     });
+
     card.appendChild(deleteButton);
 
     card.addEventListener("click", () => openTrade(trade.id));
-    card.addEventListener("keydown", event => {
 
+    card.addEventListener("keydown", event => {
         if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             openTrade(trade.id);
