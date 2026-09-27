@@ -3244,7 +3244,13 @@ function renderHomeUnderstanding(payload, tradeCount) {
         );
     }
 
-    meta.textContent = `${count} ${count === 1 ? "trade" : "trades"} informing this picture`;
+    const findingCount = [observation, watch, recentChange].filter(Boolean).length;
+    const tradeLabel = `${count} ${count === 1 ? "trade" : "trades"}`;
+
+    meta.textContent =
+        findingCount === 1
+            ? `Based on ${tradeLabel} · one supported finding`
+            : `Based on ${tradeLabel} · ${findingCount} supported findings`;
 }
 
 async function loadHomeUnderstanding(tradeCount) {
