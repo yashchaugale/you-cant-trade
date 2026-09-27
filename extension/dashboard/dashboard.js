@@ -2561,31 +2561,6 @@ async function loadExperiments() {
 }
 
 
-function renderStats() {
-
-    const wins = trades.filter(trade => trade.result === "WIN").length;
-    const losses = trades.filter(trade => trade.result === "LOSS").length;
-    const reviewed = trades.filter(trade => trade.result !== null).length;
-    const decidedTrades = wins + losses;
-    const plannedTrades = trades.filter(
-        trade => calculatePlannedR(trade) !== null
-    );
-    const totalPlannedR = plannedTrades.reduce(
-        (sum, trade) => sum + calculatePlannedR(trade),
-        0
-    );
-    const avgPlannedR = plannedTrades.length > 0
-        ? totalPlannedR / plannedTrades.length
-        : 0;
-
-    document.getElementById("totalTrades").textContent = trades.length;
-    document.getElementById("winRate").textContent = decidedTrades > 0
-        ? `${((wins / decidedTrades) * 100).toFixed(1)}%`
-        : "0.0%";
-    document.getElementById("avgPlannedR").textContent =
-        `${avgPlannedR.toFixed(2)}R`;
-    document.getElementById("reviewedTrades").textContent = reviewed;
-}
 
 
 function renderStorageUsage(usage) {
@@ -3310,7 +3285,6 @@ async function loadTrades() {
 
     trades = storedTrades;
     populateFilters();
-    renderStats();
     renderStorageUsage(storageUsage);
     onboarding.hidden = trades.length >= 3;
     renderWeeklyReview();
@@ -3469,8 +3443,7 @@ async function deleteTradeById(tradeId) {
         trades = trades.filter(trade => trade.id !== tradeId);
         if (selectedTradeId === tradeId) closeModal();
         populateFilters();
-        renderStats();
-        renderWeeklyReview();
+            renderWeeklyReview();
         renderTradeGrid();
         await loadPatternReview();
     } catch (error) {
@@ -3535,8 +3508,7 @@ async function saveCurrentTrade() {
                 : trade
         );
 
-        renderStats();
-        populateFilters();
+            populateFilters();
         renderWeeklyReview();
         renderTradeGrid();
         closeModal();
