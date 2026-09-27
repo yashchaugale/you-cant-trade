@@ -9,30 +9,18 @@
 </head>
 <body>
     <aside class="sidebar" aria-label="Primary navigation">
-        <a class="sidebar-brand" href="#top" aria-label="You Can't Trade home">
+        <a class="sidebar-brand" href="#home" aria-label="You Can't Trade home" data-yct-view="home">
             <span class="sidebar-mark" aria-hidden="true">
                 <img src="../assets/yct-logo.svg" alt="">
             </span>
             <span>You Can't Trade</span>
         </a>
-        <nav class="sidebar-nav">
-            <a class="sidebar-link active" href="#top">
-                <span class="nav-glyph">◈</span>
-                <span>Home</span>
-            </a>
-            <a class="sidebar-link" href="#library">
-                <span class="nav-glyph">▦</span>
-                <span>Trades</span>
-            </a>
-            <a class="sidebar-link" href="#patterns">
-                <span class="nav-glyph">⌁</span>
-                <span>Explore</span>
-            </a>
-            <a class="sidebar-link" href="#memory">
-                <span class="nav-glyph">◉</span>
-                <span>Memory</span>
-            </a>
-            <a class="sidebar-link" href="#settings"><span class="nav-glyph">⚙</span>Settings</a>
+        <nav class="sidebar-nav" aria-label="Primary navigation">
+            <a class="sidebar-link active" href="#home" data-yct-view="home"><span class="nav-glyph">◈</span>Home</a>
+            <a class="sidebar-link" href="#trades" data-yct-view="trades"><span class="nav-glyph">▦</span>Trades</a>
+            <a class="sidebar-link" href="#explore" data-yct-view="explore"><span class="nav-glyph">⌁</span>Explore</a>
+            <a class="sidebar-link" href="#memory" data-yct-view="memory"><span class="nav-glyph">◉</span>Memory</a>
+            <a class="sidebar-link" href="#settings" data-yct-view="settings"><span class="nav-glyph">⚙</span>Settings</a>
         </nav>
         <div class="sidebar-footer"><span class="status-dot"></span><span>Local &amp; private</span></div>
     </aside>
@@ -40,8 +28,8 @@
         <header class="page-header">
             <div>
                 <p class="eyebrow">You Can't Trade</p>
-                <h1>Here's what I'm seeing.</h1>
-                <p class="subtitle">A clearer picture of your trading, built from the trades you&apos;ve actually taken.</p>
+                <h1 id="pageTitle">Here's what I'm seeing.</h1>
+                <p id="pageSubtitle" class="subtitle">A clear picture of your trading, built from the trades you've actually taken.</p>
             </div>
             <div class="header-actions">
                 <button id="exportJournal" class="export-button" type="button">Export journal</button>
@@ -49,13 +37,23 @@
             </div>
         </header>
 
-        <section class="today-signal" aria-labelledby="todaySignalTitle">
-            <div>
+        <section id="homeUnderstanding" class="home-understanding" aria-labelledby="homeUnderstandingTitle">
+            <div class="home-understanding-intro">
                 <p class="eyebrow">Current understanding</p>
-                <h2 id="todaySignalTitle">I&apos;m still learning your trading.</h2>
-                <p id="todaySignalCopy">Capture the decision. Review the outcome. Let the evidence accumulate.</p>
+                <h2 id="homeUnderstandingTitle">Here&apos;s what I&apos;m seeing.</h2>
             </div>
-            <a class="signal-link" href="#library">View your trades <span aria-hidden="true">→</span></a>
+
+            <div id="homeUnderstandingContent" class="home-understanding-content">
+                <div class="home-understanding-loading">
+                    <span class="status-dot"></span>
+                    <span>Looking across your trades…</span>
+                </div>
+            </div>
+
+            <div class="home-understanding-footer">
+                <span id="homeEvidenceMeta">Building your trading picture</span>
+                <a class="signal-link" href="#trades" data-yct-view="trades">View your trades <span aria-hidden="true">→</span></a>
+            </div>
         </section>
 
         <section id="settings" class="storage-settings" aria-labelledby="storageSettingsTitle">
@@ -100,7 +98,7 @@
             </div>
         </section>
 
-        <section class="metrics" aria-label="Journal summary">
+        <section class="metrics" aria-label="Journal summary" hidden>
             <article class="metric-card">
                 <span>Total trades</span>
                 <strong id="totalTrades">0</strong>

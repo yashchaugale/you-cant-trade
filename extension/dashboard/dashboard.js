@@ -3139,6 +3139,190 @@ function renderTradeGrid() {
 }
 
 
+
+function createHomeBlock(className, label, title, copy) {
+    const block = document.createElement("article");
+    block.className = `home-understanding-block ${className || ""}`.trim();
+
+    if (label) {
+        const eyebrow = document.createElement("p");
+        eyebrow.className = "eyebrow";
+        eyebrow.textContent = label;
+        block.appendChild(eyebrow);
+    }
+
+    if (title) {
+        const heading = document.createElement("h3");
+        heading.textContent = title;
+        block.appendChild(heading);
+    }
+
+    if (copy) {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = copy;
+        block.appendChild(paragraph);
+    }
+
+    return block;
+}
+
+
+function renderHomeUnderstanding(analytics, patternPayload, tradeCount) {
+    const container = document.getElementById("homeUnderstandingContent");
+    const meta = document.getElementById("homeEvidenceMeta");
+
+    if (!container || !meta) {
+        return;
+    }
+
+    container.replaceChildren();
+
+    const minimumSample = Number(patternPayload?.minimumSample || 3);
+
+    const patterns = Array.isArray(patternPayload?.patterns)
+        ? patternPayload.patterns.filter(pattern =>
+            Number(pattern.sampleSize || 0) >= minimumSample
+        )
+        : [];
+
+    const reviewedTrades = Number(analytics?.reviewedTrades || 0);
+
+    if (!tradeCount) {
+        container.appendChild(
+            createHomeBlock(
+                "home-primary",
+                null,
+                "I haven't seen a trade yet.",
+                "Capture your first trade from TradingView and I'll start building a picture of how you trade."
+            )
+        );
+
+        meta.textContent = "No trades captured yet";
+        return;
+    }
+
+    if (!analytics || !patternPayload) {
+        container.appendChild(
+            createHomeBlock(
+                "home-primary",
+                null,
+                "Your trades are safe, but I can't read the current picture yet.",
+                "The local intelligence service is unavailable. Start it and I'll refresh this view."
+            )
+        );
+
+        meta.textContent = `${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} captured`;
+        return;
+    }
+
+    if (!patterns.length) {
+        const reviewedText = reviewedTrades
+            ? `${reviewedTrades} of your ${tradeCount} captured trades have a recorded outcome.`
+            : `You've captured ${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} so far.`;
+
+        container.appendChild(
+            createHomeBlock(
+                "home-primary",
+                null,
+                "I'm still learning your trading.",
+                `${reviewedText} I need at least ${minimumSample} supporting trades before I treat a recurring context as a meaningful pattern.`
+            )
+        );
+
+        container.appendChild(
+            createHomeBlock(
+                "home-secondary",
+                "WHAT HAPPENS NEXT",
+                "Keep capturing and reviewing your trades.",
+                "As the evidence builds, I'll start connecting recurring contexts and showing you what appears to matter."
+            )
+        );
+
+        meta.textContent = `${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} analyzed`;
+        return;
+    }
+
+    const strongest = [...patterns].sort((a, b) => {
+        const aCoverage = Number(a.evidenceStrength?.actualRCoverage || 0);
+        const bCoverage = Number(b.evidenceStrength?.actualRCoverage || 0);
+
+        if (bCoverage !== aCoverage) {
+            return bCoverage - aCoverage;
+        }
+
+        const aSample = Number(a.sampleSize || 0);
+        const bSample = Number(b.sampleSize || 0);
+
+        if (bSample !== aSample) {
+            return bSample - aSample;
+        }
+
+        return (
+            Number(b.actualR?.average ?? -Infinity) -
+            Number(a.actualR?.average ?? -Infinity)
+        );
+    })[0];
+
+    const evidence = [`${strongest.sampleSize} supporting trades`];
+
+    if (strongest.actualR?.average != null) {
+        evidence.push(`${Number(strongest.actualR.average).toFixed(2)}R average`);
+    }
+
+    if (strongest.winRate != null) {
+        evidence.push(`${(Number(strongest.winRate) * 100).toFixed(1)}% win rate`);
+    }
+
+    container.appendChild(
+        createHomeBlock(
+            "home-primary",
+            "WHAT'S WORKING",
+            `${strongest.dimension}: ${strongest.value}`,
+            `This is the strongest recurring context I can currently support in your data. ${evidence.join(" · ")}.`
+        )
+    );
+
+    if (patterns.length > 1) {
+        const second = patterns[1];
+
+        container.appendChild(
+            createHomeBlock(
+                "home-secondary",
+                "ANOTHER THING I'M SEEING",
+                `${second.dimension}: ${second.value}`,
+                `${second.sampleSize} supporting trades${second.actualR?.average != null ? ` · ${Number(second.actualR.average).toFixed(2)}R average` : ""}. This is another recurring context worth keeping an eye on.`
+            )
+        );
+    }
+
+    container.appendChild(
+        createHomeBlock(
+            "home-focus",
+            "RIGHT NOW",
+            "Keep watching the contexts that repeat.",
+            "These are observations from your recorded trades, not predictions. More evidence can change the picture."
+        )
+    );
+
+    meta.textContent = `${tradeCount} ${tradeCount === 1 ? "trade" : "trades"} analyzed`;
+}
+
+
+async function loadHomeUnderstanding(tradeCount) {
+    try {
+        const [analytics, patterns] = await Promise.all([
+            getLocalAnalytics(),
+            getLocalPatterns()
+        ]);
+
+        renderHomeUnderstanding(analytics, patterns, tradeCount);
+    } catch (error) {
+        console.error("❌ HOME UNDERSTANDING FAILED", error);
+        renderHomeUnderstanding(null, null, tradeCount);
+    }
+}
+
+
 async function loadTrades() {
 
     const [storedTrades, storageUsage] = await Promise.all([
@@ -3147,13 +3331,6 @@ async function loadTrades() {
     ]);
 
     trades = storedTrades;
-    const pendingReviews = trades.filter(trade => !trade.result).length;
-    document.getElementById("todaySignalTitle").textContent = pendingReviews
-        ? `${pendingReviews} trade${pendingReviews === 1 ? "" : "s"} waiting for review.`
-        : "Your trading memory is up to date.";
-    document.getElementById("todaySignalCopy").textContent = pendingReviews
-        ? "Your chart context is saved. Take a few seconds to record what happened."
-        : "Capture the decision. Review the outcome. Let the evidence accumulate.";
     populateFilters();
     renderStats();
     renderStorageUsage(storageUsage);
@@ -3163,6 +3340,10 @@ async function loadTrades() {
     await loadPatternReview();
     await loadExperiments();
     await loadStorageSettings();
+
+    // Home understanding is secondary UI.
+    // Never let analytics availability block the core dashboard.
+    void loadHomeUnderstanding(trades.length);
 }
 
 
@@ -3621,6 +3802,156 @@ document.addEventListener("keydown", event => {
     }
 });
 
+// ============================================================
+// YCT APPLICATION VIEWS
+// ============================================================
+
+const YCT_VIEW_CONFIG = {
+    home: {
+        title: "Here's what I'm seeing.",
+        subtitle: "A clear picture of your trading, built from the trades you've actually taken.",
+        sections: ["homeUnderstanding", "onboarding"]
+    },
+
+    trades: {
+        title: "Your trades.",
+        subtitle: "Every captured decision, with the chart evidence attached.",
+        sections: ["library"]
+    },
+
+    explore: {
+        title: "Explore your trading.",
+        subtitle: "Patterns, edges, leaks, and comparisons from your recorded trades.",
+        sections: [
+            "experiments",
+            "patterns",
+            "edgeMap",
+            "leakMap",
+            "leakDetails",
+            "compare"
+        ]
+    },
+
+    memory: {
+        title: "Your trading memory.",
+        subtitle: "What You Can't Trade has learned from the evidence you've accumulated.",
+        sections: ["memory", "memoryDetails"]
+    },
+
+    settings: {
+        title: "Settings.",
+        subtitle: "Control where your journal lives and how it is stored.",
+        sections: ["settings"]
+    }
+};
+
+const YCT_VIEW_SURFACES = [
+    "homeUnderstanding",
+    "onboarding",
+    "settings",
+    "metrics",
+    "weekly",
+    "experiments",
+    "patterns",
+    "edgeMap",
+    "leakMap",
+    "leakDetails",
+    "compare",
+    "memory",
+    "memoryDetails",
+    "library"
+];
+
+function getYctViewFromHash() {
+    const hash = window.location.hash.replace(/^#/, "");
+    return YCT_VIEW_CONFIG[hash] ? hash : "home";
+}
+
+function setYctView(view, { updateHash = true } = {}) {
+    const config = YCT_VIEW_CONFIG[view] || YCT_VIEW_CONFIG.home;
+    const activeView = YCT_VIEW_CONFIG[view] ? view : "home";
+
+    YCT_VIEW_SURFACES.forEach(id => {
+        const section = document.getElementById(id);
+
+        if (!section) {
+            return;
+        }
+
+        section.classList.toggle(
+            "yct-view-hidden",
+            !config.sections.includes(id)
+        );
+    });
+
+    document.querySelectorAll("[data-yct-view]").forEach(link => {
+        link.classList.toggle(
+            "active",
+            link.dataset.yctView === activeView
+        );
+    });
+
+    const title = document.getElementById("pageTitle");
+    const subtitle = document.getElementById("pageSubtitle");
+
+    if (title) {
+        title.textContent = config.title;
+    }
+
+    if (subtitle) {
+        subtitle.textContent = config.subtitle;
+    }
+
+    document.body.dataset.yctView = activeView;
+
+    if (updateHash) {
+        const targetHash = `#${activeView}`;
+
+        if (window.location.hash !== targetHash) {
+            history.pushState(
+                { yctView: activeView },
+                "",
+                targetHash
+            );
+        }
+    }
+
+    window.scrollTo({
+        top: 0,
+        behavior: "auto"
+    });
+}
+
+function bindYctViews() {
+    document.querySelectorAll("[data-yct-view]").forEach(link => {
+        link.addEventListener("click", event => {
+            event.preventDefault();
+            setYctView(link.dataset.yctView);
+        });
+    });
+
+    window.addEventListener("hashchange", () => {
+        setYctView(
+            getYctViewFromHash(),
+            { updateHash: false }
+        );
+    });
+
+    window.addEventListener("popstate", () => {
+        setYctView(
+            getYctViewFromHash(),
+            { updateHash: false }
+        );
+    });
+
+    setYctView(
+        getYctViewFromHash(),
+        { updateHash: false }
+    );
+}
+
+
+bindYctViews();
 bindEdgeMapControls();
 loadEdgeMap();
 
