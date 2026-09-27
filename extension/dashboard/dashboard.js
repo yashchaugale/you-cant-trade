@@ -3212,24 +3212,12 @@ function renderHomeUnderstanding(payload, tradeCount) {
     const recentChange = payload.recentChange;
 
     if (observation?.statement) {
-        const evidence = [];
-
-        if (observation.evidenceStrength) {
-            evidence.push(`${observation.evidenceStrength.toLowerCase()} evidence`);
-        }
-
-        if (observation.sampleSize != null) {
-            evidence.push(`${observation.sampleSize} supporting trades`);
-        }
-
         container.appendChild(
             createHomeBlock(
                 "home-primary",
                 null,
                 observation.statement,
-                evidence.length
-                    ? `${evidence.join(" · ")}.`
-                    : "Based on your recorded trades."
+                null
             )
         );
     }
@@ -3240,9 +3228,7 @@ function renderHomeUnderstanding(payload, tradeCount) {
                 "home-secondary",
                 "Worth keeping an eye on",
                 watch.statement,
-                watch.evidenceStrength
-                    ? `${watch.evidenceStrength.toLowerCase()} evidence from your recorded trades.`
-                    : "This is a measured negative finding from your recorded trades."
+                null
             )
         );
     }
@@ -3253,7 +3239,7 @@ function renderHomeUnderstanding(payload, tradeCount) {
                 "home-focus",
                 "Recently",
                 recentChange.statement,
-                "A comparison of your recent recorded trades with the preceding period."
+                null
             )
         );
     }
