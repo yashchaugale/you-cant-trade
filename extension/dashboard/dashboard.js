@@ -3238,7 +3238,7 @@ function renderHomeUnderstanding(payload, tradeCount) {
         container.appendChild(
             createHomeBlock(
                 "home-secondary",
-                "WORTH WATCHING",
+                "Worth keeping an eye on",
                 watch.statement,
                 watch.evidenceStrength
                     ? `${watch.evidenceStrength.toLowerCase()} evidence from your recorded trades.`
@@ -3251,7 +3251,7 @@ function renderHomeUnderstanding(payload, tradeCount) {
         container.appendChild(
             createHomeBlock(
                 "home-focus",
-                "WHAT CHANGED",
+                "Recently",
                 recentChange.statement,
                 "A comparison of your recent recorded trades with the preceding period."
             )
