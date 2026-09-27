@@ -284,10 +284,9 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
         return None
 
     statement = (
-        f"Across the latest {current.get('actualCount')} trades, "
-        f"average actual R is {float(current_r):+.2f}R versus "
-        f"{float(previous_r):+.2f}R in the preceding set "
-        f"({float(change_r):+.2f}R change)."
+        f"Your latest {current.get('actualCount')} trades are averaging "
+        f"{float(current_r):+.2f}R, up from "
+        f"{float(previous_r):+.2f}R in the trades before them."
     )
 
     return {
