@@ -3720,3 +3720,32 @@ body[data-yct-view="insights"] #leakDetails,
 body[data-yct-view="insights"] #compare {
     display: none !important;
 }
+
+/* Evidence navigation */
+.evidence-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--vf-text-muted, #6F6A61);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    transition: color 140ms ease;
+}
+
+.evidence-back-link span:first-child {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.evidence-back-link:hover {
+    color: var(--vf-orange, #FF5A1F);
+    text-decoration: none;
+}
