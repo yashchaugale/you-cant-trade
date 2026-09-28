@@ -118,25 +118,19 @@
             <div id="weeklyReviewContent" class="weekly-review-content"></div>
         </section>
 
-        <section id="experiments" class="experiments-section" aria-labelledby="experimentsTitle">
-            <div class="section-heading">
-                <div>
-                    <p class="eyebrow">Personal improvement</p>
-                    <h2 id="experimentsTitle">Experiments</h2>
-                </div>
-                <button id="newExperimentButton" class="ai-button" type="button">New experiment</button>
+        <section id="insightsIntro" class="insights-intro" aria-labelledby="insightsIntroTitle">
+            <div class="insights-intro-copy">
+                <p class="eyebrow">Start with</p>
+                <h2 id="insightsIntroTitle">What keeps showing up?</h2>
+                <p>The patterns, edges, leaks, and changes showing up in the trades you've actually taken.</p>
             </div>
-            <div id="experimentComposer" class="experiment-composer" hidden>
-                <div class="composer-heading"><strong>What do you want to improve?</strong><span>One behaviour · one observation window</span></div>
-                <div class="experiment-form-grid">
-                    <label>Behaviour<input id="experimentBehavior" placeholder="e.g. Wait for confirmation"></label>
-                    <label>Hypothesis<input id="experimentHypothesis" placeholder="What will you test?"></label>
-                    <label>Trade sample<select id="experimentSample"><option value="5">5 trades</option><option value="10" selected>10 trades</option><option value="20">20 trades</option></select></label>
-                </div>
-                <div class="composer-actions"><button id="cancelExperimentButton" class="clear-filters" type="button">Cancel</button><button id="saveExperimentButton" class="save-button" type="button">Start experiment</button></div>
-                <p id="experimentComposerStatus" class="search-status" role="status"></p>
-            </div>
-            <div id="experimentsContent" class="experiments-content"><p class="pattern-empty">Your experiments will appear here.</p></div>
+
+            <nav class="insights-guide" aria-label="Insights sections">
+                <a href="#patterns">Patterns <span aria-hidden="true">→</span></a>
+                <a href="#edgeMap">Edges <span aria-hidden="true">→</span></a>
+                <a href="#leakMap">Leaks <span aria-hidden="true">→</span></a>
+                <a href="#compare">Changes <span aria-hidden="true">→</span></a>
+            </nav>
         </section>
 
         <section id="patterns" class="pattern-review" aria-labelledby="patternReviewTitle">
@@ -147,7 +141,7 @@
                 </div>
                 <div class="pattern-actions">
                     <p id="patternReviewStatus" class="review-period">From your saved journal fields</p>
-                    <button id="analyzePatternsButton" class="ai-button" type="button">Coach me locally</button>
+
                 </div>
             </div>
             <div id="patternReviewContent" class="pattern-review-content">
@@ -263,6 +257,27 @@
             </div>
         </section>
 
+
+        <section id="experiments" class="experiments-section" aria-labelledby="experimentsTitle">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Personal improvement</p>
+                    <h2 id="experimentsTitle">Experiments</h2>
+                </div>
+                <button id="newExperimentButton" class="ai-button" type="button">New experiment</button>
+            </div>
+            <div id="experimentComposer" class="experiment-composer" hidden>
+                <div class="composer-heading"><strong>What do you want to improve?</strong><span>One behaviour · one observation window</span></div>
+                <div class="experiment-form-grid">
+                    <label>Behaviour<input id="experimentBehavior" placeholder="e.g. Wait for confirmation"></label>
+                    <label>Hypothesis<input id="experimentHypothesis" placeholder="What will you test?"></label>
+                    <label>Trade sample<select id="experimentSample"><option value="5">5 trades</option><option value="10" selected>10 trades</option><option value="20">20 trades</option></select></label>
+                </div>
+                <div class="composer-actions"><button id="cancelExperimentButton" class="clear-filters" type="button">Cancel</button><button id="saveExperimentButton" class="save-button" type="button">Start experiment</button></div>
+                <p id="experimentComposerStatus" class="search-status" role="status"></p>
+            </div>
+            <div id="experimentsContent" class="experiments-content"><p class="pattern-empty">Your experiments will appear here.</p></div>
+        </section>
 
         <section id="memory" class="memory-section" aria-labelledby="memoryTitle">
             <div class="section-heading">

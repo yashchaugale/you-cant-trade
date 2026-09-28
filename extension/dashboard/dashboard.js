@@ -2154,30 +2154,181 @@ function patternMetric(label, value) {
 }
 
 
-function renderPatternReview(analytics) {
+function renderPatternReview(analytics, patternPayload) {
     patternReviewContent.replaceChildren();
+
     if (!analytics) {
-        patternReviewContent.innerHTML = '<p class="pattern-empty">Start the local service to load your verified pattern summary.</p>';
+        patternReviewContent.innerHTML =
+            '<p class="pattern-empty">Start the local service to load your verified pattern summary.</p>';
         return;
     }
 
-    const outcomes = analytics.outcomes || {};
-    const actualR = analytics.actualR || {};
-    const metrics = document.createElement("div");
-    metrics.className = "pattern-metrics";
-    metrics.append(
-        patternMetric("Reviewed", String(analytics.reviewedTrades || 0)),
-        patternMetric("Wins", String(outcomes.wins || 0)),
-        patternMetric("Losses", String(outcomes.losses || 0)),
-        patternMetric("Total R", actualR.total == null ? "—" : `${Number(actualR.total).toFixed(2)}R`)
-    );
-    patternReviewContent.appendChild(metrics);
+    const findings = Array.isArray(patternPayload?.patterns)
+        ? [...patternPayload.patterns]
+        : [];
 
-    const details = document.createElement("p");
-    details.className = "pattern-details";
-    const emotions = (analytics.topEmotions || []).map(item => `${item.value} (${item.count})`).join(", ");
-    details.textContent = emotions ? `Recorded emotions: ${emotions}` : "No repeated setup, emotion, or execution tags recorded yet.";
-    patternReviewContent.appendChild(details);
+    const evidenceRank = {
+        STRONG: 3,
+        MODERATE: 2,
+        LIMITED: 1,
+        LOW: 1,
+        UNKNOWN: 0
+    };
+
+    const rankedFindings = findings.sort((left, right) => {
+        const evidenceDifference =
+            (evidenceRank[right.evidenceStrength?.level] || 0) -
+            (evidenceRank[left.evidenceStrength?.level] || 0);
+
+        if (evidenceDifference !== 0) {
+            return evidenceDifference;
+        }
+
+        const sampleDifference =
+            (right.sampleSize || 0) - (left.sampleSize || 0);
+
+        if (sampleDifference !== 0) {
+            return sampleDifference;
+        }
+
+        const coverageDifference =
+            (right.evidenceStrength?.actualRCoverage || 0) -
+            (left.evidenceStrength?.actualRCoverage || 0);
+
+        if (coverageDifference !== 0) {
+            return coverageDifference;
+        }
+
+        return new Date(right.recency?.lastObserved || 0).getTime() -
+            new Date(left.recency?.lastObserved || 0).getTime();
+    });
+
+    const supportedFindings = rankedFindings.filter(finding =>
+        ["STRONG", "MODERATE"].includes(finding.evidenceStrength?.level)
+    );
+
+    const recurringFindings = rankedFindings
+        .filter(finding => !["STRONG", "MODERATE"].includes(finding.evidenceStrength?.level))
+        .slice(0, 3);
+
+    const intro = document.createElement("div");
+    intro.className = "pattern-conclusion-intro";
+
+    const heading = document.createElement("h3");
+    const description = document.createElement("p");
+
+    if (supportedFindings.length) {
+        const primary = supportedFindings[0];
+
+        heading.textContent = "Something is starting to stand out.";
+        description.textContent =
+            primary.observation ||
+            primary.conclusion ||
+            `${primary.dimension}: ${primary.value} is showing stronger evidence in your journal.`;
+    } else {
+        heading.textContent = "Nothing reliable is standing out yet.";
+        description.textContent =
+            findings.length
+                ? "A few conditions are recurring, but the evidence is still limited. Keep capturing trades before treating them as reliable patterns."
+                : "There aren't enough recurring findings yet. Keep capturing trades and YCT will surface them here.";
+    }
+
+    intro.append(heading, description);
+    patternReviewContent.appendChild(intro);
+
+    if (supportedFindings.length) {
+        const primary = supportedFindings[0];
+
+        const primaryEvidence = document.createElement("div");
+        primaryEvidence.className = "pattern-conclusion-primary";
+
+        const context = document.createElement("strong");
+        context.textContent = `${primary.dimension}: ${primary.value}`;
+
+        const evidence = document.createElement("span");
+        evidence.textContent =
+            `${primary.sampleSize || 0} supporting trades · Evidence: ${primary.evidenceStrength?.level || "Unknown"}`;
+
+        primaryEvidence.append(context, evidence);
+        patternReviewContent.appendChild(primaryEvidence);
+    }
+
+    if (recurringFindings.length) {
+        const recurringHeading = document.createElement("h4");
+        recurringHeading.className = "pattern-recurring-heading";
+        recurringHeading.textContent = supportedFindings.length
+            ? "Other recurring observations"
+            : "Recurring observations";
+        patternReviewContent.appendChild(recurringHeading);
+
+        const recurringList = document.createElement("div");
+        recurringList.className = "pattern-conclusion-list";
+
+        recurringFindings.forEach(finding => {
+            const item = document.createElement("article");
+            item.className = "pattern-conclusion-item";
+
+            const dimensionLabels = {
+                day: "Day",
+                direction: "Direction",
+                setup: "Setup",
+                session: "Session",
+                market_regime: "Market regime",
+                structure_state: "Market structure",
+                setup_session: "Setup + session",
+                setup_direction: "Setup + direction",
+                setup_regime: "Setup + regime",
+                structure_session: "Structure + session",
+                direction_session: "Direction + session",
+                setup_session_regime: "Setup + session + regime",
+                time: "Time",
+                fingerprint_feature: "Market condition",
+                fingerprint_tag: "Market condition"
+            };
+
+            const context = document.createElement("div");
+            context.className = "pattern-conclusion-context";
+            context.textContent =
+                `${dimensionLabels[finding.dimension] || finding.dimension || "Condition"} · ${finding.value}`;
+
+            const evidence = document.createElement("div");
+            evidence.className = "pattern-conclusion-evidence";
+
+            const sample = document.createElement("span");
+            sample.textContent = `${finding.sampleSize || 0} trades`;
+
+            const level = document.createElement("span");
+            level.textContent =
+                `${finding.evidenceStrength?.level || "Unknown"} evidence`;
+
+            evidence.append(sample, level);
+
+            const action = document.createElement("button");
+            action.type = "button";
+            action.className = "pattern-conclusion-link";
+            action.textContent = "See supporting trades →";
+            action.disabled = !finding.sourceTradeIds?.length;
+
+            action.addEventListener("click", () => {
+                const tradeId = finding.sourceTradeIds?.[0];
+                if (tradeId) {
+                    openTrade(tradeId);
+                }
+            });
+
+            item.append(context, evidence, action);
+            recurringList.appendChild(item);
+        });
+
+        patternReviewContent.appendChild(recurringList);
+    }
+
+    const footer = document.createElement("p");
+    footer.className = "pattern-conclusion-footer";
+    footer.textContent =
+        `${analytics.totalTrades || 0} captured · ${analytics.reviewedTrades || 0} reviewed · ${findings.length} recurring findings found`;
+
+    patternReviewContent.appendChild(footer);
 
     if (analytics.sampleWarning) {
         const warning = document.createElement("p");
@@ -2185,9 +2336,10 @@ function renderPatternReview(analytics) {
         warning.textContent = analytics.sampleWarning;
         patternReviewContent.appendChild(warning);
     }
-    patternReviewStatus.textContent = `${analytics.totalTrades || 0} captured · ${analytics.reviewedTrades || 0} reviewed`;
-}
 
+    patternReviewStatus.textContent =
+        `${analytics.totalTrades || 0} captured · ${analytics.reviewedTrades || 0} reviewed`;
+}
 
 function renderPatternDiscovery(payload) {
     const container = document.getElementById("patternDiscoveryContent");
@@ -2477,7 +2629,7 @@ async function loadPatternReview() {
             getLocalPatterns(),
         ]);
 
-        renderPatternReview(analytics);
+        renderPatternReview(analytics, patterns);
         renderPatternDiscovery(patterns);
     } catch (error) {
         patternReviewStatus.textContent = "Local service unavailable";
@@ -3549,10 +3701,6 @@ document
     .addEventListener("click", compareSimilarTrades);
 
 document
-    .getElementById("analyzePatternsButton")
-    .addEventListener("click", analyzePatterns);
-
-document
     .getElementById("closeModal")
     .addEventListener("click", closeModal);
 
@@ -3769,9 +3917,10 @@ const YCT_VIEW_CONFIG = {
     },
 
     insights: {
-        title: "What is your trading telling you?",
-        subtitle: "Patterns, edges, leaks, and changes found in the trades you've actually taken.",
+        title: "Insights.",
+        subtitle: "What is your trading telling you?",
         sections: [
+            "insightsIntro",
             "patterns",
             "edgeMap",
             "leakMap",
@@ -3807,6 +3956,7 @@ const YCT_VIEW_CONFIG = {
 
 const YCT_VIEW_SURFACES = [
     "homeUnderstanding",
+    "insightsIntro",
     "onboarding",
     "settings",
     "metrics",
