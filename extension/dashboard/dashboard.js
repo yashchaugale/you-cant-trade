@@ -3768,11 +3768,10 @@ const YCT_VIEW_CONFIG = {
         sections: ["library"]
     },
 
-    explore: {
-        title: "Explore your trading.",
-        subtitle: "Patterns, edges, leaks, and comparisons from your recorded trades.",
+    insights: {
+        title: "What is your trading telling you?",
+        subtitle: "Patterns, edges, leaks, and changes found in the trades you've actually taken.",
         sections: [
-            "experiments",
             "patterns",
             "edgeMap",
             "leakMap",
@@ -3781,14 +3780,26 @@ const YCT_VIEW_CONFIG = {
         ]
     },
 
+    experiments: {
+        title: "Let's test it.",
+        subtitle: "Turn something you've noticed into a measurable experiment.",
+        sections: ["experiments"]
+    },
+
     memory: {
-        title: "Your trading memory.",
+        title: "Here's what I've learned.",
         subtitle: "What You Can't Trade has learned from the evidence you've accumulated.",
         sections: ["memory", "memoryDetails"]
     },
 
+    review: {
+        title: "Let's look back.",
+        subtitle: "A concise reflection on what changed in your recent trading.",
+        sections: ["weekly"]
+    },
+
     settings: {
-        title: "Settings.",
+        title: "How YCT works.",
         subtitle: "Control where your journal lives and how it is stored.",
         sections: ["settings"]
     }
