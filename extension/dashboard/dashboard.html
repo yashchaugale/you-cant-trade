@@ -118,19 +118,436 @@
             <div id="weeklyReviewContent" class="weekly-review-content"></div>
         </section>
 
-        <section id="insightsIntro" class="insights-intro" aria-labelledby="insightsIntroTitle">
-            <div class="insights-intro-copy">
-                <p class="eyebrow">Start with</p>
-                <h2 id="insightsIntroTitle">What keeps showing up?</h2>
-                <p>The patterns, edges, leaks, and changes showing up in the trades you've actually taken.</p>
+        <section id="insightsIntro" class="insights-hybrid" aria-labelledby="insightsIntroTitle">
+
+            <div class="insights-hybrid-hero">
+                <div class="insights-hybrid-heading">
+                    <p class="eyebrow">Insights</p>
+                    <h2 id="insightsIntroTitle">What keeps showing up?</h2>
+                    <p>
+                        YCT looks across your trades and turns the evidence
+                        into something you can actually understand.
+                    </p>
+                </div>
+
+                <div class="insights-stat-strip" aria-label="Trading insight summary">
+                    <div class="insights-stat">
+                        <span>Trades</span>
+                        <strong id="insightsStatTrades">—</strong>
+                    </div>
+                    <div class="insights-stat">
+                        <span>Patterns</span>
+                        <strong id="insightsStatPatterns">—</strong>
+                    </div>
+                    <div class="insights-stat">
+                        <span>Reliable edges</span>
+                        <strong id="insightsStatEdges">—</strong>
+                    </div>
+                    <div class="insights-stat">
+                        <span>Repeated leaks</span>
+                        <strong id="insightsStatLeaks">—</strong>
+                    </div>
+                </div>
             </div>
 
-            <nav class="insights-guide" aria-label="Insights sections">
-                <a href="#patterns">Patterns <span aria-hidden="true">→</span></a>
-                <a href="#edgeMap">Edges <span aria-hidden="true">→</span></a>
-                <a href="#leakMap">Leaks <span aria-hidden="true">→</span></a>
-                <a href="#compare">Changes <span aria-hidden="true">→</span></a>
-            </nav>
+            <section class="insights-noticing" aria-labelledby="insightsNoticingTitle">
+                <div class="insights-section-heading">
+                    <div>
+                        <p class="eyebrow">What I'm noticing</p>
+                        <h3 id="insightsNoticingTitle">
+                            A few things are beginning to repeat.
+                        </h3>
+                    </div>
+
+                    <a
+                        class="insights-text-link"
+                        href="#insights-evidence-patterns"
+                        data-yct-view="insights-evidence"
+                        data-yct-evidence-section="patterns"
+                    >
+                        Explore patterns <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+
+                <div id="insightsSignalGrid" class="insights-signal-grid">
+
+                    <article class="insights-signal">
+                        <div class="insights-signal-top">
+                            <span class="insights-signal-index">01</span>
+                            <span class="insights-signal-level">WORTH WATCHING</span>
+                        </div>
+                        <h4 id="insightsSignalOneTitle">Sunday</h4>
+                        <div class="insights-signal-meta">
+                            <span id="insightsSignalOneSample">5 trades</span>
+                            <span id="insightsSignalOneEvidence">LOW evidence</span>
+                        </div>
+                    </article>
+
+                    <article class="insights-signal">
+                        <div class="insights-signal-top">
+                            <span class="insights-signal-index">02</span>
+                            <span class="insights-signal-level">WORTH WATCHING</span>
+                        </div>
+                        <h4 id="insightsSignalTwoTitle">Long</h4>
+                        <div class="insights-signal-meta">
+                            <span id="insightsSignalTwoSample">5 trades</span>
+                            <span id="insightsSignalTwoEvidence">LOW evidence</span>
+                        </div>
+                    </article>
+
+                    <article class="insights-signal">
+                        <div class="insights-signal-top">
+                            <span class="insights-signal-index">03</span>
+                            <span class="insights-signal-level">WORTH WATCHING</span>
+                        </div>
+                        <h4 id="insightsSignalThreeTitle">Contracting</h4>
+                        <div class="insights-signal-meta">
+                            <span id="insightsSignalThreeSample">5 trades</span>
+                            <span id="insightsSignalThreeEvidence">LOW evidence</span>
+                        </div>
+                    </article>
+
+                </div>
+
+                <p id="insightsNoticingNote" class="insights-noticing-note">
+                    They're worth watching, but YCT doesn't have enough evidence
+                    to call any of them reliable yet.
+                </p>
+            </section>
+
+            <div class="insights-evidence-grid">
+
+                <article class="insights-visual-panel">
+                    <div class="insights-visual-panel-heading">
+                        <div>
+                            <p class="eyebrow">Where your trading works</p>
+                            <h3 id="insightsEdgeTitle">
+                                Nothing reliable yet.
+                            </h3>
+                        </div>
+
+                        <a
+                            class="insights-text-link"
+                            href="#insights-evidence-edges"
+                            data-yct-view="insights-evidence"
+                            data-yct-evidence-section="edges"
+                        >
+                            Explore <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+
+                    <div class="insights-mini-map" aria-label="Edge Map preview">
+                        <div class="insights-mini-map-header">
+                            <span>SETUP × REGIME</span>
+                            <span>HISTORICAL R</span>
+                        </div>
+
+                        <div class="insights-mini-map-grid">
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                            <span>—</span>
+                        </div>
+
+                        <p>Not enough evidence yet.</p>
+                    </div>
+
+                    <div class="insights-panel-footer">
+                        <span id="insightsEdgeMeta">0 reliable conditions</span>
+                        <span>Edge Map</span>
+                    </div>
+                </article>
+
+                <article class="insights-visual-panel">
+                    <div class="insights-visual-panel-heading">
+                        <div>
+                            <p class="eyebrow">Where you're giving performance back</p>
+                            <h3 id="insightsLeakTitle">
+                                Nothing repeated yet.
+                            </h3>
+                        </div>
+
+                        <a
+                            class="insights-text-link"
+                            href="#insights-evidence-leaks"
+                            data-yct-view="insights-evidence"
+                            data-yct-evidence-section="leaks"
+                        >
+                            Explore <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+
+                    <div class="insights-leak-preview">
+                        <div class="insights-leak-row">
+                            <span>Late entry</span>
+                            <div class="insights-leak-track">
+                                <span style="width:0%"></span>
+                            </div>
+                            <strong>0</strong>
+                        </div>
+
+                        <div class="insights-leak-row">
+                            <span>Early exit</span>
+                            <div class="insights-leak-track">
+                                <span style="width:0%"></span>
+                            </div>
+                            <strong>0</strong>
+                        </div>
+
+                        <div class="insights-leak-row">
+                            <span>Stop movement</span>
+                            <div class="insights-leak-track">
+                                <span style="width:0%"></span>
+                            </div>
+                            <strong>0</strong>
+                        </div>
+
+                        <div class="insights-leak-row">
+                            <span>Rule violation</span>
+                            <div class="insights-leak-track">
+                                <span style="width:0%"></span>
+                            </div>
+                            <strong>0</strong>
+                        </div>
+                    </div>
+
+                    <div class="insights-panel-footer">
+                        <span id="insightsLeakMeta">No repeated leak detected</span>
+                        <span>Leak Map</span>
+                    </div>
+                </article>
+
+            </div>
+
+            <article class="insights-change-panel">
+                <div class="insights-change-copy">
+                    <p class="eyebrow">What's changed</p>
+                    <h3 id="insightsChangeTitle">
+                        Not enough history for a meaningful comparison yet.
+                    </h3>
+                    <p id="insightsChangeCopy">
+                        YCT compares recent trading with the period before it
+                        without turning noise into a conclusion.
+                    </p>
+                </div>
+
+                <div class="insights-change-visual">
+                    <div class="insights-period">
+                        <span>Current</span>
+                        <strong id="insightsCurrentTrades">—</strong>
+                        <small>trades</small>
+                    </div>
+
+                    <div class="insights-change-arrow">→</div>
+
+                    <div class="insights-period">
+                        <span>Previous</span>
+                        <strong id="insightsPreviousTrades">—</strong>
+                        <small>trades</small>
+                    </div>
+                </div>
+
+                <a
+                    class="insights-text-link"
+                    href="#insights-evidence-compare"
+                    data-yct-view="insights-evidence"
+                    data-yct-evidence-section="compare"
+                >
+                    Explore comparison <span aria-hidden="true">→</span>
+                </a>
+            </article>
+
+        </section>
+
+        <section id="evidenceOverview" class="evidence-overview" aria-labelledby="evidenceOverviewTitle">
+
+            <div class="evidence-hero">
+                <div class="evidence-hero-copy">
+                    <a
+                        class="evidence-back-link"
+                        href="#insights"
+                        data-yct-view="insights"
+                    >
+                        ← Back to Insights
+                    </a>
+                    <p class="eyebrow">The evidence</p>
+                    <h2 id="evidenceOverviewTitle">What YCT is seeing, and why.</h2>
+                    <p>
+                        The measurements behind your current trading picture,
+                        without making you decode the analytics yourself.
+                    </p>
+                </div>
+
+                <div class="evidence-stat-strip">
+                    <div>
+                        <span>Trades</span>
+                        <strong id="evidenceStatTrades">—</strong>
+                    </div>
+                    <div>
+                        <span>Observations</span>
+                        <strong id="evidenceStatPatterns">—</strong>
+                    </div>
+                    <div>
+                        <span>Reliable edges</span>
+                        <strong id="evidenceStatEdges">—</strong>
+                    </div>
+                    <div>
+                        <span>Repeated leaks</span>
+                        <strong id="evidenceStatLeaks">—</strong>
+                    </div>
+                </div>
+            </div>
+
+            <section class="evidence-section evidence-patterns">
+                <div class="evidence-section-heading">
+                    <div>
+                        <p class="eyebrow">Patterns</p>
+                        <h3 id="evidencePatternTitle">
+                            A few things are repeating.
+                        </h3>
+                    </div>
+
+                    <span id="evidencePatternMeta" class="evidence-meta">
+                        —
+                    </span>
+                </div>
+
+                <div id="evidencePatternList" class="evidence-pattern-list">
+                    <p class="pattern-empty">Loading observations…</p>
+                </div>
+            </section>
+
+            <section class="evidence-section evidence-edge">
+                <div class="evidence-section-heading">
+                    <div>
+                        <p class="eyebrow">Where your trading works</p>
+                        <h3 id="evidenceEdgeTitle">
+                            Nothing reliable yet.
+                        </h3>
+                    </div>
+
+                    <span id="evidenceEdgeMeta" class="evidence-meta">
+                        —
+                    </span>
+                </div>
+
+                <div class="evidence-edge-visual">
+                    <div class="evidence-edge-axis">
+                        <span>SETUP × REGIME</span>
+                        <span>HISTORICAL R</span>
+                    </div>
+
+                    <div id="evidenceEdgeGrid" class="evidence-edge-grid">
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                        <span>—</span>
+                    </div>
+
+                    <p id="evidenceEdgeNote">
+                        Not enough evidence yet.
+                    </p>
+                </div>
+            </section>
+
+            <section class="evidence-section evidence-leaks">
+                <div class="evidence-section-heading">
+                    <div>
+                        <p class="eyebrow">Where performance is being lost</p>
+                        <h3 id="evidenceLeakTitle">
+                            Nothing repeated yet.
+                        </h3>
+                    </div>
+
+                    <span id="evidenceLeakMeta" class="evidence-meta">
+                        —
+                    </span>
+                </div>
+
+                <div id="evidenceLeakList" class="evidence-leak-list">
+                    <div class="evidence-leak-row">
+                        <span>Late entry</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="evidence-leak-row">
+                        <span>Early exit</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="evidence-leak-row">
+                        <span>Stop movement</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="evidence-leak-row">
+                        <span>Rule violation</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="evidence-leak-row">
+                        <span>Counter-structure</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="evidence-leak-row">
+                        <span>Overtrading</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="evidence-leak-row">
+                        <span>Revenge trading</span>
+                        <div><i style="width:0%"></i></div>
+                        <strong>0</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="evidence-section evidence-changes">
+                <div class="evidence-section-heading">
+                    <div>
+                        <p class="eyebrow">What's changed</p>
+                        <h3 id="evidenceChangeTitle">
+                            Not enough history for comparison yet.
+                        </h3>
+                    </div>
+
+                    <span id="evidenceChangeMeta" class="evidence-meta">
+                        —
+                    </span>
+                </div>
+
+                <div class="evidence-change-visual">
+                    <div>
+                        <span>Current</span>
+                        <strong id="evidenceCurrentTrades">—</strong>
+                        <small>trades</small>
+                    </div>
+
+                    <b aria-hidden="true">→</b>
+
+                    <div>
+                        <span>Previous</span>
+                        <strong id="evidencePreviousTrades">—</strong>
+                        <small>trades</small>
+                    </div>
+                </div>
+
+                <p id="evidenceChangeCopy" class="evidence-change-copy">
+                    YCT needs a previous period before it can say what actually changed.
+                </p>
+            </section>
+
         </section>
 
         <section id="patterns" class="pattern-review" aria-labelledby="patternReviewTitle">
@@ -187,6 +604,8 @@
         </section>
 
         <section id="edgeMap" class="edge-map" aria-labelledby="edgeMapTitle">
+            <div id="edgeConclusionContent" class="edge-conclusion-content"></div>
+
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Where your trading works</p>

@@ -46,6 +46,8 @@ let searchQuery = "";
 let searchResultIds = null;
 let searchTimer = null;
 let outboxRetryInFlight = false;
+let insightsPatternPayload = null;
+let insightsTradeCount = 0;
 let edgeMapPayload = null;
 let edgeMapSelectedTradeIds = null;
 let edgeMapComparisonCells = [];
@@ -174,6 +176,216 @@ function renderEdgeMap(payload) {
     edgeMapContent.replaceChildren();
 
     const cells = Array.isArray(payload?.cells) ? payload.cells : [];
+    const conclusionContent = document.getElementById("edgeConclusionContent");
+
+    if (conclusionContent) {
+        conclusionContent.replaceChildren();
+
+        const labels = {
+            setup: "Setup",
+            session: "Session",
+            direction: "Direction",
+            market_regime: "Regime",
+            structure_state: "Market structure"
+        };
+
+        const evidenceRank = {
+            STRONG: 3,
+            MODERATE: 2,
+            LIMITED: 1,
+            LOW: 1,
+            UNKNOWN: 0
+        };
+
+        const performanceValue = cell => {
+            if (cell.expectancy != null) {
+                return Number(cell.expectancy);
+            }
+
+            if (cell.averageR != null) {
+                return Number(cell.averageR);
+            }
+
+            return null;
+        };
+
+        const supportedEdges = [...cells]
+            .filter(cell =>
+                ["STRONG", "MODERATE"].includes(
+                    cell.evidenceStrength?.level
+                ) &&
+                performanceValue(cell) != null &&
+                performanceValue(cell) > 0
+            )
+            .sort((left, right) => {
+                const evidenceDifference =
+                    (evidenceRank[right.evidenceStrength?.level] || 0) -
+                    (evidenceRank[left.evidenceStrength?.level] || 0);
+
+                if (evidenceDifference !== 0) {
+                    return evidenceDifference;
+                }
+
+                const performanceDifference =
+                    performanceValue(right) - performanceValue(left);
+
+                if (performanceDifference !== 0) {
+                    return performanceDifference;
+                }
+
+                return (right.sampleSize || 0) - (left.sampleSize || 0);
+            });
+
+        const positiveConditions = [...cells]
+            .filter(cell =>
+                performanceValue(cell) != null &&
+                performanceValue(cell) > 0
+            )
+            .sort((left, right) => {
+                const evidenceDifference =
+                    (evidenceRank[right.evidenceStrength?.level] || 0) -
+                    (evidenceRank[left.evidenceStrength?.level] || 0);
+
+                if (evidenceDifference !== 0) {
+                    return evidenceDifference;
+                }
+
+                const performanceDifference =
+                    performanceValue(right) - performanceValue(left);
+
+                if (performanceDifference !== 0) {
+                    return performanceDifference;
+                }
+
+                return (right.sampleSize || 0) - (left.sampleSize || 0);
+            })
+            .slice(0, 3);
+
+        const intro = document.createElement("div");
+        intro.className = "edge-conclusion-intro";
+
+        const heading = document.createElement("h3");
+        const description = document.createElement("p");
+
+        if (supportedEdges.length) {
+            const primary = supportedEdges[0];
+            const value = performanceValue(primary);
+
+            heading.textContent = "Something is starting to stand out.";
+            description.textContent =
+                `${labels[primary.dimensionA] || primary.dimensionA} · ` +
+                `${primary.valueA} × ` +
+                `${labels[primary.dimensionB] || primary.dimensionB} · ` +
+                `${primary.valueB} is showing positive historical performance with ` +
+                `${primary.sampleSize || 0} trades.`;
+        } else if (positiveConditions.length) {
+            heading.textContent = "No clear edge is standing out yet.";
+            description.textContent =
+                "Some conditions are performing positively, but the evidence isn't strong enough yet to treat them as a reliable edge.";
+        } else {
+            heading.textContent = "No clear edge is standing out yet.";
+            description.textContent =
+                "YCT hasn't found a condition with enough positive historical evidence to call an edge yet.";
+        }
+
+        intro.append(heading, description);
+        conclusionContent.appendChild(intro);
+
+        if (supportedEdges.length) {
+            const primary = supportedEdges[0];
+            const primaryRow = document.createElement("div");
+            primaryRow.className = "edge-conclusion-primary";
+
+            const context = document.createElement("strong");
+            context.textContent =
+                `${labels[primary.dimensionA] || primary.dimensionA} · ${primary.valueA} × ` +
+                `${labels[primary.dimensionB] || primary.dimensionB} · ${primary.valueB}`;
+
+            const evidence = document.createElement("span");
+            evidence.textContent =
+                `${primary.sampleSize || 0} trades · ` +
+                `${performanceValue(primary).toFixed(2)}R expectancy · ` +
+                `${primary.evidenceStrength?.level || "Unknown"} evidence`;
+
+            primaryRow.append(context, evidence);
+            conclusionContent.appendChild(primaryRow);
+        }
+
+        const watchList = supportedEdges.length
+            ? supportedEdges.slice(1, 4)
+            : positiveConditions;
+
+        if (watchList.length) {
+            const watchHeading = document.createElement("h4");
+            watchHeading.className = "edge-conclusion-heading";
+            watchHeading.textContent = supportedEdges.length
+                ? "Other conditions worth watching"
+                : "Conditions worth watching";
+            conclusionContent.appendChild(watchHeading);
+
+            const list = document.createElement("div");
+            list.className = "edge-conclusion-list";
+
+            watchList.forEach(cell => {
+                const item = document.createElement("article");
+                item.className = "edge-conclusion-item";
+
+                const context = document.createElement("div");
+                context.className = "edge-conclusion-context";
+                context.textContent =
+                    `${labels[cell.dimensionA] || cell.dimensionA} · ${cell.valueA} × ` +
+                    `${labels[cell.dimensionB] || cell.dimensionB} · ${cell.valueB}`;
+
+                const metrics = document.createElement("div");
+                metrics.className = "edge-conclusion-evidence";
+
+                const sample = document.createElement("span");
+                sample.textContent = `${cell.sampleSize || 0} trades`;
+
+                const performance = document.createElement("span");
+                performance.textContent =
+                    performanceValue(cell) == null
+                        ? "No R measure"
+                        : `${performanceValue(cell).toFixed(2)}R expectancy`;
+
+                const evidence = document.createElement("span");
+                evidence.textContent =
+                    `${cell.evidenceStrength?.level || "Unknown"} evidence`;
+
+                metrics.append(sample, performance, evidence);
+
+                const action = document.createElement("button");
+                action.type = "button";
+                action.className = "edge-conclusion-link";
+                action.textContent = "See supporting trades →";
+                action.disabled = !Array.isArray(cell.sourceTradeIds) ||
+                    !cell.sourceTradeIds.length;
+
+                action.addEventListener("click", event => {
+                    event.stopPropagation();
+
+                    const tradeId = cell.sourceTradeIds?.[0];
+
+                    if (tradeId) {
+                        openTrade(tradeId);
+                    }
+                });
+
+                item.append(context, metrics, action);
+                list.appendChild(item);
+            });
+
+            conclusionContent.appendChild(list);
+        }
+
+        const footer = document.createElement("p");
+        footer.className = "edge-conclusion-footer";
+        footer.textContent =
+            `${cells.length} conditions meet the minimum sample · ` +
+            `minimum sample ${payload?.minimumSample || 3}`;
+
+        conclusionContent.appendChild(footer);
+    }
     const minimumSample = payload?.minimumSample || 3;
 
     const labels = {
@@ -368,6 +580,8 @@ async function loadEdgeMap() {
         const payload = await getLocalEdgeMap(dimensionA, dimensionB);
         edgeMapPayload = payload;
         renderEdgeMap(payload);
+        renderInsightsHybrid();
+        renderEvidenceOverview();
     } catch (error) {
         edgeMapPayload = null;
         edgeMapStatus.textContent = "Local service unavailable";
@@ -528,6 +742,8 @@ async function loadCompare() {
         );
 
         renderCompare(comparePayload);
+        renderInsightsHybrid();
+        renderEvidenceOverview();
     } catch (error) {
         comparePayload = null;
         compareStatus.textContent = "Local service unavailable";
@@ -1658,6 +1874,8 @@ async function loadLeakMap() {
         const payload = await getLocalLeakMap();
         leakMapPayload = payload;
         renderLeakMap(payload);
+        renderInsightsHybrid();
+        renderEvidenceOverview();
     } catch (error) {
         leakMapPayload = null;
         leakMapStatus.textContent = "Local service unavailable";
@@ -2154,6 +2372,703 @@ function patternMetric(label, value) {
 }
 
 
+
+
+function renderEvidenceOverview() {
+    const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    };
+
+    const patterns = Array.isArray(insightsPatternPayload?.patterns)
+        ? [...insightsPatternPayload.patterns]
+        : [];
+
+    const edges = Array.isArray(edgeMapPayload?.cells)
+        ? [...edgeMapPayload.cells]
+        : [];
+
+    const leaks = Array.isArray(leakMapPayload?.leaks)
+        ? [...leakMapPayload.leaks]
+        : [];
+
+    const current = comparePayload?.periods?.current;
+    const previous = comparePayload?.periods?.previous;
+
+    const evidenceRank = {
+        STRONG: 3,
+        MODERATE: 2,
+        LIMITED: 1,
+        LOW: 1,
+        UNKNOWN: 0,
+    };
+
+    const patternLevel = finding =>
+        finding?.evidenceStrength?.level ||
+        finding?.evidenceStrength ||
+        "UNKNOWN";
+
+    const leakLevel = leak =>
+        leak?.evidenceStrength?.level ||
+        leak?.evidenceStrength ||
+        "UNKNOWN";
+
+    const sample = finding =>
+        Number(finding?.sampleSize || 0);
+
+    const totalTrades = Number(
+        insightsTradeCount ||
+        insightsPatternPayload?.totalTrades ||
+        leakMapPayload?.sampleSize ||
+        0
+    );
+
+    const reliableEdges = edges
+        .filter(cell =>
+            ["STRONG", "MODERATE"].includes(
+                cell?.evidenceStrength?.level
+            ) &&
+            Number(cell?.expectancy) > 0
+        );
+
+    const repeatedLeaks = leaks
+        .filter(leak =>
+            Number(
+                leak?.occurrenceCount ??
+                leak?.occurrences ??
+                leak?.count ??
+                0
+            ) > 0 &&
+            ["STRONG", "MODERATE"].includes(leakLevel(leak))
+        );
+
+    // --------------------------------------------------------
+    // Summary
+    // --------------------------------------------------------
+
+    setText("evidenceStatTrades", String(totalTrades));
+    setText("evidenceStatPatterns", String(patterns.length));
+    setText("evidenceStatEdges", String(reliableEdges.length));
+    setText("evidenceStatLeaks", String(repeatedLeaks.length));
+
+    // --------------------------------------------------------
+    // Patterns
+    // --------------------------------------------------------
+
+    const patternList =
+        document.getElementById("evidencePatternList");
+
+    if (patternList) {
+        patternList.replaceChildren();
+
+        const ranked = patterns
+            .sort((a, b) =>
+                (evidenceRank[patternLevel(b)] || 0) -
+                (evidenceRank[patternLevel(a)] || 0) ||
+                sample(b) - sample(a)
+            );
+
+        const maxVisible = 12;
+
+        ranked.slice(0, maxVisible).forEach(finding => {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "evidence-pattern-row";
+
+            const left = document.createElement("span");
+            left.className = "evidence-pattern-name";
+
+            const dimension = document.createElement("small");
+            dimension.textContent =
+                String(finding.dimension || "Condition")
+                    .replaceAll("_", " ");
+
+            const value = document.createElement("strong");
+            value.textContent =
+                finding.value || "—";
+
+            left.append(dimension, value);
+
+            const middle = document.createElement("span");
+            middle.className = "evidence-pattern-sample";
+            middle.textContent =
+                `${sample(finding)} trades`;
+
+            const right = document.createElement("span");
+            right.className = "evidence-pattern-level";
+            right.textContent =
+                `${patternLevel(finding)} evidence`;
+
+            row.append(left, middle, right);
+
+            row.addEventListener("click", () => {
+                const sourceId =
+                    Array.isArray(finding.sourceTradeIds)
+                        ? finding.sourceTradeIds[0]
+                        : null;
+
+                if (sourceId && typeof openTradeCaseFile === "function") {
+                    openTradeCaseFile(sourceId);
+                }
+            });
+
+            patternList.appendChild(row);
+        });
+
+        if (!ranked.length) {
+            const empty = document.createElement("p");
+            empty.className = "pattern-empty";
+            empty.textContent =
+                "No recurring observations have enough data to show yet.";
+            patternList.appendChild(empty);
+        }
+
+        setText(
+            "evidencePatternMeta",
+            `${patterns.length} observations`
+        );
+
+        setText(
+            "evidencePatternTitle",
+            patterns.length
+                ? "These are the conditions YCT keeps seeing."
+                : "Nothing is repeating reliably yet."
+        );
+    }
+
+    // --------------------------------------------------------
+    // Edge visual
+    // --------------------------------------------------------
+
+    setText(
+        "evidenceEdgeTitle",
+        reliableEdges.length
+            ? "Some conditions are starting to stand out."
+            : "Nothing reliable yet."
+    );
+
+    setText(
+        "evidenceEdgeMeta",
+        `${reliableEdges.length} reliable condition${reliableEdges.length === 1 ? "" : "s"}`
+    );
+
+    const edgeGrid =
+        document.getElementById("evidenceEdgeGrid");
+
+    if (edgeGrid) {
+        edgeGrid.replaceChildren();
+
+        const visibleEdges = reliableEdges.slice(0, 9);
+
+        for (let index = 0; index < 9; index += 1) {
+            const cell = document.createElement("span");
+            const edge = visibleEdges[index];
+
+            if (edge) {
+                cell.textContent =
+                    Number(edge.expectancy).toFixed(1) + "R";
+                cell.className =
+                    Number(edge.expectancy) > 0
+                        ? "evidence-edge-positive"
+                        : "";
+            } else {
+                cell.textContent = "—";
+            }
+
+            edgeGrid.appendChild(cell);
+        }
+    }
+
+    setText(
+        "evidenceEdgeNote",
+        reliableEdges.length
+            ? "These conditions have enough historical evidence to investigate."
+            : "Not enough evidence yet."
+    );
+
+    // --------------------------------------------------------
+    // Leak visual
+    // --------------------------------------------------------
+
+    const leakList =
+        document.getElementById("evidenceLeakList");
+
+    if (leakList) {
+        const rows =
+            Array.from(
+                leakList.querySelectorAll(
+                    ".evidence-leak-row"
+                )
+            );
+
+        const values = leaks.map(leak => ({
+            label:
+                leak?.label ||
+                leak?.type ||
+                "Leak",
+            count: Number(
+                leak?.occurrenceCount ??
+                leak?.occurrences ??
+                leak?.count ??
+                0
+            ),
+        }));
+
+        const maxCount =
+            Math.max(
+                1,
+                ...values.map(item => item.count)
+            );
+
+        rows.forEach((row, index) => {
+            const item = values[index];
+
+            if (!item) {
+                return;
+            }
+
+            const label = row.querySelector("span");
+            const bar = row.querySelector("i");
+            const count = row.querySelector("strong");
+
+            if (label) {
+                label.textContent = item.label;
+            }
+
+            if (bar) {
+                bar.style.width =
+                    `${Math.min(100, (item.count / maxCount) * 100)}%`;
+            }
+
+            if (count) {
+                count.textContent = String(item.count);
+            }
+        });
+    }
+
+    setText(
+        "evidenceLeakTitle",
+        repeatedLeaks.length
+            ? "A few behaviours are showing up repeatedly."
+            : "Nothing repeated yet."
+    );
+
+    setText(
+        "evidenceLeakMeta",
+        `${repeatedLeaks.length} repeated leak${repeatedLeaks.length === 1 ? "" : "s"}`
+    );
+
+    // --------------------------------------------------------
+    // Compare
+    // --------------------------------------------------------
+
+    const currentCount =
+        Number(current?.actualCount || 0);
+
+    const previousCount =
+        Number(previous?.actualCount || 0);
+
+    setText(
+        "evidenceCurrentTrades",
+        currentCount ? String(currentCount) : "—"
+    );
+
+    setText(
+        "evidencePreviousTrades",
+        previousCount ? String(previousCount) : "—"
+    );
+
+    setText(
+        "evidenceChangeMeta",
+        previousCount
+            ? `${currentCount} current · ${previousCount} previous`
+            : `${currentCount} current · no previous period`
+    );
+
+    if (previousCount) {
+        setText(
+            "evidenceChangeTitle",
+            "There is enough history to compare the two periods."
+        );
+
+        setText(
+            "evidenceChangeCopy",
+            "Open the detailed comparison when you want to inspect what actually moved."
+        );
+    } else {
+        setText(
+            "evidenceChangeTitle",
+            "Not enough history for comparison yet."
+        );
+
+        setText(
+            "evidenceChangeCopy",
+            "YCT needs a previous period before it can say what actually changed."
+        );
+    }
+
+}
+
+
+function renderInsightsHybrid() {
+    const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    };
+
+    const patterns = Array.isArray(insightsPatternPayload?.patterns)
+        ? [...insightsPatternPayload.patterns]
+        : [];
+
+    const edges = Array.isArray(edgeMapPayload?.cells)
+        ? [...edgeMapPayload.cells]
+        : [];
+
+    const leaks = Array.isArray(leakMapPayload?.leaks)
+        ? [...leakMapPayload.leaks]
+        : [];
+
+    const current = comparePayload?.periods?.current;
+    const previous = comparePayload?.periods?.previous;
+
+    const evidenceRank = {
+        STRONG: 3,
+        MODERATE: 2,
+        LIMITED: 1,
+        LOW: 1,
+        UNKNOWN: 0,
+    };
+
+    const patternLevel = finding =>
+        finding?.evidenceStrength?.level ||
+        finding?.evidenceStrength ||
+        "UNKNOWN";
+
+    const leakLevel = leak =>
+        leak?.evidenceStrength?.level ||
+        leak?.evidenceStrength ||
+        "UNKNOWN";
+
+    const patternSample = finding =>
+        Number(finding?.sampleSize || 0);
+
+    const reliablePatterns = patterns
+        .filter(finding =>
+            ["STRONG", "MODERATE"].includes(patternLevel(finding))
+        )
+        .sort((a, b) =>
+            (evidenceRank[patternLevel(b)] || 0) -
+            (evidenceRank[patternLevel(a)] || 0) ||
+            patternSample(b) - patternSample(a)
+        );
+
+    const recurringPatterns = patterns
+        .sort((a, b) =>
+            (evidenceRank[patternLevel(b)] || 0) -
+            (evidenceRank[patternLevel(a)] || 0) ||
+            patternSample(b) - patternSample(a)
+        )
+        .slice(0, 3);
+
+    const reliableEdges = edges
+        .filter(cell =>
+            ["STRONG", "MODERATE"].includes(
+                cell?.evidenceStrength?.level
+            ) &&
+            Number(cell?.expectancy) > 0
+        );
+
+    const repeatedLeaks = leaks
+        .filter(leak =>
+            Number(
+                leak?.occurrenceCount ??
+                leak?.occurrences ??
+                leak?.count ??
+                0
+            ) > 0 &&
+            ["STRONG", "MODERATE"].includes(leakLevel(leak))
+        );
+
+    const totalTrades = Number(
+        insightsTradeCount ||
+        insightsPatternPayload?.totalTrades ||
+        leakMapPayload?.sampleSize ||
+        0
+    );
+
+    // --------------------------------------------------------
+    // Summary numbers
+    // --------------------------------------------------------
+
+    setText("insightsStatTrades", String(totalTrades));
+    setText("insightsStatPatterns", String(patterns.length));
+    setText("insightsStatEdges", String(reliableEdges.length));
+    setText("insightsStatLeaks", String(repeatedLeaks.length));
+
+    // --------------------------------------------------------
+    // Pattern conclusion
+    // --------------------------------------------------------
+
+    const noticingTitle =
+        document.getElementById("insightsNoticingTitle");
+
+    const noticingNote =
+        document.getElementById("insightsNoticingNote");
+
+    if (noticingTitle) {
+        if (reliablePatterns.length) {
+            noticingTitle.textContent =
+                "Something is starting to stand out.";
+        } else if (recurringPatterns.length) {
+            noticingTitle.textContent =
+                "A few things are beginning to repeat.";
+        } else {
+            noticingTitle.textContent =
+                "Nothing reliable is standing out yet.";
+        }
+    }
+
+    if (noticingNote) {
+        if (reliablePatterns.length) {
+            const primary = reliablePatterns[0];
+            noticingNote.textContent =
+                `${primary.dimension?.replaceAll("_", " ") || "This condition"} · ` +
+                `${primary.value} has enough evidence to be worth investigating.`;
+        } else if (recurringPatterns.length) {
+            noticingNote.textContent =
+                "They're worth watching, but YCT doesn't have enough evidence to call any of them reliable yet.";
+        } else {
+            noticingNote.textContent =
+                "YCT needs more repeated evidence before it can tell you that a pattern actually matters.";
+        }
+    }
+
+    // --------------------------------------------------------
+    // Three compact observations
+    // --------------------------------------------------------
+
+    const signalSlots = [
+        ["insightsSignalOneTitle", "insightsSignalOneSample", "insightsSignalOneEvidence"],
+        ["insightsSignalTwoTitle", "insightsSignalTwoSample", "insightsSignalTwoEvidence"],
+        ["insightsSignalThreeTitle", "insightsSignalThreeSample", "insightsSignalThreeEvidence"],
+    ];
+
+    const dimensionLabels = {
+        day: "Day",
+        direction: "Direction",
+        setup: "Setup",
+        session: "Session",
+        market_regime: "Market regime",
+        structure_state: "Market structure",
+        setup_session: "Setup + session",
+        setup_direction: "Setup + direction",
+        setup_regime: "Setup + regime",
+        structure_session: "Structure + session",
+        direction_session: "Direction + session",
+        setup_session_regime: "Setup + session + regime",
+        time: "Time",
+        fingerprint_feature: "Market condition",
+        fingerprint_tag: "Market condition",
+    };
+
+    signalSlots.forEach(([titleId, sampleId, evidenceId], index) => {
+        const finding = recurringPatterns[index];
+
+        if (!finding) {
+            setText(titleId, "—");
+            setText(sampleId, "No data");
+            setText(evidenceId, "—");
+            return;
+        }
+
+        const label =
+            dimensionLabels[finding.dimension] ||
+            finding.dimension ||
+            "Condition";
+
+        setText(
+            titleId,
+            finding.value || label
+        );
+
+        setText(
+            sampleId,
+            label
+        );
+
+        setText(
+            evidenceId,
+            `${patternSample(finding)} trades · ${finding.evidenceStrength?.level || "UNKNOWN"} evidence`
+        );
+    });
+
+    // --------------------------------------------------------
+    // Edge preview
+    // --------------------------------------------------------
+
+    const edgeTitle =
+        document.getElementById("insightsEdgeTitle");
+
+    const edgeMeta =
+        document.getElementById("insightsEdgeMeta");
+
+    if (edgeTitle) {
+        if (reliableEdges.length) {
+            const edge = reliableEdges[0];
+
+            edgeTitle.textContent =
+                `${edge.valueA} × ${edge.valueB} is standing out.`;
+        } else {
+            edgeTitle.textContent =
+                "Nothing reliable yet.";
+        }
+    }
+
+    if (edgeMeta) {
+        edgeMeta.textContent =
+            reliableEdges.length
+                ? `${reliableEdges.length} reliable condition${reliableEdges.length === 1 ? "" : "s"}`
+                : "0 reliable conditions";
+    }
+
+    // --------------------------------------------------------
+    // Leak preview
+    // --------------------------------------------------------
+
+    const leakTitle =
+        document.getElementById("insightsLeakTitle");
+
+    const leakMeta =
+        document.getElementById("insightsLeakMeta");
+
+    const leakRows =
+        Array.from(
+            document.querySelectorAll(
+                "#insightsIntro .insights-leak-row"
+            )
+        );
+
+    const leakValues = leaks.map(leak => ({
+        leak,
+        count: Number(
+            leak?.occurrenceCount ??
+            leak?.occurrences ??
+            leak?.count ??
+            0
+        ),
+    }));
+
+    const maxLeak =
+        Math.max(
+            1,
+            ...leakValues.map(item => item.count)
+        );
+
+    leakRows.forEach((row, index) => {
+        const item = leakValues[index];
+
+        if (!item) {
+            return;
+        }
+
+        const bar = row.querySelector(
+            ".insights-leak-track span"
+        );
+
+        const number = row.querySelector("strong");
+
+        if (bar) {
+            bar.style.width =
+                `${Math.min(100, (item.count / maxLeak) * 100)}%`;
+        }
+
+        if (number) {
+            number.textContent = String(item.count);
+        }
+    });
+
+    if (leakTitle) {
+        if (repeatedLeaks.length) {
+            const primaryLeak =
+                [...repeatedLeaks].sort(
+                    (a, b) =>
+                        Number(
+                            b?.occurrenceCount ??
+                            b?.occurrences ??
+                            b?.count ??
+                            0
+                        ) -
+                        Number(
+                            a?.occurrenceCount ??
+                            a?.occurrences ??
+                            a?.count ??
+                            0
+                        )
+                )[0];
+
+            leakTitle.textContent =
+                `${primaryLeak.label || primaryLeak.type || "A behaviour"} is showing up repeatedly.`;
+        } else {
+            leakTitle.textContent =
+                "Nothing repeated yet.";
+        }
+    }
+
+    if (leakMeta) {
+        leakMeta.textContent =
+            repeatedLeaks.length
+                ? `${repeatedLeaks.length} repeated leak${repeatedLeaks.length === 1 ? "" : "s"}`
+                : "No repeated leak detected";
+    }
+
+    // --------------------------------------------------------
+    // Compare preview
+    // --------------------------------------------------------
+
+    const currentCount =
+        Number(current?.actualCount || 0);
+
+    const previousCount =
+        Number(previous?.actualCount || 0);
+
+    setText(
+        "insightsCurrentTrades",
+        currentCount ? String(currentCount) : "—"
+    );
+
+    setText(
+        "insightsPreviousTrades",
+        previousCount ? String(previousCount) : "—"
+    );
+
+    const changeTitle =
+        document.getElementById("insightsChangeTitle");
+
+    const changeCopy =
+        document.getElementById("insightsChangeCopy");
+
+    if (changeTitle && changeCopy) {
+        if (!previousCount) {
+            changeTitle.textContent =
+                "Not enough history for a meaningful comparison yet.";
+
+            changeCopy.textContent =
+                "YCT needs a previous period to compare against before it can say what has actually changed.";
+        } else {
+            changeTitle.textContent =
+                "Your recent trading has something to compare.";
+
+            changeCopy.textContent =
+                `${currentCount} recent trades compared with ${previousCount} previous trades. Explore the evidence to see what actually changed.`;
+        }
+    }
+}
+
+
 function renderPatternReview(analytics, patternPayload) {
     patternReviewContent.replaceChildren();
 
@@ -2629,8 +3544,13 @@ async function loadPatternReview() {
             getLocalPatterns(),
         ]);
 
+        insightsPatternPayload = patterns;
+        insightsTradeCount = Number(analytics?.totalTrades || 0);
+
         renderPatternReview(analytics, patterns);
         renderPatternDiscovery(patterns);
+        renderInsightsHybrid();
+        renderEvidenceOverview();
     } catch (error) {
         patternReviewStatus.textContent = "Local service unavailable";
         renderPatternReview(null);
@@ -3919,14 +4839,13 @@ const YCT_VIEW_CONFIG = {
     insights: {
         title: "Insights.",
         subtitle: "What is your trading telling you?",
-        sections: [
-            "insightsIntro",
-            "patterns",
-            "edgeMap",
-            "leakMap",
-            "leakDetails",
-            "compare"
-        ]
+        sections: ["insightsIntro"]
+    },
+
+    "insights-evidence": {
+        title: "The evidence.",
+        subtitle: "What YCT is seeing, and why.",
+        sections: ["evidenceOverview"]
     },
 
     experiments: {
@@ -3957,6 +4876,7 @@ const YCT_VIEW_CONFIG = {
 const YCT_VIEW_SURFACES = [
     "homeUnderstanding",
     "insightsIntro",
+    "evidenceOverview",
     "onboarding",
     "settings",
     "metrics",
@@ -3972,12 +4892,69 @@ const YCT_VIEW_SURFACES = [
     "library"
 ];
 
+function getEvidenceSectionFromHash() {
+    const hash = window.location.hash.replace(/^#/, "");
+
+    const targets = {
+        "insights-evidence-patterns": "patterns",
+        "insights-evidence-edges": "edges",
+        "insights-evidence-leaks": "leaks",
+        "insights-evidence-compare": "compare"
+    };
+
+    return targets[hash] || null;
+}
+
+
 function getYctViewFromHash() {
     const hash = window.location.hash.replace(/^#/, "");
+
+    if (hash.startsWith("insights-evidence-")) {
+        return "insights-evidence";
+    }
+
     return YCT_VIEW_CONFIG[hash] ? hash : "home";
 }
 
-function setYctView(view, { updateHash = true } = {}) {
+
+function scrollToEvidenceSection(section) {
+    const targets = {
+        patterns: "evidencePatternList",
+        edges: "evidenceEdgeGrid",
+        leaks: "evidenceLeakList",
+        compare: "evidenceChangeCopy"
+    };
+
+    const targetId = targets[section];
+
+    if (!targetId) {
+        return;
+    }
+
+    const target = document.getElementById(targetId);
+
+    if (!target) {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+            target.scrollIntoView({
+                behavior: "auto",
+                block: "start",
+                inline: "nearest"
+            });
+        });
+    });
+}
+
+function setYctView(
+    view,
+    {
+        updateHash = true,
+        evidenceSection = null
+    } = {}
+) {
     const config = YCT_VIEW_CONFIG[view] || YCT_VIEW_CONFIG.home;
     const activeView = YCT_VIEW_CONFIG[view] ? view : "home";
 
@@ -4014,29 +4991,54 @@ function setYctView(view, { updateHash = true } = {}) {
 
     document.body.dataset.yctView = activeView;
 
+    const hashSection =
+        activeView === "insights-evidence"
+            ? getEvidenceSectionFromHash()
+            : null;
+
+    const targetSection = evidenceSection || hashSection;
+
     if (updateHash) {
-        const targetHash = `#${activeView}`;
+        let targetHash = `#${activeView}`;
+
+        if (activeView === "insights-evidence" && targetSection) {
+            targetHash = `#insights-evidence-${targetSection}`;
+        }
 
         if (window.location.hash !== targetHash) {
             history.pushState(
-                { yctView: activeView },
+                {
+                    yctView: activeView,
+                    evidenceSection: targetSection
+                },
                 "",
                 targetHash
             );
         }
     }
 
-    window.scrollTo({
-        top: 0,
-        behavior: "auto"
-    });
+    if (activeView === "insights-evidence" && targetSection) {
+        scrollToEvidenceSection(targetSection);
+    } else {
+        window.scrollTo({
+            top: 0,
+            behavior: "auto"
+        });
+    }
 }
+
 
 function bindYctViews() {
     document.querySelectorAll("[data-yct-view]").forEach(link => {
         link.addEventListener("click", event => {
             event.preventDefault();
-            setYctView(link.dataset.yctView);
+
+            setYctView(
+                link.dataset.yctView,
+                {
+                    evidenceSection: link.dataset.evidenceSection || null
+                }
+            );
         });
     });
 
