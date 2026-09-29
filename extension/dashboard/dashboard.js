@@ -526,6 +526,54 @@ function renderEdgeMap(payload) {
 
         card.appendChild(coverage);
 
+        const memoryCandidate = edgeToMemoryCandidate(cell);
+
+        if (memoryCandidate) {
+            const rememberButton = document.createElement("button");
+            rememberButton.type = "button";
+            rememberButton.className = "edge-map-remember-button";
+            rememberButton.textContent = "Remember this";
+
+            rememberButton.addEventListener("click", async event => {
+                event.stopPropagation();
+
+                if (rememberButton.disabled) {
+                    return;
+                }
+
+                const confirmed = window.confirm(
+                    "Remember this edge in Trading Memory?"
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                rememberButton.disabled = true;
+                rememberButton.textContent = "Saving…";
+
+                try {
+                    await createLocalMemory(memoryCandidate);
+                    rememberButton.textContent = "Remembered";
+                    rememberButton.classList.add("is-remembered");
+                } catch (error) {
+                    console.error(
+                        "Failed to save Edge to Memory:",
+                        error
+                    );
+
+                    rememberButton.disabled = false;
+                    rememberButton.textContent = "Remember this";
+
+                    alert(
+                        "Could not save this edge to Trading Memory."
+                    );
+                }
+            });
+
+            card.appendChild(rememberButton);
+        }
+
         const compareButton = document.createElement("button");
         compareButton.type = "button";
         compareButton.className = "edge-map-compare-button";
@@ -1663,12 +1711,15 @@ async function openMemoryDetails(finding) {
 
         return runAction(
             () => recheckLocalMemory(resolvedFinding.id, {
+                id: crypto.randomUUID(),
+                verifiedAt: new Date().toISOString(),
                 status: resolvedFinding.status || "OBSERVED",
                 sampleSize,
                 evidenceStrength: resolvedFinding.evidenceStrength || "INSUFFICIENT",
                 supportingTradeIds: Array.isArray(resolvedFinding.supportingTradeIds)
                     ? resolvedFinding.supportingTradeIds
                     : [],
+                contractVersion: 1,
             }),
             "Finding rechecked."
         );
@@ -3088,6 +3139,83 @@ function renderInsightsHybrid() {
     }
 }
 
+
+
+function edgeToMemoryCandidate(cell) {
+    if (!cell) {
+        return null;
+    }
+
+    const evidenceStrength = cell.evidenceStrength?.level;
+
+    if (!["MODERATE", "STRONG"].includes(evidenceStrength)) {
+        return null;
+    }
+
+    const sourceTradeIds = Array.isArray(cell.sourceTradeIds)
+        ? cell.sourceTradeIds.filter(Boolean)
+        : [];
+
+    if (!sourceTradeIds.length) {
+        return null;
+    }
+
+    const supportingTrades = trades.filter(trade =>
+        sourceTradeIds.includes(trade.id) &&
+        typeof trade.timestamp === "string" &&
+        trade.timestamp.trim()
+    );
+
+    if (!supportingTrades.length) {
+        return null;
+    }
+
+    const firstObserved = supportingTrades
+        .map(trade => trade.timestamp)
+        .sort()[0];
+
+    const labels = {
+        setup: "Setup",
+        session: "Session",
+        direction: "Direction",
+        market_regime: "Regime",
+        structure_state: "Market structure",
+    };
+
+    const dimensionA =
+        labels[cell.dimensionA] || cell.dimensionA || "Condition";
+
+    const dimensionB =
+        labels[cell.dimensionB] || cell.dimensionB || "Condition";
+
+    const performance =
+        cell.expectancy != null
+            ? Number(cell.expectancy)
+            : cell.averageR != null
+                ? Number(cell.averageR)
+                : null;
+
+    const performanceText =
+        performance == null
+            ? ""
+            : ` ${performance.toFixed(2)}R expectancy.`;
+
+    return {
+        id: crypto.randomUUID(),
+        type: "EDGE",
+        statement:
+            `${dimensionA} · ${cell.valueA} × ` +
+            `${dimensionB} · ${cell.valueB} shows positive historical performance.` +
+            performanceText,
+        sampleSize: Number(cell.sampleSize) || sourceTradeIds.length,
+        evidenceStrength,
+        firstObserved,
+        lastVerified: null,
+        status: "OBSERVED",
+        contractVersion: 1,
+        supportingTradeIds: sourceTradeIds,
+    };
+}
 
 function patternToMemoryCandidate(pattern) {
     if (!pattern || !pattern.dimension) {

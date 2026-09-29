@@ -3890,3 +3890,32 @@ body[data-yct-view="insights"] #compare {
     color: var(--vf-orange, #FF5A1F);
     text-decoration: none;
 }
+
+.edge-map-remember-button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--vf-border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--vf-text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.edge-map-remember-button:hover {
+    background: var(--vf-bg-0);
+}
+
+.edge-map-remember-button.is-remembered {
+    border-color: var(--vf-accent);
+    color: var(--vf-accent);
+}
+
+.edge-map-remember-button:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
