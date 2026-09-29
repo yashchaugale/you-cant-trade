@@ -1829,6 +1829,78 @@ body { min-height: 100vh; background: var(--vf-bg-0); color: var(--vf-text-prima
     }
 }
 
+.memory-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.7fr);
+    gap: 48px;
+    align-items: end;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+}
+
+.memory-hero-copy {
+    max-width: 760px;
+}
+
+.memory-hero-copy h2 {
+    margin: 0;
+    font-size: clamp(36px, 4vw, 56px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+}
+
+.memory-intro {
+    max-width: 620px;
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.65;
+}
+
+.memory-hero-note {
+    display: grid;
+    gap: 7px;
+    padding-left: 24px;
+    border-left: 2px solid var(--orange);
+}
+
+.memory-hero-note-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+}
+
+.memory-hero-note strong {
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.memory-hero-note span:last-child {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.memory-status-row {
+    padding: 14px 0 4px;
+}
+
+.memory-status-row .review-period {
+    margin: 0;
+}
+
+@media (max-width: 820px) {
+    .memory-hero {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .memory-hero-note {
+        max-width: 420px;
+    }
+}
+
 .memory-section {
     margin: 0 0 56px;
     scroll-margin-top: 24px;
