@@ -1784,13 +1784,17 @@ function renderMemory(payload) {
         return;
     }
 
-    memoryContent.replaceChildren();
+    const findings = Array.isArray(payload?.findings)
+        ? payload.findings
+        : [];
 
-    const findings = Array.isArray(payload?.findings) ? payload.findings : [];
-    const searchValue = memorySearch?.value.trim().toLowerCase() || "";
-    const typeValue = memoryTypeFilter?.value || "";
-    const statusValue = memoryStatusFilter?.value || "";
-    const evidenceValue = memoryEvidenceFilter?.value || "";
+    const searchValue = String(memorySearch?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const typeValue = String(memoryTypeFilter?.value || "").trim();
+    const statusValue = String(memoryStatusFilter?.value || "").trim();
+    const evidenceValue = String(memoryEvidenceFilter?.value || "").trim();
 
     const filteredFindings = findings.filter(finding => {
         const statement = String(finding.statement || "").toLowerCase();
@@ -1813,6 +1817,8 @@ function renderMemory(payload) {
     memoryStatus.textContent = hasFilters
         ? `${filteredFindings.length} of ${findings.length} finding${findings.length === 1 ? "" : "s"}`
         : `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
+
+    memoryContent.replaceChildren();
 
     if (!findings.length) {
         const empty = document.createElement("div");
@@ -1842,79 +1848,167 @@ function renderMemory(payload) {
         return;
     }
 
-    const grid = document.createElement("div");
-    grid.className = "memory-grid";
-
     const formatDateValue = value => value ? formatDate(value) : "—";
 
-    filteredFindings.forEach(finding => {
-        const card = document.createElement("article");
-        card.className = `memory-card ${String(finding.status || "OBSERVED").toLowerCase()}`;
+    const activeFindings = filteredFindings.filter(
+        finding => String(finding.status || "OBSERVED") !== "RETIRED"
+    );
 
-        const heading = document.createElement("div");
-        heading.className = "memory-card-heading";
+    const retiredFindings = filteredFindings.filter(
+        finding => String(finding.status || "OBSERVED") === "RETIRED"
+    );
+
+    const createFindingRow = finding => {
+        const row = document.createElement("article");
+        row.className = `memory-row ${String(
+            finding.status || "OBSERVED"
+        ).toLowerCase()}`;
+
+        const identity = document.createElement("div");
+        identity.className = "memory-row-identity";
 
         const type = document.createElement("span");
-        type.className = "memory-card-type";
+        type.className = "memory-row-type";
         type.textContent = String(finding.type || "FINDING");
 
         const status = document.createElement("span");
-        status.className = "memory-card-status";
+        status.className = "memory-row-status";
         status.textContent = String(finding.status || "OBSERVED");
 
-        heading.append(type, status);
+        identity.append(type, status);
 
         const statement = document.createElement("h3");
-        statement.className = "memory-card-statement";
+        statement.className = "memory-row-statement";
         statement.textContent = finding.statement || "Untitled finding";
 
-        const metrics = document.createElement("div");
-        metrics.className = "memory-card-metrics";
+        const evidence = document.createElement("div");
+        evidence.className = "memory-row-evidence";
 
-        [
-            ["Sample", finding.sampleSize ?? "—"],
-            ["Evidence", finding.evidenceStrength || "—"],
-            ["First observed", formatDateValue(finding.firstObserved)],
-            ["Last verified", formatDateValue(finding.lastVerified)],
-        ].forEach(([label, value]) => {
-            const metric = document.createElement("div");
-            metric.className = "memory-card-metric";
+        const evidenceLabel = document.createElement("span");
+        evidenceLabel.textContent = "Evidence";
 
-            const labelElement = document.createElement("span");
-            labelElement.textContent = label;
+        const evidenceValue = document.createElement("strong");
+        evidenceValue.textContent = String(
+            finding.evidenceStrength || "—"
+        );
 
-            const valueElement = document.createElement("strong");
-            valueElement.textContent = String(value);
+        evidence.append(evidenceLabel, evidenceValue);
 
-            metric.append(labelElement, valueElement);
-            metrics.appendChild(metric);
-        });
+        const sample = document.createElement("div");
+        sample.className = "memory-row-metric";
 
-        const supporting = document.createElement("p");
-        supporting.className = "memory-card-supporting";
+        const sampleLabel = document.createElement("span");
+        sampleLabel.textContent = "Sample";
+
+        const sampleValue = document.createElement("strong");
+        sampleValue.textContent = String(finding.sampleSize ?? "—");
+
+        sample.append(sampleLabel, sampleValue);
+
+        const firstObserved = document.createElement("div");
+        firstObserved.className = "memory-row-metric";
+
+        const firstObservedLabel = document.createElement("span");
+        firstObservedLabel.textContent = "First observed";
+
+        const firstObservedValue = document.createElement("strong");
+        firstObservedValue.textContent =
+            formatDateValue(finding.firstObserved);
+
+        firstObserved.append(firstObservedLabel, firstObservedValue);
+
+        const lastVerified = document.createElement("div");
+        lastVerified.className = "memory-row-metric";
+
+        const lastVerifiedLabel = document.createElement("span");
+        lastVerifiedLabel.textContent = "Last verified";
+
+        const lastVerifiedValue = document.createElement("strong");
+        lastVerifiedValue.textContent =
+            formatDateValue(finding.lastVerified);
+
+        lastVerified.append(lastVerifiedLabel, lastVerifiedValue);
+
         const tradeCount = Array.isArray(finding.supportingTradeIds)
             ? finding.supportingTradeIds.length
             : 0;
+
+        const supporting = document.createElement("div");
+        supporting.className = "memory-row-supporting";
         supporting.textContent =
             `${tradeCount} supporting trade${tradeCount === 1 ? "" : "s"}`;
 
-        card.append(heading, statement, metrics, supporting);
-        card.tabIndex = 0;
-        card.setAttribute("role", "button");
+        const metadata = document.createElement("div");
+        metadata.className = "memory-row-metadata";
+        metadata.append(
+            evidence,
+            sample,
+            firstObserved,
+            lastVerified,
+            supporting
+        );
+
+        row.append(identity, statement, metadata);
+
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
 
         const openDetails = () => openMemoryDetails(finding);
-        card.addEventListener("click", openDetails);
-        card.addEventListener("keydown", event => {
+
+        row.addEventListener("click", openDetails);
+
+        row.addEventListener("keydown", event => {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 openDetails();
             }
         });
 
-        grid.appendChild(card);
-    });
+        return row;
+    };
 
-    memoryContent.appendChild(grid);
+    const appendSection = (titleText, sectionFindings, sectionClass) => {
+        if (!sectionFindings.length) {
+            return;
+        }
+
+        const section = document.createElement("section");
+        section.className = `memory-section ${sectionClass}`;
+
+        const header = document.createElement("div");
+        header.className = "memory-section-header";
+
+        const title = document.createElement("h3");
+        title.textContent = titleText;
+
+        const count = document.createElement("span");
+        count.textContent =
+            `${sectionFindings.length} finding${sectionFindings.length === 1 ? "" : "s"}`;
+
+        header.append(title, count);
+
+        const ledger = document.createElement("div");
+        ledger.className = "memory-ledger";
+
+        sectionFindings.forEach(finding => {
+            ledger.appendChild(createFindingRow(finding));
+        });
+
+        section.append(header, ledger);
+        memoryContent.appendChild(section);
+    };
+
+    appendSection(
+        "Active memory",
+        activeFindings,
+        "memory-section-active"
+    );
+
+    appendSection(
+        "Retired memory",
+        retiredFindings,
+        "memory-section-retired"
+    );
 }
 
 
