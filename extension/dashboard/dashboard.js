@@ -746,6 +746,54 @@ function renderLeakMap(payload) {
 
         card.appendChild(note);
 
+        const memoryCandidate = leakToMemoryCandidate(leak);
+
+        if (memoryCandidate) {
+            const rememberButton = document.createElement("button");
+            rememberButton.type = "button";
+            rememberButton.className = "leak-map-remember-button";
+            rememberButton.textContent = "Remember this";
+
+            rememberButton.addEventListener("click", async event => {
+                event.stopPropagation();
+
+                if (rememberButton.disabled) {
+                    return;
+                }
+
+                const confirmed = window.confirm(
+                    "Remember this leak in Trading Memory?"
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                rememberButton.disabled = true;
+                rememberButton.textContent = "Saving…";
+
+                try {
+                    await createLocalMemory(memoryCandidate);
+                    rememberButton.textContent = "Remembered";
+                    rememberButton.classList.add("is-remembered");
+                } catch (error) {
+                    console.error(
+                        "Failed to save Leak to Memory:",
+                        error
+                    );
+
+                    rememberButton.disabled = false;
+                    rememberButton.textContent = "Remember this";
+
+                    alert(
+                        "Could not save this leak to Trading Memory."
+                    );
+                }
+            });
+
+            card.appendChild(rememberButton);
+        }
+
         const openDetails = () => openLeakDetails(leak);
         card.addEventListener("click", openDetails);
         card.addEventListener("keydown", event => {
@@ -3140,6 +3188,68 @@ function renderInsightsHybrid() {
 }
 
 
+
+function leakToMemoryCandidate(leak) {
+    if (!leak) {
+        return null;
+    }
+
+    const evidenceStrength =
+        leak.evidenceStrength?.level ||
+        leak.evidenceStrength;
+
+    if (!["MODERATE", "STRONG"].includes(evidenceStrength)) {
+        return null;
+    }
+
+    const sourceTradeIds = Array.isArray(leak.supportingTradeIds)
+        ? leak.supportingTradeIds.filter(Boolean)
+        : [];
+
+    if (!sourceTradeIds.length) {
+        return null;
+    }
+
+    const supportingTrades = trades.filter(trade =>
+        sourceTradeIds.includes(trade.id) &&
+        typeof trade.timestamp === "string" &&
+        trade.timestamp.trim()
+    );
+
+    if (!supportingTrades.length) {
+        return null;
+    }
+
+    const firstObserved = supportingTrades
+        .map(trade => trade.timestamp)
+        .sort()[0];
+
+    const rImpact =
+        leak.rImpact == null
+            ? null
+            : Number(leak.rImpact);
+
+    const rImpactText =
+        rImpact == null
+            ? ""
+            : ` ${rImpact.toFixed(2)}R historical impact.`;
+
+    return {
+        id: crypto.randomUUID(),
+        type: "LEAK",
+        statement:
+            `${leak.label || leak.type} shows a repeated historical leak.` +
+            rImpactText,
+        sampleSize:
+            Number(leak.occurrenceCount) || sourceTradeIds.length,
+        evidenceStrength,
+        firstObserved,
+        lastVerified: null,
+        status: "OBSERVED",
+        contractVersion: 1,
+        supportingTradeIds: sourceTradeIds,
+    };
+}
 
 function edgeToMemoryCandidate(cell) {
     if (!cell) {
