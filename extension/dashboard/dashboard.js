@@ -16,6 +16,7 @@ import {
     getLocalLeakMap,
     getLocalCompare,
     getLocalMemory,
+    createLocalMemory,
     getLocalMemoryFinding,
     challengeLocalMemory,
     updateLocalMemory,
@@ -1508,7 +1509,8 @@ async function openMemoryDetails(finding) {
     if (!verificationHistory.length) {
         const emptyHistory = document.createElement("p");
         emptyHistory.className = "pattern-empty";
-        emptyHistory.textContent = "No verification has been recorded yet.";
+        emptyHistory.textContent =
+            "This finding has been observed, but it has not been rechecked yet.";
         historySection.appendChild(emptyHistory);
     } else {
         const historyList = document.createElement("div");
@@ -1557,6 +1559,12 @@ async function openMemoryDetails(finding) {
     }
 
     memoryDetailsContent.appendChild(historySection);
+
+    const actionsIntro = document.createElement("p");
+    actionsIntro.className = "memory-details-actions-intro";
+    actionsIntro.textContent =
+        "Rechecking compares this finding with newer evidence and records the result.";
+    memoryDetailsContent.appendChild(actionsIntro);
 
     const actions = document.createElement("div");
     actions.className = "memory-details-actions";
@@ -1708,9 +1716,21 @@ function renderMemory(payload) {
         : `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
 
     if (!findings.length) {
-        const empty = document.createElement("p");
-        empty.className = "pattern-empty";
-        empty.textContent = "No trading memory has been recorded yet.";
+        const empty = document.createElement("div");
+        empty.className = "memory-empty-state";
+
+        const title = document.createElement("h3");
+        title.textContent = "Nothing worth remembering yet.";
+
+        const description = document.createElement("p");
+        description.textContent =
+            "YCT will keep findings here when patterns become worth carrying forward — with the evidence attached.";
+
+        const loop = document.createElement("span");
+        loop.className = "memory-empty-loop";
+        loop.textContent = "Trade → Observe → Measure → Remember";
+
+        empty.append(title, description, loop);
         memoryContent.appendChild(empty);
         return;
     }
@@ -3069,7 +3089,74 @@ function renderInsightsHybrid() {
 }
 
 
+function patternToMemoryCandidate(pattern) {
+    if (!pattern || !pattern.dimension) {
+        return null;
+    }
+
+    const evidenceStrength = pattern.evidenceStrength?.level;
+
+    if (!["MODERATE", "STRONG"].includes(evidenceStrength)) {
+        return null;
+    }
+
+    const typeByDimension = {
+        setup: "SETUP",
+        setup_session: "SETUP",
+        setup_direction: "SETUP",
+        setup_regime: "SETUP",
+        setup_session_regime: "SETUP",
+
+        session: "CONTEXT",
+        day: "CONTEXT",
+        time: "CONTEXT",
+        market_regime: "CONTEXT",
+        structure_state: "CONTEXT",
+        structure_session: "CONTEXT",
+        fingerprint_feature: "CONTEXT",
+        fingerprint_tag: "CONTEXT",
+
+        direction: "BEHAVIOR",
+        direction_session: "BEHAVIOR",
+    };
+
+    const type = typeByDimension[pattern.dimension];
+
+    if (!type || !pattern.firstObserved) {
+        return null;
+    }
+
+    const sourceTradeIds = Array.isArray(pattern.sourceTradeIds)
+        ? pattern.sourceTradeIds.filter(Boolean)
+        : [];
+
+    if (!sourceTradeIds.length) {
+        return null;
+    }
+
+    const statement = [
+        `${pattern.dimension}: ${pattern.value}`,
+        pattern.conclusion || pattern.observation || "",
+    ]
+        .filter(Boolean)
+        .join(" — ");
+
+    return {
+        id: crypto.randomUUID(),
+        type,
+        statement,
+        sampleSize: Number(pattern.sampleSize) || sourceTradeIds.length,
+        evidenceStrength,
+        firstObserved: pattern.firstObserved,
+        lastVerified: null,
+        status: "OBSERVED",
+        contractVersion: 1,
+        supportingTradeIds: sourceTradeIds,
+    };
+}
+
 function renderPatternReview(analytics, patternPayload) {
+
     patternReviewContent.replaceChildren();
 
     if (!analytics) {
@@ -3397,6 +3484,45 @@ function renderPatternDiscovery(payload) {
         evidenceText.className = "pattern-evidence";
         evidenceText.textContent = `${finding.observation || "Observation unavailable"} ${finding.conclusion || ""}`;
         card.appendChild(evidenceText);
+
+        const memoryCandidate = patternToMemoryCandidate(finding);
+
+        if (memoryCandidate) {
+            const rememberButton = document.createElement("button");
+            rememberButton.type = "button";
+            rememberButton.className = "pattern-remember";
+            rememberButton.textContent = "Remember this";
+
+            rememberButton.addEventListener("click", async () => {
+                if (rememberButton.disabled) {
+                    return;
+                }
+
+                const confirmed = window.confirm(
+                    "Remember this finding in Trading Memory?"
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                rememberButton.disabled = true;
+                rememberButton.textContent = "Saving…";
+
+                try {
+                    await createLocalMemory(memoryCandidate);
+                    rememberButton.textContent = "Remembered";
+                    rememberButton.classList.add("is-remembered");
+                } catch (error) {
+                    console.error("Failed to save Memory finding:", error);
+                    rememberButton.disabled = false;
+                    rememberButton.textContent = "Remember this";
+                    alert("Could not save this finding to Trading Memory.");
+                }
+            });
+
+            card.appendChild(rememberButton);
+        }
 
         const supportingTrades = document.createElement("button");
         supportingTrades.type = "button";

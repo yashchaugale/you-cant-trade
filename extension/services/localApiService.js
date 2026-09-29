@@ -307,6 +307,13 @@ export async function getLocalMemory() {
     return request("/memory");
 }
 
+export async function createLocalMemory(finding) {
+    return request("/memory", {
+        method: "POST",
+        body: JSON.stringify(finding),
+    });
+}
+
 export async function getLocalMemoryFinding(findingId) {
     return request(`/memory/${encodeURIComponent(findingId)}`);
 }
