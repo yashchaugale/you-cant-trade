@@ -28,6 +28,9 @@ import {
     getLocalExperiments,
     createLocalExperiment,
     updateLocalExperimentStatus,
+    createLocalExperimentObservation,
+    getLocalExperimentObservations,
+    updateLocalExperimentObservation,
     getStorageStatus,
     selectStorageProvider,
     connectNotion,
@@ -55,8 +58,12 @@ let edgeMapComparisonCells = [];
 let leakMapPayload = null;
 let comparePayload = null;
 let memoryPayload = null;
+let activeExperiments = [];
+let selectedTradeExperimentObservations = [];
 
 const modal = document.getElementById("tradeModal");
+const experimentObservationSection = document.getElementById("experimentObservationSection");
+const experimentObservationContent = document.getElementById("experimentObservationContent");
 const tradeGrid = document.getElementById("tradeGrid");
 const emptyState = document.getElementById("emptyState");
 const weeklyReviewContent = document.getElementById("weeklyReviewContent");
@@ -4032,10 +4039,81 @@ async function loadPatternReview() {
 }
 
 
-function renderExperiments(items) {
+function renderExperimentObservationLog(container, observations) {
+    const log = document.createElement("div");
+    log.className = "experiment-observation-log";
+
+    const heading = document.createElement("div");
+    heading.className = "experiment-observation-log-heading";
+
+    const label = document.createElement("span");
+    label.className = "experiment-log-label";
+    label.textContent = "Observation log";
+
+    const count = document.createElement("span");
+    count.className = "experiment-log-count";
+    count.textContent = `${observations.length} observation${observations.length === 1 ? "" : "s"}`;
+
+    heading.append(label, count);
+    log.appendChild(heading);
+
+    if (!observations.length) {
+        const empty = document.createElement("p");
+        empty.className = "experiment-observation-log-empty";
+        empty.textContent = "No observations recorded yet. Review a trade and mark whether you followed the behaviour.";
+        log.appendChild(empty);
+        container.appendChild(log);
+        return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "experiment-observation-list";
+
+    observations.forEach(observation => {
+        const row = document.createElement("article");
+        row.className = "experiment-observation-row";
+
+        const identity = document.createElement("div");
+        identity.className = "experiment-observation-identity";
+
+        const symbol = document.createElement("strong");
+        symbol.textContent = observation.symbol || "Unknown symbol";
+
+        const direction = document.createElement("span");
+        direction.textContent = observation.direction || "—";
+
+        identity.append(symbol, direction);
+
+        const state = document.createElement("span");
+        state.className = `experiment-observation-state ${String(
+            observation.behavior_followed || ""
+        ).toLowerCase()}`;
+        state.textContent = observation.behavior_followed || "UNKNOWN";
+
+        const outcome = document.createElement("span");
+        outcome.className = "experiment-observation-outcome";
+        outcome.textContent = observation.result || "Open";
+
+        const note = document.createElement("p");
+        note.className = "experiment-observation-log-note";
+        note.textContent = observation.observation_notes || "No observation note.";
+
+        const details = document.createElement("div");
+        details.className = "experiment-observation-details";
+        details.append(state, outcome);
+
+        row.append(identity, details, note);
+        list.appendChild(row);
+    });
+
+    log.appendChild(list);
+    container.appendChild(log);
+}
+
+function renderExperiments(items, observationsByExperiment = new Map()) {
     const container = document.getElementById("experimentsContent");
     container.replaceChildren();
-    const active = items.filter(item => item.status === "ACTIVE");
+
     if (!items.length) {
         const empty = document.createElement("p");
         empty.className = "pattern-empty";
@@ -4043,28 +4121,49 @@ function renderExperiments(items) {
         container.appendChild(empty);
         return;
     }
+
     items.slice(0, 6).forEach(item => {
         const card = document.createElement("article");
         card.className = `experiment-card ${item.status.toLowerCase()}`;
+
         const heading = document.createElement("div");
         heading.className = "experiment-card-heading";
+
         const title = document.createElement("h3");
         title.textContent = item.title;
+
         const status = document.createElement("span");
         status.className = "experiment-status";
         status.textContent = item.status;
+
         heading.append(title, status);
+
         const hypothesis = document.createElement("p");
         hypothesis.textContent = item.hypothesis || `Test: ${item.behavior}`;
+
         const progress = document.createElement("div");
         progress.className = "experiment-progress";
+
         const bar = document.createElement("span");
-        bar.style.width = `${Math.min(100, (item.progress / item.sample_target) * 100)}%`;
+        bar.style.width = `${Math.min(
+            100,
+            (item.progress / item.sample_target) * 100
+        )}%`;
+
         progress.appendChild(bar);
+
         const meta = document.createElement("div");
         meta.className = "experiment-meta";
-        meta.textContent = `${item.progress} / ${item.sample_target} reviewed trades · observation, not proof`;
+        meta.textContent =
+            `${item.progress} / ${item.sample_target} observations · observation, not proof`;
+
         card.append(heading, hypothesis, progress, meta);
+
+        renderExperimentObservationLog(
+            card,
+            observationsByExperiment.get(item.id) || []
+        );
+
         if (item.status === "ACTIVE") {
             if (item.sampleComplete) {
                 const completionNote = document.createElement("p");
@@ -4106,14 +4205,27 @@ function renderExperiments(items) {
             });
             card.appendChild(abandon);
         }
+
         container.appendChild(card);
     });
 }
 
-
 async function loadExperiments() {
     try {
-        renderExperiments(await getLocalExperiments());
+        const experiments = await getLocalExperiments();
+
+        const observationEntries = await Promise.all(
+            experiments.slice(0, 6).map(async experiment => {
+                const observations = await getLocalExperimentObservations(
+                    experiment.id
+                );
+                return [experiment.id, observations];
+            })
+        );
+
+        const observationsByExperiment = new Map(observationEntries);
+
+        renderExperiments(experiments, observationsByExperiment);
     } catch (error) {
         const container = document.getElementById("experimentsContent");
         container.textContent = "Start the local service to load your experiments.";
@@ -4918,6 +5030,127 @@ async function loadSimilarTrades(tradeId) {
 }
 
 
+function renderExperimentObservations() {
+    if (!experimentObservationSection || !experimentObservationContent) {
+        return;
+    }
+
+    experimentObservationContent.replaceChildren();
+
+    if (!activeExperiments.length) {
+        experimentObservationSection.hidden = true;
+        return;
+    }
+
+    experimentObservationSection.hidden = false;
+
+    activeExperiments.forEach(experiment => {
+        const existingObservation = selectedTradeExperimentObservations.find(
+            observation => observation.experiment_id === experiment.id
+        );
+
+        const card = document.createElement("div");
+        card.className = "experiment-observation-card";
+
+        const heading = document.createElement("div");
+        heading.className = "experiment-observation-heading";
+
+        const title = document.createElement("strong");
+        title.textContent = experiment.title || experiment.behavior;
+
+        const status = document.createElement("span");
+        status.className = "experiment-status";
+        status.textContent = experiment.status;
+
+        heading.append(title, status);
+        card.appendChild(heading);
+
+        const hypothesis = document.createElement("p");
+        hypothesis.className = "experiment-observation-hypothesis";
+        hypothesis.textContent =
+            experiment.hypothesis || `Test: ${experiment.behavior}`;
+        card.appendChild(hypothesis);
+
+        const label = document.createElement("label");
+        label.className = "field-label";
+        label.textContent = existingObservation
+            ? "Did you follow the behaviour?"
+            : "Is this trade an observation?";
+
+        const select = document.createElement("select");
+        select.className = "experiment-observation-select";
+        select.dataset.experimentId = experiment.id;
+
+        if (!existingObservation) {
+            const notIncluded = document.createElement("option");
+            notIncluded.value = "";
+            notIncluded.textContent = "Not part of this experiment";
+            select.appendChild(notIncluded);
+        }
+
+        [
+            ["YES", "Yes — followed it"],
+            ["NO", "No — did not follow it"],
+            ["NOT_SURE", "Not sure"]
+        ].forEach(([value, text]) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = text;
+            if (existingObservation?.behavior_followed === value) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        label.appendChild(select);
+        card.appendChild(label);
+
+        const notesLabel = document.createElement("label");
+        notesLabel.className = "field-label";
+        notesLabel.textContent = "Observation note";
+
+        const notes = document.createElement("textarea");
+        notes.className = "experiment-observation-notes";
+        notes.rows = 2;
+        notes.placeholder = "Optional: what did you observe about the behaviour?";
+        notes.dataset.experimentId = experiment.id;
+        notes.value = existingObservation?.observation_notes || "";
+
+        notesLabel.appendChild(notes);
+        card.appendChild(notesLabel);
+
+        experimentObservationContent.appendChild(card);
+    });
+}
+
+
+async function loadExperimentObservationsForTrade(tradeId) {
+    selectedTradeExperimentObservations = [];
+
+    if (!activeExperiments.length || !tradeId) {
+        renderExperimentObservations();
+        return;
+    }
+
+    const results = await Promise.all(
+        activeExperiments.map(async experiment => {
+            const observations = await getLocalExperimentObservations(experiment.id);
+            return observations.filter(observation => observation.trade_id === tradeId);
+        })
+    );
+
+    selectedTradeExperimentObservations = results.flat();
+    renderExperimentObservations();
+}
+
+
+async function loadActiveExperimentsForReview(tradeId) {
+    const experiments = await getLocalExperiments();
+    activeExperiments = experiments.filter(item => item.status === "ACTIVE");
+    await loadExperimentObservationsForTrade(tradeId);
+}
+
+
 function openTrade(tradeId) {
 
     const trade = trades.find(item => item.id === tradeId);
@@ -4982,6 +5215,7 @@ function openTrade(tradeId) {
     document.getElementById("closeModal").focus();
     loadAIInsight(trade.id);
     loadSimilarTrades(trade.id);
+    loadActiveExperimentsForReview(trade.id);
 }
 
 
@@ -5067,7 +5301,58 @@ async function saveCurrentTrade() {
                 : trade
         );
 
-            populateFilters();
+        const observationSelects = Array.from(
+            document.querySelectorAll(".experiment-observation-select")
+        );
+
+        const observationNotes = Array.from(
+            document.querySelectorAll(".experiment-observation-notes")
+        );
+
+        const notesByExperiment = new Map(
+            observationNotes.map(field => [
+                field.dataset.experimentId,
+                field.value.trim()
+            ])
+        );
+
+        for (const select of observationSelects) {
+            const experimentId = select.dataset.experimentId;
+            const behaviorFollowed = select.value;
+
+            if (!experimentId || !behaviorFollowed) {
+                continue;
+            }
+
+            const existingObservation =
+                selectedTradeExperimentObservations.find(
+                    observation =>
+                        observation.experiment_id === experimentId &&
+                        observation.trade_id === selectedTradeId
+                );
+
+            const payload = {
+                tradeId: selectedTradeId,
+                behaviorFollowed,
+                observationNotes:
+                    notesByExperiment.get(experimentId) || ""
+            };
+
+            if (existingObservation) {
+                await updateLocalExperimentObservation(
+                    experimentId,
+                    selectedTradeId,
+                    payload
+                );
+            } else {
+                await createLocalExperimentObservation(
+                    experimentId,
+                    payload
+                );
+            }
+        }
+
+        populateFilters();
         renderWeeklyReview();
         renderTradeGrid();
         closeModal();
@@ -5478,6 +5763,10 @@ function setYctView(
     }
 
     document.body.dataset.yctView = activeView;
+
+    if (activeView === "experiments") {
+        void loadExperiments();
+    }
 
     const hashSection =
         activeView === "insights-evidence"

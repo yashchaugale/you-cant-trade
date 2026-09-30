@@ -1071,6 +1071,91 @@ body { min-height: 100vh; background: var(--vf-bg-0); color: var(--vf-text-prima
 .composer-actions .save-button { width: auto; margin: 0; padding: 9px 14px; }
 .experiments-content { display: grid; gap: 12px; }
 .experiment-card { position: relative; padding: 18px; border: 1px solid var(--vf-border); border-radius: 4px; background: var(--vf-surface); }
+/* Experiment observation — Review evidence capture */
+.experiment-observation-section {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-observation-section > .case-section-label {
+    margin-bottom: 10px;
+}
+
+.experiment-observation-card {
+    padding: 16px 0 4px;
+}
+
+.experiment-observation-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 7px;
+}
+
+.experiment-observation-heading strong {
+    color: var(--vf-text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.experiment-observation-heading .experiment-status {
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    border: 1px solid var(--vf-accent-border);
+    color: var(--vf-accent);
+    font-size: 9px;
+    letter-spacing: .12em;
+    line-height: 1;
+}
+
+.experiment-observation-hypothesis {
+    margin: 0 0 16px;
+    color: var(--vf-text-secondary);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.experiment-observation-card .field-label {
+    display: grid;
+    gap: 7px;
+    margin-top: 12px;
+    color: var(--vf-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.experiment-observation-select,
+.experiment-observation-notes {
+    width: 100%;
+    border: 1px solid var(--vf-border);
+    border-radius: 4px;
+    background: var(--vf-bg-2);
+    color: var(--vf-text-primary);
+    font: inherit;
+}
+
+.experiment-observation-select {
+    min-height: 40px;
+    padding: 8px 10px;
+}
+
+.experiment-observation-notes {
+    min-height: 72px;
+    padding: 9px 10px;
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.experiment-observation-select:focus,
+.experiment-observation-notes:focus {
+    outline: none;
+    border-color: var(--vf-accent);
+}
+
 .experiment-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .experiment-card h3 { margin: 0; font-size: 16px; }
 .experiment-card p { margin: 12px 0 0; color: var(--vf-text-secondary); line-height: 1.5; }
@@ -4029,4 +4114,126 @@ body[data-yct-view="insights"] #compare {
 .leak-map-remember-button:disabled {
     cursor: default;
     opacity: 0.7;
+}
+
+/* Experiment observation log */
+.experiment-observation-log {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-observation-log-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.experiment-log-label {
+    color: var(--vf-text-primary);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.experiment-log-count {
+    color: var(--vf-text-muted);
+    font-size: 10px;
+}
+
+.experiment-observation-log-empty {
+    margin: 0;
+    color: var(--vf-text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.experiment-observation-list {
+    display: grid;
+    gap: 1px;
+    border: 1px solid var(--vf-border);
+    background: var(--vf-border);
+}
+
+.experiment-observation-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 14px;
+    padding: 12px;
+    background: var(--vf-bg-2);
+}
+
+.experiment-observation-identity {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.experiment-observation-identity strong {
+    overflow: hidden;
+    color: var(--vf-text-primary);
+    font-size: 12px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.experiment-observation-identity span {
+    color: var(--vf-text-muted);
+    font-size: 10px;
+    letter-spacing: .06em;
+}
+
+.experiment-observation-details {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.experiment-observation-state,
+.experiment-observation-outcome {
+    padding: 4px 6px;
+    border: 1px solid var(--vf-border);
+    color: var(--vf-text-secondary);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.experiment-observation-state.yes {
+    border-color: var(--vf-accent-border);
+    color: var(--vf-accent);
+}
+
+.experiment-observation-state.no {
+    color: var(--vf-text-primary);
+}
+
+.experiment-observation-state.not_sure {
+    color: var(--vf-text-muted);
+}
+
+.experiment-observation-log-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--vf-text-secondary);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+@media (max-width: 620px) {
+    .experiment-observation-row {
+        grid-template-columns: 1fr;
+    }
+
+    .experiment-observation-details {
+        justify-content: flex-start;
+    }
 }

@@ -32,13 +32,68 @@ def connect() -> sqlite3.Connection:
 
 def initialise() -> None:
     with connect() as connection:
-        for migration in sorted(MIGRATIONS_DIR.glob("*.sql")):
-            connection.executescript(migration.read_text(encoding="utf-8"))
+        current_version = int(
+            connection.execute("pragma user_version").fetchone()[0]
+        )
 
-        columns = {row[1] for row in connection.execute("pragma table_info(trades)").fetchall()}
+        migrations = sorted(MIGRATIONS_DIR.glob("*.sql"))
+
+        if current_version == 0:
+            existing_tables = {
+                row[0]
+                for row in connection.execute(
+                    "select name from sqlite_master where type = 'table'"
+                ).fetchall()
+            }
+
+            if "trades" in existing_tables:
+                current_version = max(
+                    (
+                        int(migration.stem.split("_", 1)[0])
+                        for migration in migrations
+                        if migration.stem.split("_", 1)[0].isdigit()
+                    ),
+                    default=0,
+                )
+
+                connection.execute(
+                    f"pragma user_version = {current_version}"
+                )
+
+        for migration in migrations:
+            prefix = migration.stem.split("_", 1)[0]
+
+            if not prefix.isdigit():
+                continue
+
+            version = int(prefix)
+
+            if version <= current_version:
+                continue
+
+            connection.executescript(
+                migration.read_text(encoding="utf-8")
+            )
+            connection.execute(f"pragma user_version = {version}")
+            current_version = version
+
+        columns = {
+            row[1]
+            for row in connection.execute(
+                "pragma table_info(trades)"
+            ).fetchall()
+        }
+
         if "intelligence_json" not in columns:
-            connection.execute("alter table trades add column intelligence_json text not null default '{}' ")
-        connection.execute("update trades set schema_version = 4 where schema_version < 4")
+            connection.execute(
+                "alter table trades add column "
+                "intelligence_json text not null default '{}' "
+            )
+
+        connection.execute(
+            "update trades set schema_version = 4 "
+            "where schema_version < 4"
+        )
 
 
 def trade_count() -> int:
@@ -577,22 +632,268 @@ def list_trades(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
 def journal_analytics() -> dict[str, Any]:
     return calculate_journal_analytics(list_trades(limit=1000))
 
+def create_experiment_observation(payload: dict[str, Any]) -> dict[str, Any]:
+    now = __import__("datetime").datetime.now(
+        __import__("datetime").timezone.utc
+    ).isoformat().replace("+00:00", "Z")
+
+    observation = {
+        "id": str(uuid.uuid4()),
+        "experiment_id": str(payload.get("experimentId") or "").strip(),
+        "trade_id": str(payload.get("tradeId") or "").strip(),
+        "behavior_followed": str(payload.get("behaviorFollowed") or "").strip().upper(),
+        "observation_notes": str(payload.get("observationNotes") or "").strip(),
+        "created_at": now,
+    }
+
+    if not observation["experiment_id"]:
+        raise ValueError("experimentId is required")
+    if not observation["trade_id"]:
+        raise ValueError("tradeId is required")
+    if observation["behavior_followed"] not in {"YES", "NO", "NOT_SURE"}:
+        raise ValueError("Invalid behaviorFollowed value")
+
+    with connect() as connection:
+        experiment = connection.execute(
+            "select id from experiments where id = ?",
+            (observation["experiment_id"],),
+        ).fetchone()
+
+        if experiment is None:
+            raise ValueError("Experiment not found")
+
+        trade = connection.execute(
+            "select id from trades where id = ?",
+            (observation["trade_id"],),
+        ).fetchone()
+
+        if trade is None:
+            raise ValueError("Trade not found")
+
+        try:
+            connection.execute(
+                """insert into experiment_observations (
+                    id,
+                    experiment_id,
+                    trade_id,
+                    behavior_followed,
+                    observation_notes,
+                    created_at
+                ) values (?, ?, ?, ?, ?, ?)""",
+                (
+                    observation["id"],
+                    observation["experiment_id"],
+                    observation["trade_id"],
+                    observation["behavior_followed"],
+                    observation["observation_notes"],
+                    observation["created_at"],
+                ),
+            )
+        except sqlite3.IntegrityError as error:
+            raise ValueError(
+                "Trade is already an observation for this experiment"
+            ) from error
+
+    return observation
+
+
+def list_experiment_observations(experiment_id: str) -> list[dict[str, Any]]:
+    with connect() as connection:
+        rows = connection.execute(
+            """select
+                   o.*,
+                   t.symbol,
+                   t.direction,
+                   t.result
+               from experiment_observations o
+               join trades t on t.id = o.trade_id
+               where o.experiment_id = ?
+               order by o.created_at asc""",
+            (experiment_id,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def get_experiment_analysis(experiment_id: str) -> dict[str, Any]:
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            select
+                o.behavior_followed,
+                t.result,
+                t.entry,
+                t.stop_loss,
+                t.exit_price,
+                t.direction
+            from experiment_observations o
+            join trades t on t.id = o.trade_id
+            where o.experiment_id = ?
+            order by o.created_at asc
+            """,
+            (experiment_id,),
+        ).fetchall()
+
+    groups = {
+        "YES": [],
+        "NO": [],
+        "NOT_SURE": [],
+    }
+
+    for row in rows:
+        behavior = str(row["behavior_followed"] or "").upper()
+        if behavior in groups:
+            groups[behavior].append(row)
+
+    analysis = {}
+
+    for behavior, observations in groups.items():
+        wins = sum(1 for row in observations if row["result"] == "WIN")
+        losses = sum(1 for row in observations if row["result"] == "LOSS")
+        breakeven = sum(1 for row in observations if row["result"] == "BE")
+        resolved = wins + losses + breakeven
+
+        actual_r = []
+
+        for row in observations:
+            entry = row["entry"]
+            stop = row["stop_loss"]
+            exit_price = row["exit_price"]
+            direction = row["direction"]
+
+            if not all(
+                isinstance(value, (int, float))
+                for value in (entry, stop, exit_price)
+            ):
+                continue
+
+            if direction not in {"LONG", "SHORT"}:
+                continue
+
+            risk = abs(entry - stop)
+            if risk == 0:
+                continue
+
+            profit = (
+                exit_price - entry
+                if direction == "LONG"
+                else entry - exit_price
+            )
+            actual_r.append(profit / risk)
+
+        analysis[behavior] = {
+            "observationCount": len(observations),
+            "resolvedCount": resolved,
+            "wins": wins,
+            "losses": losses,
+            "breakeven": breakeven,
+            "winRate": (
+                round(wins / (wins + losses), 6)
+                if wins + losses
+                else None
+            ),
+            "averageR": (
+                round(sum(actual_r) / len(actual_r), 6)
+                if actual_r
+                else None
+            ),
+        }
+
+    return analysis
+
+def update_experiment_observation(
+    experiment_id: str,
+    trade_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    behavior_followed = str(
+        payload.get("behaviorFollowed") or ""
+    ).strip().upper()
+    observation_notes = str(
+        payload.get("observationNotes") or ""
+    ).strip()
+
+    if behavior_followed not in {"YES", "NO", "NOT_SURE"}:
+        raise ValueError(
+            "behaviorFollowed must be YES, NO, or NOT_SURE"
+        )
+
+    with connect() as connection:
+        existing = connection.execute(
+            """
+            select *
+            from experiment_observations
+            where experiment_id = ?
+              and trade_id = ?
+            """,
+            (experiment_id, trade_id),
+        ).fetchone()
+
+        if existing is None:
+            raise ValueError("Experiment observation not found")
+
+        connection.execute(
+            """
+            update experiment_observations
+            set behavior_followed = ?,
+                observation_notes = ?
+            where experiment_id = ?
+              and trade_id = ?
+            """,
+            (
+                behavior_followed,
+                observation_notes,
+                experiment_id,
+                trade_id,
+            ),
+        )
+
+        updated = connection.execute(
+            """
+            select *
+            from experiment_observations
+            where experiment_id = ?
+              and trade_id = ?
+            """,
+            (experiment_id, trade_id),
+        ).fetchone()
+
+    return dict(updated)
+
+
 def list_experiments() -> list[dict[str, Any]]:
     with connect() as connection:
         rows = connection.execute("select * from experiments order by created_at desc").fetchall()
         experiments = []
         for row in rows:
             item = dict(row)
-            reviewed_since = connection.execute(
-                """select count(*)
-                   from trades t
-                   join trade_reviews r on r.trade_id = t.id
-                   where r.reviewed_at >= ?""",
-                (item["start_date"],),
-            ).fetchone()[0]
-            item["reviewedCount"] = int(reviewed_since)
-            item["progress"] = min(item["sample_target"], int(reviewed_since))
-            item["sampleComplete"] = int(reviewed_since) >= int(item["sample_target"])
+
+            observation_counts = connection.execute(
+                """select
+                       count(*) as observation_count,
+                       sum(case when behavior_followed = 'YES' then 1 else 0 end) as followed_count,
+                       sum(case when behavior_followed = 'NO' then 1 else 0 end) as not_followed_count,
+                       sum(case when behavior_followed = 'NOT_SURE' then 1 else 0 end) as not_sure_count
+                   from experiment_observations
+                   where experiment_id = ?""",
+                (item["id"],),
+            ).fetchone()
+
+            observation_count = int(observation_counts["observation_count"] or 0)
+            item["observationCount"] = observation_count
+            item["behaviorFollowedCount"] = int(
+                observation_counts["followed_count"] or 0
+            )
+            item["behaviorNotFollowedCount"] = int(
+                observation_counts["not_followed_count"] or 0
+            )
+            item["behaviorNotSureCount"] = int(
+                observation_counts["not_sure_count"] or 0
+            )
+            item["reviewedCount"] = observation_count
+            item["progress"] = min(item["sample_target"], observation_count)
+            item["sampleComplete"] = observation_count >= int(item["sample_target"])
+
             experiments.append(item)
         return experiments
 

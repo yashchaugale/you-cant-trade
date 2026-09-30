@@ -105,6 +105,39 @@ export async function updateLocalExperimentStatus(experimentId, status) {
     return result.experiment;
 }
 
+export async function createLocalExperimentObservation(experimentId, payload) {
+    const result = await request(
+        `/experiments/${encodeURIComponent(experimentId)}/observations`,
+        { method: "POST", body: JSON.stringify(payload) }
+    );
+    return result.observation;
+}
+
+
+export async function getLocalExperimentObservations(experimentId) {
+    const result = await request(
+        `/experiments/${encodeURIComponent(experimentId)}/observations`
+    );
+    return result.observations;
+}
+
+
+export async function updateLocalExperimentObservation(
+    experimentId,
+    tradeId,
+    payload
+) {
+    const result = await request(
+        `/experiments/${encodeURIComponent(experimentId)}/observations/${encodeURIComponent(tradeId)}`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        }
+    );
+    return result.observation;
+}
+
+
 export async function getStorageStatus() {
     return request("/storage/status");
 }

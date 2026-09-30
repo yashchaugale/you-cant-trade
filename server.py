@@ -26,6 +26,9 @@ from database.local_database import (
     list_experiments,
     create_experiment,
     update_experiment_status,
+    create_experiment_observation,
+    list_experiment_observations,
+    update_experiment_observation,
     search_trades,
     similar_trades,
     latest_ai_insight,
@@ -44,7 +47,8 @@ from database.local_database import (
     update_memory_finding,
     retire_memory_finding,
     save_memory_verification,
-)
+
+    get_experiment_analysis,)
 from services.storage import get_storage_provider, provider_status
 from services.canonical_intelligence import assemble_canonical_intelligence
 from services.pattern_discovery import discover_patterns, MIN_PATTERN_SAMPLE
@@ -281,6 +285,54 @@ async def change_experiment_status(experiment_id: str, payload: dict):
     if result is None:
         raise HTTPException(status_code=404, detail="Experiment not found")
     return {"experiment": result}
+
+
+
+@app.get("/experiments/{experiment_id}/analysis")
+async def experiment_analysis(experiment_id: str):
+    try:
+        analysis = get_experiment_analysis(experiment_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {"analysis": analysis}
+
+@app.post("/experiments/{experiment_id}/observations")
+async def new_experiment_observation(experiment_id: str, payload: dict):
+    try:
+        observation = create_experiment_observation({
+            **payload,
+            "experimentId": experiment_id,
+        })
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {"observation": observation}
+
+
+@app.patch("/experiments/{experiment_id}/observations/{trade_id}")
+async def edit_experiment_observation(
+    experiment_id: str,
+    trade_id: str,
+    payload: dict,
+):
+    try:
+        observation = update_experiment_observation(
+            experiment_id,
+            trade_id,
+            payload,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    return {"observation": observation}
+
+
+@app.get("/experiments/{experiment_id}/observations")
+async def experiment_observations(experiment_id: str):
+    try:
+        observations = list_experiment_observations(experiment_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {"observations": observations}
 
 
 @app.get("/patterns")
