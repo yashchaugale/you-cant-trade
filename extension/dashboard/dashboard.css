@@ -4237,3 +4237,95 @@ body[data-yct-view="insights"] #compare {
         justify-content: flex-start;
     }
 }
+
+
+/* Experiment analysis — deterministic evidence */
+.experiment-analysis {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-analysis-label {
+    margin: 0 0 9px;
+    color: var(--vf-text-secondary);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.experiment-analysis-rows {
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-analysis-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    border-bottom: 1px solid var(--vf-border);
+}
+
+.experiment-analysis-count {
+    margin-left: auto;
+}
+
+.experiment-analysis-metric {
+    margin-left: 4px;
+}
+
+.experiment-analysis-name {
+    color: var(--vf-text-primary);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.experiment-analysis-count,
+.experiment-analysis-outcomes {
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.experiment-analysis-metric {
+    color: var(--vf-accent);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.experiment-analysis-note {
+    margin: 9px 0 0;
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+
+/* Experiment cards — collapsed summary / expandable evidence */
+.experiment-card {
+    cursor: pointer;
+}
+
+.experiment-card-summary {
+    padding: 2px 0;
+}
+
+.experiment-card:focus {
+    outline: none;
+}
+
+.experiment-card:focus-visible {
+    outline: 1px solid var(--vf-accent);
+    outline-offset: 6px;
+}
+
+.experiment-card-detail {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-card.expanded .experiment-card-summary {
+    padding-bottom: 2px;
+}

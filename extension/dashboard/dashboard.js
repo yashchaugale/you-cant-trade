@@ -26,6 +26,7 @@ import {
     getSimilarLocalTrades,
     compareLocalTrade,
     getLocalExperiments,
+    getLocalExperimentAnalysis,
     createLocalExperiment,
     updateLocalExperimentStatus,
     createLocalExperimentObservation,
@@ -59,6 +60,7 @@ let leakMapPayload = null;
 let comparePayload = null;
 let memoryPayload = null;
 let activeExperiments = [];
+let expandedExperimentId = null;
 let selectedTradeExperimentObservations = [];
 
 const modal = document.getElementById("tradeModal");
@@ -4110,21 +4112,103 @@ function renderExperimentObservationLog(container, observations) {
     container.appendChild(log);
 }
 
-function renderExperiments(items, observationsByExperiment = new Map()) {
+function renderExperimentAnalysis(card, analysis) {
+    if (!analysis) {
+        return;
+    }
+
+    const section = document.createElement("section");
+    section.className = "experiment-analysis";
+
+    const label = document.createElement("p");
+    label.className = "experiment-analysis-label";
+    label.textContent = "Evidence";
+    section.appendChild(label);
+
+    const rows = document.createElement("div");
+    rows.className = "experiment-analysis-rows";
+
+    [
+        ["YES", "Followed"],
+        ["NO", "Did not follow"],
+        ["NOT_SURE", "Not sure"]
+    ].forEach(([key, labelText]) => {
+        const group = analysis[key] || {};
+
+        const row = document.createElement("div");
+        row.className = "experiment-analysis-row";
+
+        const name = document.createElement("span");
+        name.className = "experiment-analysis-name";
+        name.textContent = labelText;
+
+        const count = document.createElement("span");
+        count.className = "experiment-analysis-count";
+        count.textContent =
+            `${group.observationCount || 0} observation${group.observationCount === 1 ? "" : "s"}`;
+
+        const outcomes = document.createElement("span");
+        outcomes.className = "experiment-analysis-outcomes";
+        outcomes.textContent =
+            `${group.wins || 0}W · ${group.losses || 0}L · ${group.breakeven || 0}BE`;
+
+        row.append(name, count, outcomes);
+
+        if (group.winRate !== null && group.winRate !== undefined) {
+            const winRate = document.createElement("span");
+            winRate.className = "experiment-analysis-metric";
+            winRate.textContent =
+                `${Math.round(group.winRate * 100)}% win`;
+            row.appendChild(winRate);
+        }
+
+        if (group.averageR !== null && group.averageR !== undefined) {
+            const averageR = document.createElement("span");
+            averageR.className = "experiment-analysis-metric";
+            averageR.textContent =
+                `${group.averageR >= 0 ? "+" : ""}${group.averageR.toFixed(2)}R`;
+            row.appendChild(averageR);
+        }
+
+        rows.appendChild(row);
+    });
+
+    section.appendChild(rows);
+
+    const note = document.createElement("p");
+    note.className = "experiment-analysis-note";
+    note.textContent =
+        "Evidence summary only. Sample size and unresolved outcomes matter.";
+    section.appendChild(note);
+
+    card.appendChild(section);
+}
+
+function renderExperiments(
+    items,
+    observationsByExperiment = new Map(),
+    analysisByExperiment = new Map()
+) {
     const container = document.getElementById("experimentsContent");
     container.replaceChildren();
 
     if (!items.length) {
         const empty = document.createElement("p");
         empty.className = "pattern-empty";
-        empty.textContent = "No active experiment yet. Choose one behaviour to test.";
+        empty.textContent =
+            "No active experiment yet. Choose one behaviour to test.";
         container.appendChild(empty);
         return;
     }
 
     items.slice(0, 6).forEach(item => {
         const card = document.createElement("article");
-        card.className = `experiment-card ${item.status.toLowerCase()}`;
+        card.className =
+            `experiment-card ${item.status.toLowerCase()}`;
+
+        if (expandedExperimentId === item.id) {
+            card.classList.add("expanded");
+        }
 
         const heading = document.createElement("div");
         heading.className = "experiment-card-heading";
@@ -4139,7 +4223,8 @@ function renderExperiments(items, observationsByExperiment = new Map()) {
         heading.append(title, status);
 
         const hypothesis = document.createElement("p");
-        hypothesis.textContent = item.hypothesis || `Test: ${item.behavior}`;
+        hypothesis.textContent =
+            item.hypothesis || `Test: ${item.behavior}`;
 
         const progress = document.createElement("div");
         progress.className = "experiment-progress";
@@ -4157,52 +4242,238 @@ function renderExperiments(items, observationsByExperiment = new Map()) {
         meta.textContent =
             `${item.progress} / ${item.sample_target} observations · observation, not proof`;
 
-        card.append(heading, hypothesis, progress, meta);
+        const summary = document.createElement("div");
+        summary.className = "experiment-card-summary";
 
-        renderExperimentObservationLog(
-            card,
-            observationsByExperiment.get(item.id) || []
+        summary.append(
+            heading,
+            hypothesis,
+            progress,
+            meta
         );
+
+        summary.setAttribute("role", "button");
+        summary.setAttribute("tabindex", "0");
+        summary.setAttribute(
+            "aria-expanded",
+            expandedExperimentId === item.id ? "true" : "false"
+        );
+
+        const toggle = async () => {
+            if (expandedExperimentId === item.id) {
+                expandedExperimentId = null;
+                renderExperiments(items);
+                return;
+            }
+
+            expandedExperimentId = item.id;
+
+            renderExperiments(items);
+
+            const expandedCard =
+                container.querySelector(
+                    `.experiment-card[data-experiment-id="${CSS.escape(item.id)}"]`
+                );
+
+            if (!expandedCard) {
+                return;
+            }
+
+            const detail = expandedCard.querySelector(
+                ".experiment-card-detail"
+            );
+
+            if (!detail) {
+                return;
+            }
+
+            detail.textContent = "Loading evidence…";
+
+            try {
+                const [observations, analysis] = await Promise.all([
+                    getLocalExperimentObservations(item.id),
+                    getLocalExperimentAnalysis(item.id),
+                ]);
+
+                if (expandedExperimentId !== item.id) {
+                    return;
+                }
+
+                const detailContainer =
+                    expandedCard.querySelector(
+                        ".experiment-card-detail"
+                    );
+
+                if (!detailContainer) {
+                    return;
+                }
+
+                detailContainer.replaceChildren();
+
+                renderExperimentObservationLog(
+                    detailContainer,
+                    observations
+                );
+
+                renderExperimentAnalysis(
+                    detailContainer,
+                    analysis
+                );
+            } catch (error) {
+                const detailContainer =
+                    expandedCard.querySelector(
+                        ".experiment-card-detail"
+                    );
+
+                if (detailContainer) {
+                    detailContainer.textContent =
+                        "Could not load experiment evidence.";
+                }
+
+                console.error(
+                    "Failed to load experiment evidence:",
+                    error
+                );
+            }
+        };
+
+        card.addEventListener("click", event => {
+            if (
+                event.target.closest("button") ||
+                event.target.closest("a") ||
+                event.target.closest("input") ||
+                event.target.closest("select") ||
+                event.target.closest("textarea")
+            ) {
+                return;
+            }
+
+            if (
+                expandedExperimentId === item.id &&
+                event.target.closest(".experiment-card-detail")
+            ) {
+                return;
+            }
+
+            toggle();
+        });
+
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
+        card.setAttribute(
+            "aria-expanded",
+            expandedExperimentId === item.id ? "true" : "false"
+        );
+
+        card.addEventListener("keydown", event => {
+            if (event.target !== card) {
+                return;
+            }
+
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                toggle();
+            }
+        });
+
+        card.appendChild(summary);
+
+        if (expandedExperimentId === item.id) {
+            const detail = document.createElement("div");
+            detail.className = "experiment-card-detail";
+
+            const observations =
+                observationsByExperiment.get(item.id);
+
+            const analysis =
+                analysisByExperiment.get(item.id);
+
+            if (observations && analysis) {
+                renderExperimentObservationLog(
+                    detail,
+                    observations
+                );
+
+                renderExperimentAnalysis(
+                    detail,
+                    analysis
+                );
+            } else {
+                detail.textContent = "Loading evidence…";
+            }
+
+            card.appendChild(detail);
+        }
+
+        card.dataset.experimentId = item.id;
 
         if (item.status === "ACTIVE") {
             if (item.sampleComplete) {
                 const completionNote = document.createElement("p");
-                completionNote.className = "experiment-completion-note";
+                completionNote.className =
+                    "experiment-completion-note";
                 completionNote.textContent =
                     "Observation window complete. Review behaviour separately from R/performance.";
                 card.appendChild(completionNote);
 
-                const complete = document.createElement("button");
-                complete.className = "clear-filters experiment-complete";
+                const complete =
+                    document.createElement("button");
+                complete.className =
+                    "clear-filters experiment-complete";
                 complete.type = "button";
                 complete.textContent = "Complete experiment";
-                complete.addEventListener("click", async () => {
+
+                complete.addEventListener("click", async event => {
+                    event.stopPropagation();
+
                     const confirmed = window.confirm(
                         "Complete this experiment? The observation history will remain recorded."
                     );
+
                     if (!confirmed) {
                         return;
                     }
-                    await updateLocalExperimentStatus(item.id, "COMPLETED");
+
+                    await updateLocalExperimentStatus(
+                        item.id,
+                        "COMPLETED"
+                    );
+
+                    expandedExperimentId = null;
                     await loadExperiments();
                 });
+
                 card.appendChild(complete);
             }
 
-            const abandon = document.createElement("button");
-            abandon.className = "clear-filters experiment-abandon";
+            const abandon =
+                document.createElement("button");
+
+            abandon.className =
+                "clear-filters experiment-abandon";
             abandon.type = "button";
             abandon.textContent = "Abandon experiment";
-            abandon.addEventListener("click", async () => {
+
+            abandon.addEventListener("click", async event => {
+                event.stopPropagation();
+
                 const confirmed = window.confirm(
                     "Abandon this experiment? Its history will remain recorded."
                 );
+
                 if (!confirmed) {
                     return;
                 }
-                await updateLocalExperimentStatus(item.id, "ABANDONED");
+
+                await updateLocalExperimentStatus(
+                    item.id,
+                    "ABANDONED"
+                );
+
+                expandedExperimentId = null;
                 await loadExperiments();
             });
+
             card.appendChild(abandon);
         }
 
@@ -4210,29 +4481,35 @@ function renderExperiments(items, observationsByExperiment = new Map()) {
     });
 }
 
+
 async function loadExperiments() {
     try {
         const experiments = await getLocalExperiments();
 
-        const observationEntries = await Promise.all(
-            experiments.slice(0, 6).map(async experiment => {
-                const observations = await getLocalExperimentObservations(
-                    experiment.id
-                );
-                return [experiment.id, observations];
-            })
+        if (
+            expandedExperimentId &&
+            !experiments.some(
+                experiment =>
+                    experiment.id === expandedExperimentId
+            )
+        ) {
+            expandedExperimentId = null;
+        }
+
+        renderExperiments(experiments);
+    } catch (error) {
+        console.error(
+            "Failed to load experiments:",
+            error
         );
 
-        const observationsByExperiment = new Map(observationEntries);
+        const container =
+            document.getElementById("experimentsContent");
 
-        renderExperiments(experiments, observationsByExperiment);
-    } catch (error) {
-        const container = document.getElementById("experimentsContent");
-        container.textContent = "Start the local service to load your experiments.";
+        container.textContent =
+            "Start the local service to load your experiments.";
     }
 }
-
-
 
 
 function renderStorageUsage(usage) {

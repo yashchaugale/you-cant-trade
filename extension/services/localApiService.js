@@ -138,6 +138,14 @@ export async function updateLocalExperimentObservation(
 }
 
 
+
+export async function getLocalExperimentAnalysis(experimentId) {
+    const result = await request(
+        `/experiments/${encodeURIComponent(experimentId)}/analysis`
+    );
+    return result.analysis;
+}
+
 export async function getStorageStatus() {
     return request("/storage/status");
 }
