@@ -4066,15 +4066,45 @@ function renderExperiments(items) {
         meta.textContent = `${item.progress} / ${item.sample_target} reviewed trades · observation, not proof`;
         card.append(heading, hypothesis, progress, meta);
         if (item.status === "ACTIVE") {
-            const pause = document.createElement("button");
-            pause.className = "clear-filters experiment-pause";
-            pause.type = "button";
-            pause.textContent = "Pause";
-            pause.addEventListener("click", async () => {
-                await updateLocalExperimentStatus(item.id, "PAUSED");
+            if (item.sampleComplete) {
+                const completionNote = document.createElement("p");
+                completionNote.className = "experiment-completion-note";
+                completionNote.textContent =
+                    "Observation window complete. Review behaviour separately from R/performance.";
+                card.appendChild(completionNote);
+
+                const complete = document.createElement("button");
+                complete.className = "clear-filters experiment-complete";
+                complete.type = "button";
+                complete.textContent = "Complete experiment";
+                complete.addEventListener("click", async () => {
+                    const confirmed = window.confirm(
+                        "Complete this experiment? The observation history will remain recorded."
+                    );
+                    if (!confirmed) {
+                        return;
+                    }
+                    await updateLocalExperimentStatus(item.id, "COMPLETED");
+                    await loadExperiments();
+                });
+                card.appendChild(complete);
+            }
+
+            const abandon = document.createElement("button");
+            abandon.className = "clear-filters experiment-abandon";
+            abandon.type = "button";
+            abandon.textContent = "Abandon experiment";
+            abandon.addEventListener("click", async () => {
+                const confirmed = window.confirm(
+                    "Abandon this experiment? Its history will remain recorded."
+                );
+                if (!confirmed) {
+                    return;
+                }
+                await updateLocalExperimentStatus(item.id, "ABANDONED");
                 await loadExperiments();
             });
-            card.appendChild(pause);
+            card.appendChild(abandon);
         }
         container.appendChild(card);
     });

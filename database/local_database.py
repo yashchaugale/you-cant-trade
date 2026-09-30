@@ -584,11 +584,15 @@ def list_experiments() -> list[dict[str, Any]]:
         for row in rows:
             item = dict(row)
             reviewed_since = connection.execute(
-                "select count(*) from trades where result in ('WIN','LOSS','BE') and updated_at >= ?",
+                """select count(*)
+                   from trades t
+                   join trade_reviews r on r.trade_id = t.id
+                   where r.reviewed_at >= ?""",
                 (item["start_date"],),
             ).fetchone()[0]
             item["reviewedCount"] = int(reviewed_since)
             item["progress"] = min(item["sample_target"], int(reviewed_since))
+            item["sampleComplete"] = int(reviewed_since) >= int(item["sample_target"])
             experiments.append(item)
         return experiments
 
@@ -621,7 +625,7 @@ def create_experiment(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def update_experiment_status(experiment_id: str, status: str) -> dict[str, Any] | None:
-    if status not in {"DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"}:
+    if status not in {"DRAFT", "ACTIVE", "COMPLETED", "ABANDONED"}:
         raise ValueError("Invalid experiment status")
     completed_at = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')" if status == "COMPLETED" else "null"
     with connect() as connection:
