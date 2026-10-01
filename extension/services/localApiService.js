@@ -139,6 +139,31 @@ export async function updateLocalExperimentObservation(
 
 
 
+export async function rememberLocalExperiment(experimentId) {
+    const result = await request(
+        `/experiments/${encodeURIComponent(experimentId)}/memory`,
+        {
+            method: "POST",
+        }
+    );
+
+    return result.finding;
+}
+
+export async function updateLocalExperimentReview(
+    experimentId,
+    payload
+) {
+    const result = await request(
+        `/experiments/${encodeURIComponent(experimentId)}/review`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        }
+    );
+    return result.experiment;
+}
+
 export async function getLocalExperimentAnalysis(experimentId) {
     const result = await request(
         `/experiments/${encodeURIComponent(experimentId)}/analysis`

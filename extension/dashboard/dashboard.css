@@ -3835,7 +3835,6 @@ body[data-yct-view="insights-evidence"] .evidence-pattern-name small {
     font-size: 9px;
     font-weight: 700;
     letter-spacing: .08em;
-    text-transform: uppercase;
 }
 
 body[data-yct-view="insights-evidence"] .evidence-pattern-name strong {
@@ -4302,6 +4301,149 @@ body[data-yct-view="insights"] #compare {
 }
 
 
+/* Experiment evidence strength */
+.experiment-evidence-strength {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-evidence-strength-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.experiment-evidence-strength-label {
+    margin: 0;
+    color: var(--vf-text-secondary);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.experiment-evidence-strength-level {
+    margin-left: auto;
+    color: var(--vf-text-primary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+}
+
+.experiment-evidence-strength-rows {
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-evidence-strength-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 34px;
+    border-bottom: 1px solid var(--vf-border);
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+}
+
+.experiment-evidence-strength-row span:last-child {
+    color: var(--vf-text-primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* Experiment review — conclusion */
+.experiment-review {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--vf-border);
+}
+
+.experiment-section-heading {
+    margin-bottom: 16px;
+}
+
+.experiment-section-heading h4 {
+    margin: 0 0 7px;
+    color: var(--vf-text-primary);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.experiment-section-heading p {
+    margin: 0;
+    max-width: 720px;
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.experiment-review-label {
+    display: block;
+    margin: 14px 0 6px;
+    color: var(--vf-text-secondary);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.experiment-review-result,
+.experiment-review-conclusion {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid var(--vf-border);
+    border-radius: 0;
+    background: var(--vf-surface);
+    color: var(--vf-text-primary);
+    font: inherit;
+}
+
+.experiment-review-result {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+.experiment-review-conclusion {
+    min-height: 104px;
+    padding: 11px 12px;
+    resize: vertical;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.experiment-review-result:focus,
+.experiment-review-conclusion:focus {
+    outline: none;
+    border-color: var(--vf-accent);
+}
+
+.experiment-review-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.experiment-review-save {
+    margin: 0;
+}
+
+.experiment-review-status {
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+}
+
+.experiment-review-meta {
+    margin: 10px 0 0;
+    color: var(--vf-text-secondary);
+    font-size: 10px;
+}
+
+
 /* Experiment cards — collapsed summary / expandable evidence */
 .experiment-card {
     cursor: pointer;
@@ -4328,4 +4470,28 @@ body[data-yct-view="insights"] #compare {
 
 .experiment-card.expanded .experiment-card-summary {
     padding-bottom: 2px;
+}
+
+/* Experiment → Trading Memory */
+.experiment-memory-action {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--vf-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.experiment-memory-remember {
+    margin: 0;
+}
+
+.experiment-memory-remember.is-remembered {
+    cursor: default;
+}
+
+.experiment-memory-status {
+    color: var(--vf-text-secondary);
+    font-size: 11px;
 }

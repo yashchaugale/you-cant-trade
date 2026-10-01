@@ -109,6 +109,7 @@ def evidence_from_observation(observation: dict) -> str:
     Supported sources:
       - PATTERN / EDGE
       - LEAK
+      - EXPERIMENT
 
     Missing or unsupported evidence remains INSUFFICIENT rather than being
     interpreted as failure or disproof.
@@ -123,7 +124,7 @@ def evidence_from_observation(observation: dict) -> str:
         or ""
     ).upper()
 
-    if source in {"PATTERN", "EDGE", "EDGE_MAP"}:
+    if source in {"PATTERN", "EDGE", "EDGE_MAP", "EXPERIMENT"}:
         return pattern_evidence_strength(
             sample_size=observation.get("sampleSize", 0),
             actual_r_coverage=observation.get(

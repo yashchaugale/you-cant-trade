@@ -715,6 +715,91 @@ def list_experiment_observations(experiment_id: str) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def build_experiment_memory_finding(
+    experiment_id: str,
+    finding_id: str,
+) -> dict[str, Any]:
+    from services.memory import build_memory_finding
+
+    with connect() as connection:
+        experiment = connection.execute(
+            "select * from experiments where id = ?",
+            (experiment_id,),
+        ).fetchone()
+
+        if experiment is None:
+            raise ValueError("Experiment not found")
+
+        observations = connection.execute(
+            """
+            select
+                o.trade_id,
+                t.captured_at
+            from experiment_observations o
+            join trades t on t.id = o.trade_id
+            where o.experiment_id = ?
+            order by o.created_at asc
+            """,
+            (experiment_id,),
+        ).fetchall()
+
+    result = str(experiment["result"] or "").strip().upper()
+
+    if result == "STILL_TESTING":
+        raise ValueError(
+            "Experiment must be reviewed before it can be remembered"
+        )
+
+    if not observations:
+        raise ValueError(
+            "Experiment needs at least one observation before it can be remembered"
+        )
+
+    trade_ids = [
+        str(row["trade_id"])
+        for row in observations
+        if row["trade_id"]
+    ]
+
+    trade_timestamps = {
+        str(row["trade_id"]): str(row["captured_at"])
+        for row in observations
+        if row["trade_id"] and row["captured_at"]
+    }
+
+    analysis = get_experiment_analysis(experiment_id)
+    evidence_strength = analysis.get("evidenceStrength") or {}
+
+    observation = {
+        "source": "EXPERIMENT",
+        "sampleSize": len(trade_ids),
+        "supportingTradeIds": trade_ids,
+        "actualRCoverage": evidence_strength.get("actualRCoverage", 0.0),
+        "observedMonths": evidence_strength.get("observedPeriods", 0),
+        "periodsWithActualR": evidence_strength.get(
+            "periodsWithActualR",
+            0,
+        ),
+    }
+
+    conclusion = str(experiment["conclusion"] or "").strip()
+    if conclusion:
+        statement = conclusion
+    else:
+        statement = (
+            f"Experiment '{experiment['title']}' concluded "
+            f"{result.replace('_', ' ').lower()}."
+        )
+
+    return build_memory_finding(
+        observation=observation,
+        finding_type="EXPERIMENT_RESULT",
+        statement=statement,
+        trade_timestamps=trade_timestamps,
+        finding_id=finding_id,
+    )
+
+
 def get_experiment_analysis(experiment_id: str) -> dict[str, Any]:
     with connect() as connection:
         rows = connection.execute(
@@ -725,7 +810,8 @@ def get_experiment_analysis(experiment_id: str) -> dict[str, Any]:
                 t.entry,
                 t.stop_loss,
                 t.exit_price,
-                t.direction
+                t.direction,
+                o.created_at as observation_created_at
             from experiment_observations o
             join trades t on t.id = o.trade_id
             where o.experiment_id = ?
@@ -746,6 +832,81 @@ def get_experiment_analysis(experiment_id: str) -> dict[str, Any]:
             groups[behavior].append(row)
 
     analysis = {}
+
+    all_actual_r = []
+    observed_periods = set()
+    periods_with_actual_r = set()
+
+    for row in rows:
+        created_at = str(row["observation_created_at"] or "").strip()
+
+        if len(created_at) >= 7:
+            observed_periods.add(created_at[:7])
+
+        entry = row["entry"]
+        stop = row["stop_loss"]
+        exit_price = row["exit_price"]
+        direction = row["direction"]
+
+        if not all(
+            isinstance(value, (int, float))
+            for value in (entry, stop, exit_price)
+        ):
+            continue
+
+        if direction not in {"LONG", "SHORT"}:
+            continue
+
+        risk = abs(entry - stop)
+
+        if risk == 0:
+            continue
+
+        profit = (
+            exit_price - entry
+            if direction == "LONG"
+            else entry - exit_price
+        )
+
+        all_actual_r.append(profit / risk)
+
+        if len(created_at) >= 7:
+            periods_with_actual_r.add(created_at[:7])
+
+    sample_size = len(rows)
+    resolved_count = sum(
+        1
+        for row in rows
+        if row["result"] in {"WIN", "LOSS", "BE"}
+    )
+    actual_r_coverage = (
+        round(len(all_actual_r) / sample_size, 6)
+        if sample_size
+        else 0.0
+    )
+
+    if sample_size < 3:
+        evidence_level = "INSUFFICIENT"
+    elif sample_size < 10:
+        evidence_level = "LIMITED"
+    elif (
+        actual_r_coverage >= 0.8
+        and len(observed_periods) >= 3
+        and len(periods_with_actual_r) >= 2
+    ):
+        evidence_level = "STRONG"
+    else:
+        evidence_level = "MODERATE"
+
+    analysis["evidenceStrength"] = {
+        "sampleSize": sample_size,
+        "actualRCoverage": actual_r_coverage,
+        "observedPeriods": len(observed_periods),
+        "periodsWithActualR": len(periods_with_actual_r),
+        "resolvedCount": resolved_count,
+        "unresolvedCount": sample_size - resolved_count,
+        "level": evidence_level,
+    }
 
     for behavior, observations in groups.items():
         wins = sum(1 for row in observations if row["result"] == "WIN")
@@ -932,6 +1093,54 @@ def update_experiment_status(experiment_id: str, status: str) -> dict[str, Any] 
     with connect() as connection:
         connection.execute(f"update experiments set status = ?, completed_at = {completed_at} where id = ?", (status, experiment_id))
     return next((item for item in list_experiments() if item["id"] == experiment_id), None)
+
+
+def update_experiment_review(
+    experiment_id: str,
+    result: str,
+    conclusion: str,
+) -> dict[str, Any] | None:
+    allowed_results = {
+        "SUPPORTED",
+        "NOT_SUPPORTED",
+        "INCONCLUSIVE",
+        "STILL_TESTING",
+    }
+
+    result = str(result or "").strip().upper()
+    conclusion = str(conclusion or "").strip()
+
+    if result not in allowed_results:
+        raise ValueError("Invalid experiment result")
+
+    with connect() as connection:
+        existing = connection.execute(
+            "select id from experiments where id = ?",
+            (experiment_id,),
+        ).fetchone()
+
+        if existing is None:
+            return None
+
+        connection.execute(
+            """
+            update experiments
+            set result = ?,
+                conclusion = ?,
+                reviewed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            where id = ?
+            """,
+            (result, conclusion, experiment_id),
+        )
+
+    return next(
+        (
+            item
+            for item in list_experiments()
+            if item["id"] == experiment_id
+        ),
+        None,
+    )
 
 
 def delete_trade(trade_id: str) -> bool:

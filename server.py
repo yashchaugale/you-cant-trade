@@ -26,9 +26,11 @@ from database.local_database import (
     list_experiments,
     create_experiment,
     update_experiment_status,
+    update_experiment_review,
     create_experiment_observation,
     list_experiment_observations,
     update_experiment_observation,
+    build_experiment_memory_finding,
     search_trades,
     similar_trades,
     latest_ai_insight,
@@ -286,6 +288,45 @@ async def change_experiment_status(experiment_id: str, payload: dict):
         raise HTTPException(status_code=404, detail="Experiment not found")
     return {"experiment": result}
 
+
+
+@app.patch("/experiments/{experiment_id}/review")
+async def review_experiment(experiment_id: str, payload: dict):
+    try:
+        result = update_experiment_review(
+            experiment_id,
+            payload.get("result", ""),
+            payload.get("conclusion", ""),
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Experiment not found",
+        )
+
+    return {"experiment": result}
+
+
+@app.post("/experiments/{experiment_id}/memory")
+async def remember_experiment(experiment_id: str):
+    import uuid
+
+    try:
+        finding = build_experiment_memory_finding(
+            experiment_id=experiment_id,
+            finding_id=str(uuid.uuid4()),
+        )
+        finding = create_memory_finding(finding)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    return {"finding": finding}
 
 
 @app.get("/experiments/{experiment_id}/analysis")

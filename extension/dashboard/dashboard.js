@@ -32,6 +32,8 @@ import {
     createLocalExperimentObservation,
     getLocalExperimentObservations,
     updateLocalExperimentObservation,
+    updateLocalExperimentReview,
+    rememberLocalExperiment,
     getStorageStatus,
     selectStorageProvider,
     connectNotion,
@@ -4175,6 +4177,73 @@ function renderExperimentAnalysis(card, analysis) {
 
     section.appendChild(rows);
 
+    const strength = analysis.evidenceStrength || {};
+
+    const strengthBlock = document.createElement("div");
+    strengthBlock.className = "experiment-evidence-strength";
+
+    const strengthHeader = document.createElement("div");
+    strengthHeader.className = "experiment-evidence-strength-header";
+
+    const strengthLabel = document.createElement("p");
+    strengthLabel.className = "experiment-evidence-strength-label";
+    strengthLabel.textContent = "Evidence strength";
+
+    const strengthLevel = document.createElement("span");
+    strengthLevel.className =
+        "experiment-evidence-strength-level";
+    strengthLevel.textContent =
+        String(strength.level || "INSUFFICIENT")
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .replace(/^\w/, (character) => character.toUpperCase());
+
+    strengthHeader.append(strengthLabel, strengthLevel);
+
+    const strengthRows = document.createElement("div");
+    strengthRows.className = "experiment-evidence-strength-rows";
+
+    const evidenceMetrics = [
+        [
+            "Sample",
+            `${strength.sampleSize || 0} observation${
+                strength.sampleSize === 1 ? "" : "s"
+            }`,
+        ],
+        [
+            "Actual R",
+            `${Math.round(
+                (strength.actualRCoverage || 0) *
+                    (strength.sampleSize || 0)
+            )} / ${strength.sampleSize || 0}`,
+        ],
+        [
+            "Resolved",
+            String(strength.resolvedCount || 0),
+        ],
+        [
+            "Unresolved",
+            String(strength.unresolvedCount || 0),
+        ],
+    ];
+
+    evidenceMetrics.forEach(([nameText, valueText]) => {
+        const row = document.createElement("div");
+        row.className = "experiment-evidence-strength-row";
+
+        const name = document.createElement("span");
+        name.textContent = nameText;
+
+        const value = document.createElement("span");
+        value.textContent = valueText;
+
+        row.append(name, value);
+        strengthRows.appendChild(row);
+    });
+
+    strengthBlock.append(strengthHeader, strengthRows);
+    section.appendChild(strengthBlock);
+
     const note = document.createElement("p");
     note.className = "experiment-analysis-note";
     note.textContent =
@@ -4183,6 +4252,182 @@ function renderExperimentAnalysis(card, analysis) {
 
     card.appendChild(section);
 }
+
+function renderExperimentMemoryAction(section, item) {
+    if (
+        !item.result ||
+        item.result === "STILL_TESTING" ||
+        section.querySelector(".experiment-memory-action")
+    ) {
+        return;
+    }
+
+    const memoryAction = document.createElement("div");
+    memoryAction.className = "experiment-memory-action";
+
+    const remember = document.createElement("button");
+    remember.type = "button";
+    remember.className =
+        "clear-filters experiment-memory-remember";
+    remember.textContent = "Remember in Trading Memory";
+
+    const memoryStatus = document.createElement("span");
+    memoryStatus.className = "experiment-memory-status";
+
+    remember.addEventListener("click", async event => {
+        event.stopPropagation();
+
+        const confirmed = window.confirm(
+            "Remember this experiment result in Trading Memory?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        remember.disabled = true;
+        remember.textContent = "Saving…";
+        memoryStatus.textContent = "";
+
+        try {
+            await rememberLocalExperiment(item.id);
+            remember.textContent = "Remembered";
+            remember.classList.add("is-remembered");
+            memoryStatus.textContent =
+                "Saved to Trading Memory.";
+        } catch (error) {
+            console.error(
+                "Failed to remember experiment:",
+                error
+            );
+
+            remember.disabled = false;
+            remember.textContent =
+                "Remember in Trading Memory";
+            memoryStatus.textContent =
+                "Could not save to Trading Memory.";
+        }
+    });
+
+    memoryAction.append(remember, memoryStatus);
+    section.appendChild(memoryAction);
+}
+
+function renderExperimentReview(container, item) {
+    const section = document.createElement("section");
+    section.className = "experiment-review";
+
+    const heading = document.createElement("div");
+    heading.className = "experiment-section-heading";
+
+    const title = document.createElement("h4");
+    title.textContent = "Conclusion";
+
+    const description = document.createElement("p");
+    description.textContent =
+        "Record what the observed evidence means. Keep the conclusion separate from the performance result.";
+
+    heading.append(title, description);
+    section.appendChild(heading);
+
+    const resultLabel = document.createElement("label");
+    resultLabel.className = "experiment-review-label";
+    resultLabel.textContent = "Result";
+
+    const resultSelect = document.createElement("select");
+    resultSelect.className = "experiment-review-result";
+    resultSelect.setAttribute("aria-label", "Experiment result");
+
+    [
+        ["STILL_TESTING", "Still testing"],
+        ["SUPPORTED", "Supported"],
+        ["NOT_SUPPORTED", "Not supported"],
+        ["INCONCLUSIVE", "Inconclusive"],
+    ].forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        resultSelect.appendChild(option);
+    });
+
+    resultSelect.value = item.result || "STILL_TESTING";
+
+    const conclusionLabel = document.createElement("label");
+    conclusionLabel.className = "experiment-review-label";
+    conclusionLabel.textContent = "Conclusion";
+
+    const conclusionInput = document.createElement("textarea");
+    conclusionInput.className = "experiment-review-conclusion";
+    conclusionInput.rows = 4;
+    conclusionInput.placeholder =
+        "What did this experiment show, and what remains uncertain?";
+    conclusionInput.value = item.conclusion || "";
+
+    const actions = document.createElement("div");
+    actions.className = "experiment-review-actions";
+
+    const save = document.createElement("button");
+    save.className = "clear-filters experiment-review-save";
+    save.type = "button";
+    save.textContent = "Save review";
+
+    const status = document.createElement("span");
+    status.className = "experiment-review-status";
+
+    save.addEventListener("click", async event => {
+        event.stopPropagation();
+
+        save.disabled = true;
+        status.textContent = "Saving…";
+
+        try {
+            const updated = await updateLocalExperimentReview(
+                item.id,
+                {
+                    result: resultSelect.value,
+                    conclusion: conclusionInput.value,
+                }
+            );
+
+            item.result = updated.result;
+            item.conclusion = updated.conclusion;
+            item.reviewed_at = updated.reviewed_at;
+
+            status.textContent = "Review saved.";
+
+            renderExperimentMemoryAction(section, item);
+        } catch (error) {
+            console.error("Failed to save experiment review:", error);
+            status.textContent = "Could not save review.";
+        } finally {
+            save.disabled = false;
+        }
+    });
+
+    actions.append(save, status);
+
+    section.append(
+        resultLabel,
+        resultSelect,
+        conclusionLabel,
+        conclusionInput,
+        actions
+    );
+
+    if (item.reviewed_at) {
+        renderExperimentMemoryAction(section, item);
+    }
+
+    if (item.reviewed_at) {
+        const reviewed = document.createElement("p");
+        reviewed.className = "experiment-review-meta";
+        reviewed.textContent = "Last reviewed.";
+        section.appendChild(reviewed);
+    }
+
+    container.appendChild(section);
+}
+
 
 function renderExperiments(
     items,
@@ -4319,6 +4564,11 @@ function renderExperiments(
                     detailContainer,
                     analysis
                 );
+
+                renderExperimentReview(
+                    detailContainer,
+                    item
+                );
             } catch (error) {
                 const detailContainer =
                     expandedCard.querySelector(
@@ -4397,6 +4647,11 @@ function renderExperiments(
                 renderExperimentAnalysis(
                     detail,
                     analysis
+                );
+
+                renderExperimentReview(
+                    detail,
+                    item
                 );
             } else {
                 detail.textContent = "Loading evidence…";
