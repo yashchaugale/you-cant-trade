@@ -2573,7 +2573,7 @@ function renderWeeklyReview() {
         createReviewBlock(
             "review-insight",
             "Review consistency",
-            `${reviewedTrades.length} of ${weekTrades.length} captured trades have a recorded outcome this week. More structured tags are needed before You Can't Trade can identify a reliable behaviour pattern.`
+            `Only ${reviewedTrades.length} of ${weekTrades.length} captured trades have a recorded outcome this week. There is not enough reviewed evidence yet to identify a recurring behaviour pattern.`
         ),
         createReviewBlock(
             "review-focus",
