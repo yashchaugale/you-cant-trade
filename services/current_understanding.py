@@ -302,6 +302,237 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+
+def _build_pattern_finding(
+    selected: dict[str, Any],
+) -> dict[str, Any]:
+    pattern = selected["pattern"]
+
+    dimension = pattern.get("dimension") or "condition"
+    value = pattern.get("value") or "recorded"
+    sample_size = selected["sampleSize"]
+    average_r = selected["averageR"]
+
+    title = f"{value} trades are standing out"
+
+    if average_r is not None and average_r > 0:
+        summary = (
+            f"Your {value} trades are averaging "
+            f"{average_r:+.2f}R across {sample_size} trades."
+        )
+    elif average_r is not None and average_r < 0:
+        summary = (
+            f"Your {value} trades are averaging "
+            f"{average_r:+.2f}R across {sample_size} trades."
+        )
+    else:
+        summary = (
+            f"Your {value} trades have been observed "
+            f"{sample_size} times."
+        )
+
+    trade_ids = list(pattern.get("sourceTradeIds") or [])
+
+    return {
+        "id": f"PATTERN::{dimension}::{value}",
+        "type": "NEW_PATTERN",
+        "status": "SUPPORTED",
+        "priority": None,
+        "title": title,
+        "summary": summary,
+        "confidence": selected["evidence"],
+        "sampleSize": sample_size,
+        "evidence": {
+            "sampleSize": sample_size,
+            "metrics": {
+                "averageR": average_r,
+                "winRate": pattern.get("winRate"),
+                "difference": pattern.get("difference") or {},
+            },
+            "tradeIds": trade_ids,
+            "source": "pattern_discovery",
+        },
+        "source": {
+            "engine": "pattern_discovery",
+            "computationVersion": pattern.get("computationVersion"),
+            "dimension": dimension,
+            "value": value,
+        },
+        "supportingTradeIds": trade_ids,
+        "relatedMemory": None,
+        "relatedExperiment": None,
+    }
+
+
+def _build_performance_change_finding(
+    compare: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(compare, dict):
+        return None
+
+    periods = compare.get("periods") or {}
+    current = periods.get("current") or {}
+    previous = periods.get("previous") or {}
+
+    performance = compare.get("performance") or {}
+    average_r = performance.get("averageR") or {}
+
+    current_r = average_r.get("current")
+    previous_r = average_r.get("previous")
+    change_r = average_r.get("change")
+
+    current_count = current.get("actualCount", 0)
+    previous_count = previous.get("actualCount", 0)
+
+    if (
+        current_count <= 0
+        or previous_count <= 0
+        or change_r is None
+        or current_r is None
+        or previous_r is None
+    ):
+        return None
+
+    current_trade_ids = list(current.get("tradeIds") or [])
+    previous_trade_ids = list(previous.get("tradeIds") or [])
+    trade_ids = current_trade_ids + previous_trade_ids
+
+    direction = "improving" if float(change_r) > 0 else "declining"
+
+    title = f"Recent performance is {direction}"
+
+    summary = (
+        f"Your latest {current_count} trades are averaging "
+        f"{float(current_r):+.2f}R, compared with "
+        f"{float(previous_r):+.2f}R in the previous {previous_count} trades."
+    )
+
+    return {
+        "id": "PERFORMANCE_CHANGE::AVERAGE_R",
+        "type": "PERFORMANCE_CHANGE",
+        "status": "SUPPORTED",
+        "priority": None,
+        "title": title,
+        "summary": summary,
+        "confidence": "MODERATE",
+        "sampleSize": current_count,
+        "evidence": {
+            "sampleSize": current_count,
+            "metrics": {
+                "currentAverageR": current_r,
+                "previousAverageR": previous_r,
+                "changeR": change_r,
+                "previousSampleSize": previous_count,
+            },
+            "tradeIds": trade_ids,
+            "source": "compare",
+        },
+        "source": {
+            "engine": "compare",
+            "computationVersion": compare.get("version"),
+        },
+        "supportingTradeIds": trade_ids,
+        "relatedMemory": None,
+        "relatedExperiment": None,
+    }
+
+
+
+def _build_behavior_change_finding(
+    compare: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(compare, dict):
+        return None
+
+    distributions = compare.get("distributions") or {}
+    behavior = distributions.get("behavior") or {}
+    values = behavior.get("values") or []
+
+    candidates = []
+
+    for item in values:
+        if not isinstance(item, dict):
+            continue
+
+        change = item.get("percentagePointChange")
+        if change is None or change == 0:
+            continue
+
+        current = item.get("current") or {}
+        previous = item.get("previous") or {}
+
+        candidates.append({
+            "item": item,
+            "change": float(change),
+            "current": current,
+            "previous": previous,
+        })
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda item: (
+            abs(item["change"]),
+            item["current"].get("count", 0),
+        ),
+        reverse=True,
+    )
+
+    selected = candidates[0]
+    item = selected["item"]
+    value = item.get("value") or "Behavior"
+    change = selected["change"]
+
+    current = selected["current"]
+    previous = selected["previous"]
+
+    current_count = current.get("count", 0)
+    previous_count = previous.get("count", 0)
+
+    trade_ids = list(
+        dict.fromkeys(
+            list(current.get("tradeIds") or [])
+            + list(previous.get("tradeIds") or [])
+        )
+    )
+
+    direction = "more often" if change > 0 else "less often"
+
+    return {
+        "id": f"BEHAVIOR_CHANGE::{value}",
+        "type": "BEHAVIOR_CHANGE",
+        "status": "SUPPORTED",
+        "priority": None,
+        "title": f"{value} is showing up {direction}",
+        "summary": (
+            f"{value} appeared {current_count} times in the current period "
+            f"versus {previous_count} times in the previous period."
+        ),
+        "confidence": "MODERATE",
+        "sampleSize": current.get("count", 0),
+        "evidence": {
+            "sampleSize": behavior.get("currentSampleSize", 0),
+            "metrics": {
+                "currentCount": current_count,
+                "previousCount": previous_count,
+                "percentagePointChange": change,
+            },
+            "tradeIds": trade_ids,
+            "source": "compare",
+        },
+        "source": {
+            "engine": "compare",
+            "computationVersion": compare.get("version"),
+            "dimension": "behavior",
+            "value": value,
+        },
+        "supportingTradeIds": trade_ids,
+        "relatedMemory": None,
+        "relatedExperiment": None,
+    }
+
+
 def build_current_understanding(
     *,
     trade_count: int,
@@ -329,6 +560,14 @@ def build_current_understanding(
     watch = _select_watch(leaks)
     recent_change = _format_change(compare)
 
+    pattern_finding = (
+        _build_pattern_finding(observation)
+        if observation is not None
+        else None
+    )
+    performance_finding = _build_performance_change_finding(compare)
+    behavior_finding = _build_behavior_change_finding(compare)
+
     if observation is None:
         status = "LEARNING"
     else:
@@ -349,4 +588,13 @@ def build_current_understanding(
             else None
         ),
         "recentChange": recent_change,
+        "findings": [
+            finding
+            for finding in (
+                pattern_finding,
+                performance_finding,
+                behavior_finding,
+            )
+            if finding is not None
+        ],
     }
