@@ -640,6 +640,98 @@ def _build_weakening_pattern_finding(
     }
 
 
+
+def _build_interesting_relationship_finding(
+    compare: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not compare:
+        return None
+
+    changes = compare.get("changes", {})
+
+    increase = changes.get("largestDistributionIncrease")
+    decrease = changes.get("largestDistributionDecrease")
+
+    candidates = [
+        item
+        for item in (increase, decrease)
+        if item is not None
+    ]
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda item: (
+            -abs(item["percentagePointChange"]),
+            item["field"],
+            item["value"],
+        )
+    )
+
+    selected = candidates[0]
+    current = selected["current"]
+    previous = selected["previous"]
+
+    trade_ids = list(
+        dict.fromkeys(
+            current.get("tradeIds", [])
+            + previous.get("tradeIds", [])
+        )
+    )
+
+    change = selected["percentagePointChange"]
+    direction = "more" if change > 0 else "less"
+
+    return {
+        "id": (
+            f"interesting_relationship:"
+            f"{selected['field']}:{selected['value']}"
+        ),
+        "type": "INTERESTING_RELATIONSHIP",
+        "title": (
+            f"{selected['value']} is showing up {direction} often"
+        ),
+        "summary": (
+            f"{selected['field']} changed by "
+            f"{change:+.1f} percentage points between periods."
+        ),
+        "status": "SUPPORTED",
+        "importance": "MODERATE",
+        "confidence": "MODERATE",
+        "sampleSize": (
+            current.get("count", 0)
+            + previous.get("count", 0)
+        ),
+        "evidence": {
+            "sampleSize": (
+                current.get("count", 0)
+                + previous.get("count", 0)
+            ),
+            "metrics": {
+                "currentCount": current.get("count"),
+                "previousCount": previous.get("count"),
+                "percentagePointChange": change,
+            },
+            "tradeIds": trade_ids,
+            "source": "compare",
+        },
+        "reason": (
+            f"{selected['field']}:{selected['value']} "
+            f"changed noticeably between comparison periods."
+        ),
+        "relatedMemoryIds": [],
+        "relatedExperimentIds": [],
+        "source": {
+            "engine": "compare",
+            "computationVersion": compare.get("version"),
+            "dimension": selected["field"],
+            "value": selected["value"],
+        },
+        "supportingTradeIds": trade_ids,
+    }
+
+
 def _prioritize_findings(
     findings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -700,6 +792,7 @@ def build_current_understanding(
     performance_finding = _build_performance_change_finding(compare)
     behavior_finding = _build_behavior_change_finding(compare)
     weakening_finding = _build_weakening_pattern_finding(patterns)
+    relationship_finding = _build_interesting_relationship_finding(compare)
 
     findings = [
         finding
@@ -708,6 +801,7 @@ def build_current_understanding(
             performance_finding,
             behavior_finding,
             weakening_finding,
+            relationship_finding,
         )
         if finding is not None
     ]

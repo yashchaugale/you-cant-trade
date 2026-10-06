@@ -402,6 +402,92 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_build_interesting_relationship_finding_has_traceable_evidence(self):
+        from services.current_understanding import (
+            _build_interesting_relationship_finding,
+        )
+
+        compare = {
+            "version": 1,
+            "changes": {
+                "largestDistributionIncrease": {
+                    "field": "behavior",
+                    "value": "Revenge Trading",
+                    "percentagePointChange": 25.0,
+                    "current": {
+                        "count": 5,
+                        "percentage": 50.0,
+                        "tradeIds": ["t1", "t2", "t3", "t4", "t5"],
+                    },
+                    "previous": {
+                        "count": 2,
+                        "percentage": 25.0,
+                        "tradeIds": ["t6", "t7"],
+                    },
+                },
+                "largestDistributionDecrease": None,
+            },
+        }
+
+        finding = _build_interesting_relationship_finding(compare)
+
+        self.assertEqual(finding["type"], "INTERESTING_RELATIONSHIP")
+        self.assertEqual(finding["status"], "SUPPORTED")
+        self.assertEqual(finding["evidence"]["source"], "compare")
+        self.assertEqual(
+            finding["evidence"]["tradeIds"],
+            ["t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+        )
+        self.assertEqual(
+            finding["evidence"]["metrics"]["percentagePointChange"],
+            25.0,
+        )
+
+    def test_current_understanding_exposes_interesting_relationship_finding(self):
+        from services.current_understanding import build_current_understanding
+
+        compare = {
+            "version": 1,
+            "changes": {
+                "largestDistributionIncrease": {
+                    "field": "behavior",
+                    "value": "Revenge Trading",
+                    "percentagePointChange": 25.0,
+                    "current": {
+                        "count": 5,
+                        "percentage": 50.0,
+                        "tradeIds": ["t1", "t2", "t3", "t4", "t5"],
+                    },
+                    "previous": {
+                        "count": 2,
+                        "percentage": 25.0,
+                        "tradeIds": ["t6", "t7"],
+                    },
+                },
+                "largestDistributionDecrease": None,
+            },
+        }
+
+        result = build_current_understanding(
+            trade_count=7,
+            patterns=[],
+            leaks=[],
+            compare=compare,
+        )
+
+        relationships = [
+            finding
+            for finding in result["findings"]
+            if finding["type"] == "INTERESTING_RELATIONSHIP"
+        ]
+
+        self.assertEqual(len(relationships), 1)
+        self.assertEqual(relationships[0]["status"], "SUPPORTED")
+        self.assertEqual(
+            relationships[0]["evidence"]["metrics"]["percentagePointChange"],
+            25.0,
+        )
+
     def test_prioritize_findings_is_deterministic(self):
         from services.current_understanding import _prioritize_findings
 
