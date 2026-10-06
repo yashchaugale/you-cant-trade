@@ -1,5 +1,6 @@
 import unittest
 
+from services import current_understanding
 from services.current_understanding import build_current_understanding
 
 
@@ -596,6 +597,41 @@ class CurrentUnderstandingTests(unittest.TestCase):
             [finding["priority"] for finding in ranked],
             [1, 2, 3],
         )
+
+
+    def test_verify_findings_rejects_invalid_evidence(self):
+        findings = [
+            {
+                "id": "valid",
+                "evidence": {
+                    "sampleSize": 3,
+                    "metrics": {"averageR": 1.0},
+                    "tradeIds": ["t1", "t2", "t3"],
+                    "source": "pattern_discovery",
+                },
+            },
+            {
+                "id": "missing-source",
+                "evidence": {
+                    "sampleSize": 3,
+                    "metrics": {"averageR": 1.0},
+                    "tradeIds": ["t1", "t2", "t3"],
+                },
+            },
+            {
+                "id": "zero-sample",
+                "evidence": {
+                    "sampleSize": 0,
+                    "metrics": {"averageR": 1.0},
+                    "tradeIds": [],
+                    "source": "compare",
+                },
+            },
+        ]
+
+        verified = current_understanding._verify_findings(findings)
+
+        self.assertEqual([finding["id"] for finding in verified], ["valid"])
 
 
     def test_build_weakening_pattern_finding_has_traceable_evidence(self):

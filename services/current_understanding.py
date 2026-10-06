@@ -797,6 +797,44 @@ def _build_data_gap_finding(
     }
 
 
+def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    verified = []
+
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+
+        evidence = finding.get("evidence")
+        if not isinstance(evidence, dict):
+            continue
+
+        sample_size = evidence.get("sampleSize")
+        metrics = evidence.get("metrics")
+        trade_ids = evidence.get("tradeIds")
+        source = evidence.get("source")
+
+        try:
+            sample_size = int(sample_size)
+        except (TypeError, ValueError):
+            continue
+
+        if sample_size <= 0:
+            continue
+
+        if not isinstance(metrics, dict):
+            continue
+
+        if not isinstance(trade_ids, list):
+            continue
+
+        if not isinstance(source, str) or not source.strip():
+            continue
+
+        verified.append(finding)
+
+    return verified
+
+
 def _prioritize_findings(
     findings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -875,6 +913,7 @@ def build_current_understanding(
         if finding is not None
     ]
 
+    findings = _verify_findings(findings)
     findings = _prioritize_findings(findings)
     surfaced_findings = findings[:3]
 
