@@ -605,6 +605,7 @@ def build_current_understanding(
     ]
 
     findings = _prioritize_findings(findings)
+    surfaced_findings = findings[:3]
 
     if observation is None:
         status = "LEARNING"
@@ -626,5 +627,5 @@ def build_current_understanding(
             else None
         ),
         "recentChange": recent_change,
-        "findings": findings,
+        "findings": surfaced_findings,
     }
