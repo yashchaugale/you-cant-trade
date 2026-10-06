@@ -732,6 +732,71 @@ def _build_interesting_relationship_finding(
     }
 
 
+
+def _build_data_gap_finding(
+    data_health: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not data_health:
+        return None
+
+    missing = data_health.get("missing", {})
+    if not missing:
+        return None
+
+    candidates = [
+        (field, count)
+        for field, count in missing.items()
+        if isinstance(count, (int, float)) and count > 0
+    ]
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda item: (-item[1], item[0])
+    )
+
+    field, missing_count = candidates[0]
+    total_trades = data_health.get("totalTrades", 0)
+
+    return {
+        "id": f"data_gap:{field}",
+        "type": "DATA_GAP",
+        "title": f"{field} is missing from some trades",
+        "summary": (
+            f"{missing_count} of {total_trades} trades "
+            f"are missing {field}."
+        ),
+        "status": "SUPPORTED",
+        "importance": "MODERATE",
+        "confidence": "HIGH",
+        "sampleSize": total_trades,
+        "evidence": {
+            "sampleSize": total_trades,
+            "metrics": {
+                "missingCount": missing_count,
+                "totalTrades": total_trades,
+            },
+            "tradeIds": [],
+            "source": "data_health",
+        },
+        "reason": (
+            f"Data health reports {missing_count} trades "
+            f"without {field}."
+        ),
+        "relatedMemoryIds": [],
+        "relatedExperimentIds": [],
+        "source": {
+            "engine": "data_health",
+            "computationVersion": data_health.get(
+                "computationVersion"
+            ),
+            "dimension": field,
+        },
+        "supportingTradeIds": [],
+    }
+
+
 def _prioritize_findings(
     findings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -763,12 +828,14 @@ def build_current_understanding(
     patterns: list[dict[str, Any]] | None = None,
     leaks: list[dict[str, Any]] | None = None,
     compare: dict[str, Any] | None = None,
+    data_health: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compose deterministic current understanding from existing evidence."""
 
     trade_count = max(0, int(trade_count or 0))
     patterns = patterns if isinstance(patterns, list) else []
     leaks = leaks if isinstance(leaks, list) else []
+    data_health = data_health if isinstance(data_health, dict) else None
 
     if trade_count == 0:
         return {
@@ -793,6 +860,7 @@ def build_current_understanding(
     behavior_finding = _build_behavior_change_finding(compare)
     weakening_finding = _build_weakening_pattern_finding(patterns)
     relationship_finding = _build_interesting_relationship_finding(compare)
+    data_gap_finding = _build_data_gap_finding(data_health)
 
     findings = [
         finding
@@ -802,6 +870,7 @@ def build_current_understanding(
             behavior_finding,
             weakening_finding,
             relationship_finding,
+            data_gap_finding,
         )
         if finding is not None
     ]

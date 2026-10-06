@@ -488,6 +488,75 @@ class CurrentUnderstandingTests(unittest.TestCase):
             25.0,
         )
 
+    def test_build_data_gap_finding_has_traceable_evidence(self):
+        from services.current_understanding import _build_data_gap_finding
+
+        data_health = {
+            "computationVersion": 1,
+            "totalTrades": 20,
+            "missing": {
+                "screenshot": 8,
+                "marketContext": 3,
+                "setup": 2,
+            },
+        }
+
+        finding = _build_data_gap_finding(data_health)
+
+        self.assertEqual(finding["type"], "DATA_GAP")
+        self.assertEqual(finding["status"], "SUPPORTED")
+        self.assertEqual(finding["sampleSize"], 20)
+        self.assertEqual(
+            finding["evidence"]["source"],
+            "data_health",
+        )
+        self.assertEqual(
+            finding["evidence"]["metrics"]["missingCount"],
+            8,
+        )
+        self.assertEqual(
+            finding["source"]["engine"],
+            "data_health",
+        )
+
+    def test_current_understanding_exposes_data_gap_finding(self):
+        from services.current_understanding import build_current_understanding
+
+        data_health = {
+            "computationVersion": 1,
+            "totalTrades": 20,
+            "missing": {
+                "screenshot": 8,
+                "marketContext": 3,
+                "setup": 2,
+            },
+        }
+
+        result = build_current_understanding(
+            trade_count=20,
+            patterns=[],
+            leaks=[],
+            compare=None,
+            data_health=data_health,
+        )
+
+        gaps = [
+            finding
+            for finding in result["findings"]
+            if finding["type"] == "DATA_GAP"
+        ]
+
+        self.assertEqual(len(gaps), 1)
+        self.assertEqual(gaps[0]["status"], "SUPPORTED")
+        self.assertEqual(
+            gaps[0]["evidence"]["metrics"]["missingCount"],
+            8,
+        )
+        self.assertEqual(
+            gaps[0]["source"]["engine"],
+            "data_health",
+        )
+
     def test_prioritize_findings_is_deterministic(self):
         from services.current_understanding import _prioritize_findings
 

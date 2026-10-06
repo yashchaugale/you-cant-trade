@@ -58,6 +58,7 @@ from services.edge_map import build_edge_map
 from services.leak_map import build_leak_map, calculate_leak_trend, detect_leaks
 from services.compare import compare_periods
 from services.current_understanding import build_current_understanding
+from services.data_health import assess_data_health
 from services.storage.base import StorageProviderError
 from services.storage.credentials import clear_token, store_token
 from services.storage.credentials import get_token
@@ -424,12 +425,14 @@ async def current_understanding(trade_ids: str | None = None):
         leaks = build_leak_map(trades)
 
         compare = compare_periods(trades)
+        data_health = assess_data_health(trades)
 
         return build_current_understanding(
             trade_count=len(trades),
             patterns=patterns,
             leaks=leaks,
             compare=compare,
+            data_health=data_health,
         )
     except StorageProviderError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
