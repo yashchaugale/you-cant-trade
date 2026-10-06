@@ -534,6 +534,112 @@ def _build_behavior_change_finding(
 
 
 
+
+def _build_weakening_pattern_finding(
+    patterns: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    candidates = []
+
+    for pattern in patterns:
+        if not isinstance(pattern, dict):
+            continue
+
+        sample_size = int(pattern.get("sampleSize") or 0)
+        average_r = (pattern.get("actualR") or {}).get("average")
+        stability = pattern.get("stability") or {}
+        evidence = pattern.get("evidenceStrength") or {}
+
+        profitable_periods = int(stability.get("profitablePeriods") or 0)
+        losing_periods = int(stability.get("losingPeriods") or 0)
+        observed_periods = int(stability.get("observedPeriods") or 0)
+        periods_with_actual_r = int(stability.get("periodsWithActualR") or 0)
+
+        if (
+            sample_size < 10
+            or average_r is None
+            or float(average_r) >= 0
+            or observed_periods < 3
+            or periods_with_actual_r < 2
+            or losing_periods <= profitable_periods
+            or str(evidence.get("level", "")).upper() == "LOW"
+        ):
+            continue
+
+        candidates.append(pattern)
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda pattern: (
+            abs(float((pattern.get("actualR") or {}).get("average") or 0)),
+            int(pattern.get("sampleSize") or 0),
+            str(pattern.get("dimension") or ""),
+            str(pattern.get("value") or ""),
+        ),
+        reverse=True,
+    )
+
+    pattern = candidates[0]
+
+    dimension = pattern.get("dimension") or "condition"
+    value = pattern.get("value") or "recorded"
+    sample_size = int(pattern.get("sampleSize") or 0)
+    average_r = float((pattern.get("actualR") or {}).get("average"))
+
+    trade_ids = list(pattern.get("sourceTradeIds") or [])
+
+    return {
+        "id": f"WEAKENING_PATTERN::{dimension}::{value}",
+        "type": "WEAKENING_PATTERN",
+        "status": "SUPPORTED",
+        "priority": None,
+        "title": f"{value} pattern is weakening",
+        "summary": (
+            f"{value} is averaging {average_r:+.2f}R across "
+            f"{sample_size} trades, with more losing than profitable "
+            f"observed periods."
+        ),
+        "confidence": (pattern.get("evidenceStrength") or {}).get(
+            "level",
+            "MODERATE",
+        ),
+        "sampleSize": sample_size,
+        "evidence": {
+            "sampleSize": sample_size,
+            "metrics": {
+                "averageR": average_r,
+                "profitablePeriods": int(
+                    (pattern.get("stability") or {}).get(
+                        "profitablePeriods", 0
+                    )
+                ),
+                "losingPeriods": int(
+                    (pattern.get("stability") or {}).get(
+                        "losingPeriods", 0
+                    )
+                ),
+                "observedPeriods": int(
+                    (pattern.get("stability") or {}).get(
+                        "observedPeriods", 0
+                    )
+                ),
+            },
+            "tradeIds": trade_ids,
+            "source": "pattern_discovery",
+        },
+        "source": {
+            "engine": "pattern_discovery",
+            "computationVersion": pattern.get("computationVersion"),
+            "dimension": dimension,
+            "value": value,
+        },
+        "supportingTradeIds": trade_ids,
+        "relatedMemory": None,
+        "relatedExperiment": None,
+    }
+
+
 def _prioritize_findings(
     findings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -593,6 +699,7 @@ def build_current_understanding(
     )
     performance_finding = _build_performance_change_finding(compare)
     behavior_finding = _build_behavior_change_finding(compare)
+    weakening_finding = _build_weakening_pattern_finding(patterns)
 
     findings = [
         finding
@@ -600,6 +707,7 @@ def build_current_understanding(
             pattern_finding,
             performance_finding,
             behavior_finding,
+            weakening_finding,
         )
         if finding is not None
     ]

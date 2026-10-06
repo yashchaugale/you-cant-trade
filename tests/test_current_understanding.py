@@ -356,6 +356,52 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_current_understanding_exposes_weakening_pattern_finding(self):
+        from services.current_understanding import build_current_understanding
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": "Breakout",
+                "sampleSize": 12,
+                "actualR": {"average": -0.75},
+                "sourceTradeIds": ["t1", "t2", "t3"],
+                "stability": {
+                    "observedPeriods": 4,
+                    "profitablePeriods": 1,
+                    "losingPeriods": 3,
+                    "neutralPeriods": 0,
+                    "periodsWithActualR": 3,
+                },
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                },
+                "computationVersion": 3,
+            }
+        ]
+
+        result = build_current_understanding(
+            trade_count=12,
+            patterns=patterns,
+            leaks=[],
+            compare={},
+        )
+
+        weakening = [
+            finding
+            for finding in result["findings"]
+            if finding["type"] == "WEAKENING_PATTERN"
+        ]
+
+        self.assertEqual(len(weakening), 1)
+        self.assertEqual(weakening[0]["status"], "SUPPORTED")
+        self.assertEqual(weakening[0]["sampleSize"], 12)
+        self.assertEqual(
+            weakening[0]["evidence"]["tradeIds"],
+            ["t1", "t2", "t3"],
+        )
+
+
     def test_prioritize_findings_is_deterministic(self):
         from services.current_understanding import _prioritize_findings
 
@@ -394,6 +440,53 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertEqual(
             [finding["priority"] for finding in ranked],
             [1, 2, 3],
+        )
+
+
+    def test_build_weakening_pattern_finding_has_traceable_evidence(self):
+        from services.current_understanding import _build_weakening_pattern_finding
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": "Breakout",
+                "sampleSize": 12,
+                "actualR": {"average": -0.75},
+                "sourceTradeIds": ["t1", "t2", "t3"],
+                "stability": {
+                    "observedPeriods": 4,
+                    "profitablePeriods": 1,
+                    "losingPeriods": 3,
+                    "neutralPeriods": 0,
+                    "periodsWithActualR": 3,
+                },
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                },
+                "computationVersion": 3,
+            }
+        ]
+
+        finding = _build_weakening_pattern_finding(patterns)
+
+        self.assertEqual(finding["type"], "WEAKENING_PATTERN")
+        self.assertEqual(finding["status"], "SUPPORTED")
+        self.assertEqual(finding["sampleSize"], 12)
+        self.assertEqual(
+            finding["evidence"]["tradeIds"],
+            ["t1", "t2", "t3"],
+        )
+        self.assertEqual(
+            finding["evidence"]["source"],
+            "pattern_discovery",
+        )
+        self.assertEqual(
+            finding["source"]["engine"],
+            "pattern_discovery",
+        )
+        self.assertEqual(
+            finding["evidence"]["metrics"]["losingPeriods"],
+            3,
         )
 
 
