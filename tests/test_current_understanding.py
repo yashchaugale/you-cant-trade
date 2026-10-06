@@ -356,5 +356,46 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_prioritize_findings_is_deterministic(self):
+        from services.current_understanding import _prioritize_findings
+
+        findings = [
+            {
+                "id": "BEHAVIOR_CHANGE::LateEntry",
+                "type": "BEHAVIOR_CHANGE",
+                "sampleSize": 6,
+                "priority": None,
+            },
+            {
+                "id": "NEW_PATTERN::setup::Breakout",
+                "type": "NEW_PATTERN",
+                "sampleSize": 10,
+                "priority": None,
+            },
+            {
+                "id": "PERFORMANCE_CHANGE::AVERAGE_R",
+                "type": "PERFORMANCE_CHANGE",
+                "sampleSize": 10,
+                "priority": None,
+            },
+        ]
+
+        ranked = _prioritize_findings(findings)
+
+        self.assertEqual(
+            [finding["type"] for finding in ranked],
+            [
+                "PERFORMANCE_CHANGE",
+                "NEW_PATTERN",
+                "BEHAVIOR_CHANGE",
+            ],
+        )
+
+        self.assertEqual(
+            [finding["priority"] for finding in ranked],
+            [1, 2, 3],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

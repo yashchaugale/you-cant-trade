@@ -533,6 +533,32 @@ def _build_behavior_change_finding(
     }
 
 
+
+def _prioritize_findings(
+    findings: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    type_rank = {
+        "PERFORMANCE_CHANGE": 3,
+        "NEW_PATTERN": 2,
+        "BEHAVIOR_CHANGE": 1,
+    }
+
+    ranked = sorted(
+        findings,
+        key=lambda finding: (
+            type_rank.get(finding.get("type"), 0),
+            finding.get("sampleSize", 0),
+            finding.get("id", ""),
+        ),
+        reverse=True,
+    )
+
+    for index, finding in enumerate(ranked, start=1):
+        finding["priority"] = index
+
+    return ranked
+
+
 def build_current_understanding(
     *,
     trade_count: int,
@@ -568,6 +594,18 @@ def build_current_understanding(
     performance_finding = _build_performance_change_finding(compare)
     behavior_finding = _build_behavior_change_finding(compare)
 
+    findings = [
+        finding
+        for finding in (
+            pattern_finding,
+            performance_finding,
+            behavior_finding,
+        )
+        if finding is not None
+    ]
+
+    findings = _prioritize_findings(findings)
+
     if observation is None:
         status = "LEARNING"
     else:
@@ -588,13 +626,5 @@ def build_current_understanding(
             else None
         ),
         "recentChange": recent_change,
-        "findings": [
-            finding
-            for finding in (
-                pattern_finding,
-                performance_finding,
-                behavior_finding,
-            )
-            if finding is not None
-        ],
+        "findings": findings,
     }
