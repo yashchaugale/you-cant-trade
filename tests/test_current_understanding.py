@@ -633,6 +633,41 @@ class CurrentUnderstandingTests(unittest.TestCase):
 
         self.assertEqual([finding["id"] for finding in verified], ["valid"])
 
+    def test_verify_findings_rejects_mismatched_sample_sizes(self):
+        finding = {
+            "id": "mismatched-sample",
+            "type": "NEW_PATTERN",
+            "sampleSize": 10,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        verified = current_understanding._verify_findings([finding])
+
+        self.assertEqual(verified, [])
+
+
+    def test_verify_findings_accepts_matching_pattern_sample_sizes(self):
+        finding = {
+            "id": "matching-sample",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        verified = current_understanding._verify_findings([finding])
+
+        self.assertEqual([item["id"] for item in verified], ["matching-sample"])
+
 
     def test_build_weakening_pattern_finding_has_traceable_evidence(self):
         from services.current_understanding import _build_weakening_pattern_finding

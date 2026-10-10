@@ -821,6 +821,12 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if sample_size <= 0:
             continue
 
+        if (
+            finding.get("type") == "NEW_PATTERN"
+            and finding.get("sampleSize") != sample_size
+        ):
+            continue
+
         if not isinstance(metrics, dict):
             continue
 
