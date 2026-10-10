@@ -804,6 +804,10 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(finding, dict):
             continue
 
+        finding_id = finding.get("id")
+        if not isinstance(finding_id, str) or not finding_id.strip():
+            continue
+
         finding_type = finding.get("type")
         if not isinstance(finding_type, str) or not finding_type.strip():
             continue
