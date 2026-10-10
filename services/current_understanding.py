@@ -807,6 +807,14 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         "INTERESTING_RELATIONSHIP",
         "DATA_GAP",
     }
+    expected_sources = {
+        "NEW_PATTERN": "pattern_discovery",
+        "PERFORMANCE_CHANGE": "compare",
+        "BEHAVIOR_CHANGE": "compare",
+        "WEAKENING_PATTERN": "pattern_discovery",
+        "INTERESTING_RELATIONSHIP": "compare",
+        "DATA_GAP": "data_health",
+    }
 
     for finding in findings:
         if not isinstance(finding, dict):
@@ -857,6 +865,9 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
 
         if not isinstance(source, str) or not source.strip():
+            continue
+
+        if source != expected_sources[finding_type]:
             continue
 
         verified.append(finding)

@@ -691,6 +691,24 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertEqual(verified, [])
 
 
+    def test_verify_findings_rejects_mismatched_source(self):
+        finding = {
+            "id": "wrong-source",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "compare",
+            },
+        }
+
+        verified = current_understanding._verify_findings([finding])
+
+        self.assertEqual(verified, [])
+
+
     def test_verify_findings_rejects_unknown_type(self):
         finding = {
             "id": "unknown-type",
