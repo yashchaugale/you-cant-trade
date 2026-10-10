@@ -799,6 +799,14 @@ def _build_data_gap_finding(
 
 def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     verified = []
+    supported_types = {
+        "NEW_PATTERN",
+        "PERFORMANCE_CHANGE",
+        "BEHAVIOR_CHANGE",
+        "WEAKENING_PATTERN",
+        "INTERESTING_RELATIONSHIP",
+        "DATA_GAP",
+    }
 
     for finding in findings:
         if not isinstance(finding, dict):
@@ -809,7 +817,7 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
 
         finding_type = finding.get("type")
-        if not isinstance(finding_type, str) or not finding_type.strip():
+        if not isinstance(finding_type, str) or finding_type not in supported_types:
             continue
 
         evidence = finding.get("evidence")

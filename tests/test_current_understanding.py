@@ -691,6 +691,24 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertEqual(verified, [])
 
 
+    def test_verify_findings_rejects_unknown_type(self):
+        finding = {
+            "id": "unknown-type",
+            "type": "MADE_UP_FINDING",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        verified = current_understanding._verify_findings([finding])
+
+        self.assertEqual(verified, [])
+
+
     def test_verify_findings_rejects_missing_id(self):
         finding = {
             "type": "NEW_PATTERN",
