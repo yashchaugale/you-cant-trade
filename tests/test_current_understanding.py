@@ -603,6 +603,8 @@ class CurrentUnderstandingTests(unittest.TestCase):
         findings = [
             {
                 "id": "valid",
+                "type": "NEW_PATTERN",
+                "sampleSize": 3,
                 "evidence": {
                     "sampleSize": 3,
                     "metrics": {"averageR": 1.0},
@@ -612,6 +614,7 @@ class CurrentUnderstandingTests(unittest.TestCase):
             },
             {
                 "id": "missing-source",
+                "type": "NEW_PATTERN",
                 "evidence": {
                     "sampleSize": 3,
                     "metrics": {"averageR": 1.0},
@@ -620,6 +623,7 @@ class CurrentUnderstandingTests(unittest.TestCase):
             },
             {
                 "id": "zero-sample",
+                "type": "NEW_PATTERN",
                 "evidence": {
                     "sampleSize": 0,
                     "metrics": {"averageR": 1.0},
@@ -632,6 +636,23 @@ class CurrentUnderstandingTests(unittest.TestCase):
         verified = current_understanding._verify_findings(findings)
 
         self.assertEqual([finding["id"] for finding in verified], ["valid"])
+
+    def test_verify_findings_rejects_missing_type(self):
+        finding = {
+            "id": "missing-type",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        verified = current_understanding._verify_findings([finding])
+
+        self.assertEqual(verified, [])
+
 
     def test_verify_findings_rejects_mismatched_sample_sizes(self):
         finding = {
