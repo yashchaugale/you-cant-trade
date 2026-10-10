@@ -821,9 +821,7 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         trade_ids = evidence.get("tradeIds")
         source = evidence.get("source")
 
-        try:
-            sample_size = int(sample_size)
-        except (TypeError, ValueError):
+        if isinstance(sample_size, bool) or not isinstance(sample_size, int):
             continue
 
         if sample_size <= 0:

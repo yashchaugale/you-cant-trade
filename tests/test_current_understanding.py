@@ -637,6 +637,24 @@ class CurrentUnderstandingTests(unittest.TestCase):
 
         self.assertEqual([finding["id"] for finding in verified], ["valid"])
 
+    def test_verify_findings_rejects_fractional_sample_size(self):
+        finding = {
+            "id": "fractional-sample",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3.7,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        verified = current_understanding._verify_findings([finding])
+
+        self.assertEqual(verified, [])
+
+
     def test_verify_findings_rejects_missing_id(self):
         finding = {
             "type": "NEW_PATTERN",
