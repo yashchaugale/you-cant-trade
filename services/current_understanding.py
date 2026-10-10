@@ -842,6 +842,12 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(trade_ids, list):
             continue
 
+        if any(
+            not isinstance(trade_id, str) or not trade_id.strip()
+            for trade_id in trade_ids
+        ):
+            continue
+
         if not isinstance(source, str) or not source.strip():
             continue
 
