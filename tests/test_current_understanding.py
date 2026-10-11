@@ -599,6 +599,31 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_prioritize_findings_ranks_every_supported_type(self):
+        findings = [
+            {"id": "data-gap", "type": "DATA_GAP", "sampleSize": 20},
+            {"id": "relationship", "type": "INTERESTING_RELATIONSHIP", "sampleSize": 20},
+            {"id": "behavior", "type": "BEHAVIOR_CHANGE", "sampleSize": 20},
+            {"id": "pattern", "type": "NEW_PATTERN", "sampleSize": 20},
+            {"id": "weakening", "type": "WEAKENING_PATTERN", "sampleSize": 20},
+            {"id": "performance", "type": "PERFORMANCE_CHANGE", "sampleSize": 20},
+        ]
+
+        ranked = current_understanding._prioritize_findings(findings)
+
+        self.assertEqual(
+            [finding["type"] for finding in ranked],
+            [
+                "PERFORMANCE_CHANGE",
+                "WEAKENING_PATTERN",
+                "NEW_PATTERN",
+                "BEHAVIOR_CHANGE",
+                "INTERESTING_RELATIONSHIP",
+                "DATA_GAP",
+            ],
+        )
+
+
     def test_verify_findings_rejects_invalid_evidence(self):
         findings = [
             {

@@ -879,9 +879,12 @@ def _prioritize_findings(
     findings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     type_rank = {
-        "PERFORMANCE_CHANGE": 3,
-        "NEW_PATTERN": 2,
-        "BEHAVIOR_CHANGE": 1,
+        "PERFORMANCE_CHANGE": 5,
+        "WEAKENING_PATTERN": 4,
+        "NEW_PATTERN": 3,
+        "BEHAVIOR_CHANGE": 2,
+        "INTERESTING_RELATIONSHIP": 1,
+        "DATA_GAP": 0,
     }
 
     ranked = sorted(
