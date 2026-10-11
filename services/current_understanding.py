@@ -943,6 +943,18 @@ def build_current_understanding(
     relationship_finding = _build_interesting_relationship_finding(compare)
     data_gap_finding = _build_data_gap_finding(data_health)
 
+    # A pattern cannot be presented as both newly standing out and weakening
+    # in the same understanding snapshot.
+    if pattern_finding is not None and weakening_finding is not None:
+        same_pattern = (
+            pattern_finding["source"].get("dimension")
+            == weakening_finding["source"].get("dimension")
+            and pattern_finding["source"].get("value")
+            == weakening_finding["source"].get("value")
+        )
+        if same_pattern:
+            pattern_finding = None
+
     findings = [
         finding
         for finding in (

@@ -624,6 +624,39 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_same_pattern_is_not_surfaced_as_new_and_weakening(self):
+        result = build_current_understanding(
+            trade_count=12,
+            patterns=[
+                {
+                    "dimension": "setup",
+                    "value": "Breakout",
+                    "sampleSize": 12,
+                    "actualR": {"average": -0.5},
+                    "evidenceStrength": {
+                        "level": "MODERATE",
+                        "actualRCoverage": 1.0,
+                    },
+                    "stability": {
+                        "profitablePeriods": 1,
+                        "losingPeriods": 2,
+                        "observedPeriods": 3,
+                        "periodsWithActualR": 3,
+                    },
+                    "sourceTradeIds": [f"t{i}" for i in range(12)],
+                    "computationVersion": 3,
+                }
+            ],
+        )
+
+        finding_types = [finding["type"] for finding in result["findings"]]
+
+        self.assertFalse(
+            "NEW_PATTERN" in finding_types
+            and "WEAKENING_PATTERN" in finding_types
+        )
+
+
     def test_verify_findings_rejects_invalid_evidence(self):
         findings = [
             {
