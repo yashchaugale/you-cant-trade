@@ -451,6 +451,19 @@ def _build_behavior_change_finding(
     behavior = distributions.get("behavior") or {}
     values = behavior.get("values") or []
 
+    current_sample_size = behavior.get("currentSampleSize", 0)
+    previous_sample_size = behavior.get("previousSampleSize", 0)
+
+    if (
+        not isinstance(current_sample_size, int)
+        or isinstance(current_sample_size, bool)
+        or not isinstance(previous_sample_size, int)
+        or isinstance(previous_sample_size, bool)
+        or current_sample_size < 10
+        or previous_sample_size < 10
+    ):
+        return None
+
     candidates = []
 
     for item in values:
@@ -458,7 +471,11 @@ def _build_behavior_change_finding(
             continue
 
         change = item.get("percentagePointChange")
-        if change is None or change == 0:
+        if (
+            not isinstance(change, (int, float))
+            or isinstance(change, bool)
+            or abs(change) < 0.15
+        ):
             continue
 
         current = item.get("current") or {}
@@ -515,7 +532,7 @@ def _build_behavior_change_finding(
         "confidence": "MODERATE",
         "sampleSize": current.get("count", 0),
         "evidence": {
-            "sampleSize": behavior.get("currentSampleSize", 0),
+            "sampleSize": current_sample_size,
             "metrics": {
                 "currentCount": current_count,
                 "previousCount": previous_count,
