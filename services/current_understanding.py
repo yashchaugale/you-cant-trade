@@ -384,9 +384,11 @@ def _build_performance_change_finding(
     current_count = current.get("actualCount", 0)
     previous_count = previous.get("actualCount", 0)
 
+    # Require enough observations in both periods before presenting
+    # a performance change as a supported finding.
     if (
-        current_count <= 0
-        or previous_count <= 0
+        current_count < 10
+        or previous_count < 10
         or change_r is None
         or current_r is None
         or previous_r is None

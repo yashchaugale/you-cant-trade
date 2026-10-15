@@ -210,6 +210,29 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_performance_change_requires_minimum_sample_in_both_periods(self):
+        from services.current_understanding import _build_performance_change_finding
+
+        compare = {
+            "version": 1,
+            "periods": {
+                "current": {"actualCount": 2, "tradeIds": ["c1", "c2"]},
+                "previous": {"actualCount": 10, "tradeIds": [f"p{i}" for i in range(10)]},
+            },
+            "performance": {
+                "averageR": {
+                    "current": 5.0,
+                    "previous": 0.2,
+                    "change": 4.8,
+                }
+            },
+        }
+
+        finding = _build_performance_change_finding(compare)
+
+        self.assertIsNone(finding)
+
+
     def test_build_performance_change_finding_has_traceable_evidence(self):
         from services.current_understanding import _build_performance_change_finding
 
