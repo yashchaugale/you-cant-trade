@@ -233,6 +233,27 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertIsNone(finding)
 
 
+    def test_performance_change_ignores_negligible_average_r_difference(self):
+        from services.current_understanding import _build_performance_change_finding
+
+        compare = {
+            "version": 1,
+            "periods": {
+                "current": {"actualCount": 10, "tradeIds": [f"c{i}" for i in range(10)]},
+                "previous": {"actualCount": 10, "tradeIds": [f"p{i}" for i in range(10)]},
+            },
+            "performance": {
+                "averageR": {
+                    "current": 0.15,
+                    "previous": 0.0,
+                    "change": 0.15,
+                }
+            },
+        }
+
+        self.assertIsNone(_build_performance_change_finding(compare))
+
+
     def test_build_performance_change_finding_has_traceable_evidence(self):
         from services.current_understanding import _build_performance_change_finding
 

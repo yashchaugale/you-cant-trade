@@ -392,6 +392,7 @@ def _build_performance_change_finding(
         or change_r is None
         or current_r is None
         or previous_r is None
+        or abs(float(change_r)) < 0.3
     ):
         return None
 
