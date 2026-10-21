@@ -672,11 +672,38 @@ def _build_interesting_relationship_finding(
     increase = changes.get("largestDistributionIncrease")
     decrease = changes.get("largestDistributionDecrease")
 
-    candidates = [
-        item
-        for item in (increase, decrease)
-        if item is not None
-    ]
+    candidates = []
+
+    for item in (increase, decrease):
+        if not isinstance(item, dict):
+            continue
+
+        change = item.get("percentagePointChange")
+        current = item.get("current")
+        previous = item.get("previous")
+
+        if (
+            not isinstance(change, (int, float))
+            or isinstance(change, bool)
+            or abs(change) < 0.15
+            or not isinstance(current, dict)
+            or not isinstance(previous, dict)
+        ):
+            continue
+
+        current_count = current.get("count", 0)
+        previous_count = previous.get("count", 0)
+
+        if (
+            not isinstance(current_count, int)
+            or isinstance(current_count, bool)
+            or not isinstance(previous_count, int)
+            or isinstance(previous_count, bool)
+            or current_count + previous_count < 10
+        ):
+            continue
+
+        candidates.append(item)
 
     if not candidates:
         return None

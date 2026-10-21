@@ -460,14 +460,14 @@ class CurrentUnderstandingTests(unittest.TestCase):
                     "value": "Revenge Trading",
                     "percentagePointChange": 25.0,
                     "current": {
-                        "count": 5,
+                        "count": 8,
                         "percentage": 50.0,
-                        "tradeIds": ["t1", "t2", "t3", "t4", "t5"],
+                        "tradeIds": ["t1", "t2", "t3", "t4", "t5", "t8", "t9", "t10"],
                     },
                     "previous": {
-                        "count": 2,
+                        "count": 4,
                         "percentage": 25.0,
-                        "tradeIds": ["t6", "t7"],
+                        "tradeIds": ["t6", "t7", "t11", "t12"],
                     },
                 },
                 "largestDistributionDecrease": None,
@@ -481,7 +481,8 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertEqual(finding["evidence"]["source"], "compare")
         self.assertEqual(
             finding["evidence"]["tradeIds"],
-            ["t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+            ["t1", "t2", "t3", "t4", "t5", "t8", "t9", "t10",
+             "t6", "t7", "t11", "t12"],
         )
         self.assertEqual(
             finding["evidence"]["metrics"]["percentagePointChange"],
@@ -499,14 +500,14 @@ class CurrentUnderstandingTests(unittest.TestCase):
                     "value": "Revenge Trading",
                     "percentagePointChange": 25.0,
                     "current": {
-                        "count": 5,
+                        "count": 8,
                         "percentage": 50.0,
-                        "tradeIds": ["t1", "t2", "t3", "t4", "t5"],
+                        "tradeIds": ["t1", "t2", "t3", "t4", "t5", "t8", "t9", "t10"],
                     },
                     "previous": {
-                        "count": 2,
+                        "count": 4,
                         "percentage": 25.0,
-                        "tradeIds": ["t6", "t7"],
+                        "tradeIds": ["t6", "t7", "t11", "t12"],
                     },
                 },
                 "largestDistributionDecrease": None,
