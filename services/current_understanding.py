@@ -577,22 +577,43 @@ def _build_weakening_pattern_finding(
         if not isinstance(pattern, dict):
             continue
 
-        sample_size = int(pattern.get("sampleSize") or 0)
-        average_r = (pattern.get("actualR") or {}).get("average")
-        stability = pattern.get("stability") or {}
-        evidence = pattern.get("evidenceStrength") or {}
-
-        profitable_periods = int(stability.get("profitablePeriods") or 0)
-        losing_periods = int(stability.get("losingPeriods") or 0)
-        observed_periods = int(stability.get("observedPeriods") or 0)
-        periods_with_actual_r = int(stability.get("periodsWithActualR") or 0)
+        sample_size = pattern.get("sampleSize")
+        actual_r = pattern.get("actualR")
+        average_r = actual_r.get("average") if isinstance(actual_r, dict) else None
+        stability = pattern.get("stability")
+        evidence = pattern.get("evidenceStrength")
 
         if (
-            sample_size < 10
-            or average_r is None
-            or float(average_r) >= 0
+            not isinstance(sample_size, int)
+            or isinstance(sample_size, bool)
+            or sample_size < 10
+            or not isinstance(average_r, (int, float))
+            or isinstance(average_r, bool)
+            or not isinstance(stability, dict)
+            or not isinstance(evidence, dict)
+        ):
+            continue
+
+        period_values = (
+            stability.get("profitablePeriods"),
+            stability.get("losingPeriods"),
+            stability.get("observedPeriods"),
+            stability.get("periodsWithActualR"),
+        )
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in period_values
+        ):
+            continue
+
+        profitable_periods, losing_periods, observed_periods, periods_with_actual_r = period_values
+
+        if (
+            average_r >= 0
             or observed_periods < 3
             or periods_with_actual_r < 2
+            or periods_with_actual_r > observed_periods
+            or profitable_periods + losing_periods > observed_periods
             or losing_periods <= profitable_periods
             or str(evidence.get("level", "")).upper() == "LOW"
         ):
