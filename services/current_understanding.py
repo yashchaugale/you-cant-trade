@@ -276,10 +276,23 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
     current = compare.get("periods", {}).get("current") or {}
     previous = compare.get("periods", {}).get("previous") or {}
 
+    current_count = current.get("actualCount", 0)
+    previous_count = previous.get("actualCount", 0)
+
     if (
-        current.get("actualCount", 0) <= 0
-        or previous.get("actualCount", 0) <= 0
-        or change_r is None
+        not isinstance(current_count, int)
+        or isinstance(current_count, bool)
+        or not isinstance(previous_count, int)
+        or isinstance(previous_count, bool)
+        or current_count < 10
+        or previous_count < 10
+        or not isinstance(current_r, (int, float))
+        or isinstance(current_r, bool)
+        or not isinstance(previous_r, (int, float))
+        or isinstance(previous_r, bool)
+        or not isinstance(change_r, (int, float))
+        or isinstance(change_r, bool)
+        or abs(change_r) < 0.3
     ):
         return None
 

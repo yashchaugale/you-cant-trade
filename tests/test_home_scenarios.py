@@ -281,15 +281,15 @@ def test_home_avoids_claiming_a_pattern_with_too_little_evidence():
 def test_home_reports_a_real_recent_change_when_periods_exist():
     trades = []
 
-    for index in range(10):
+    for index in range(20):
         trades.append(
             make_trade(
                 f"compare-{index}",
                 datetime(2026, 1, 1) + timedelta(days=index),
                 setup=f"CompareSetup-{index}",
                 session=f"CompareSession-{index}",
-                result="WIN" if index >= 5 else "LOSS",
-                actual_r=0.8 if index >= 5 else -0.2,
+                result="WIN" if index >= 10 else "LOSS",
+                actual_r=0.8 if index >= 10 else -0.2,
             )
         )
 
@@ -297,8 +297,8 @@ def test_home_reports_a_real_recent_change_when_periods_exist():
     leaks = build_leak_map(trades)
     compare = compare_periods(
         trades,
-        current_count=5,
-        previous_count=5,
+        current_count=10,
+        previous_count=10,
     )
 
     payload = build_current_understanding(
@@ -309,6 +309,6 @@ def test_home_reports_a_real_recent_change_when_periods_exist():
     )
 
     assert payload["recentChange"] is not None
-    assert "latest 5 trades" in payload["recentChange"]["statement"]
+    assert "latest 10 trades" in payload["recentChange"]["statement"]
     assert "+0.80R" in payload["recentChange"]["statement"]
     assert "-0.20R" in payload["recentChange"]["statement"]
