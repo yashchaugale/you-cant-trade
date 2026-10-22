@@ -702,6 +702,45 @@ class CurrentUnderstandingTests(unittest.TestCase):
         )
 
 
+    def test_verify_findings_rejects_malformed_finding_collections(self):
+        from services.current_understanding import _verify_findings
+
+        self.assertEqual(_verify_findings([None, "invalid", 42]), [])
+
+    def test_verify_findings_rejects_duplicate_trade_ids(self):
+        from services.current_understanding import _verify_findings
+
+        finding = {
+            "id": "duplicate-trades",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t1", "t2"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        self.assertEqual(_verify_findings([finding]), [])
+
+    def test_verify_findings_rejects_non_finite_metric_values(self):
+        from services.current_understanding import _verify_findings
+
+        finding = {
+            "id": "non-finite-metric",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": float("nan")},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        self.assertEqual(_verify_findings([finding]), [])
+
     def test_verify_findings_rejects_invalid_evidence(self):
         findings = [
             {

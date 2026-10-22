@@ -8,6 +8,8 @@ It does not predict, recommend, infer causality, or use AI-generated evidence.
 
 from __future__ import annotations
 
+import math
+
 from typing import Any
 
 
@@ -950,6 +952,23 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
             not isinstance(trade_id, str) or not trade_id.strip()
             for trade_id in trade_ids
         ):
+            continue
+
+        if len(trade_ids) != len(set(trade_ids)):
+            continue
+
+        def contains_non_finite_number(value: Any) -> bool:
+            if isinstance(value, bool) or value is None:
+                return False
+            if isinstance(value, (int, float)):
+                return not math.isfinite(value)
+            if isinstance(value, dict):
+                return any(contains_non_finite_number(item) for item in value.values())
+            if isinstance(value, (list, tuple)):
+                return any(contains_non_finite_number(item) for item in value)
+            return False
+
+        if contains_non_finite_number(metrics):
             continue
 
         if not isinstance(source, str) or not source.strip():
