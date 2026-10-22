@@ -385,44 +385,68 @@ def _build_performance_change_finding(
     if not isinstance(compare, dict):
         return None
 
-    periods = compare.get("periods") or {}
-    current = periods.get("current") or {}
-    previous = periods.get("previous") or {}
+    periods = compare.get("periods")
+    performance = compare.get("performance")
+    if not isinstance(periods, dict) or not isinstance(performance, dict):
+        return None
 
-    performance = compare.get("performance") or {}
-    average_r = performance.get("averageR") or {}
+    current = periods.get("current")
+    previous = periods.get("previous")
+    average_r = performance.get("averageR")
+
+    if (
+        not isinstance(current, dict)
+        or not isinstance(previous, dict)
+        or not isinstance(average_r, dict)
+    ):
+        return None
 
     current_r = average_r.get("current")
     previous_r = average_r.get("previous")
     change_r = average_r.get("change")
+    current_count = current.get("actualCount")
+    previous_count = previous.get("actualCount")
 
-    current_count = current.get("actualCount", 0)
-    previous_count = previous.get("actualCount", 0)
-
-    # Require enough observations in both periods before presenting
-    # a performance change as a supported finding.
     if (
-        current_count < 10
+        not isinstance(current_count, int)
+        or isinstance(current_count, bool)
+        or current_count < 10
+        or not isinstance(previous_count, int)
+        or isinstance(previous_count, bool)
         or previous_count < 10
-        or change_r is None
-        or current_r is None
-        or previous_r is None
-        or abs(float(change_r)) < 0.3
+        or any(
+            not isinstance(value, (int, float))
+            or isinstance(value, bool)
+            or not math.isfinite(value)
+            for value in (current_r, previous_r, change_r)
+        )
+        or abs(change_r) < 0.3
     ):
         return None
 
-    current_trade_ids = list(current.get("tradeIds") or [])
-    previous_trade_ids = list(previous.get("tradeIds") or [])
+    current_trade_ids = current.get("tradeIds", [])
+    previous_trade_ids = previous.get("tradeIds", [])
+
+    if (
+        not isinstance(current_trade_ids, list)
+        or not isinstance(previous_trade_ids, list)
+        or any(
+            not isinstance(trade_id, str) or not trade_id.strip()
+            for trade_id in current_trade_ids + previous_trade_ids
+        )
+        or len(set(current_trade_ids)) != len(current_trade_ids)
+        or len(set(previous_trade_ids)) != len(previous_trade_ids)
+        or set(current_trade_ids) & set(previous_trade_ids)
+    ):
+        return None
+
     trade_ids = current_trade_ids + previous_trade_ids
-
-    direction = "improving" if float(change_r) > 0 else "declining"
-
-    title = f"Recent performance is {direction}"
+    direction = "improving" if change_r > 0 else "declining"
 
     summary = (
         f"Your latest {current_count} trades are averaging "
-        f"{float(current_r):+.2f}R, compared with "
-        f"{float(previous_r):+.2f}R in the previous {previous_count} trades."
+        f"{current_r:+.2f}R, compared with "
+        f"{previous_r:+.2f}R in the previous {previous_count} trades."
     )
 
     return {
@@ -430,7 +454,7 @@ def _build_performance_change_finding(
         "type": "PERFORMANCE_CHANGE",
         "status": "SUPPORTED",
         "priority": None,
-        "title": title,
+        "title": f"Recent performance is {direction}",
         "summary": summary,
         "confidence": "MODERATE",
         "sampleSize": current_count,
@@ -455,26 +479,31 @@ def _build_performance_change_finding(
     }
 
 
-
 def _build_behavior_change_finding(
     compare: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     if not isinstance(compare, dict):
         return None
 
-    distributions = compare.get("distributions") or {}
-    behavior = distributions.get("behavior") or {}
-    values = behavior.get("values") or []
+    distributions = compare.get("distributions")
+    if not isinstance(distributions, dict):
+        return None
 
-    current_sample_size = behavior.get("currentSampleSize", 0)
-    previous_sample_size = behavior.get("previousSampleSize", 0)
+    behavior = distributions.get("behavior")
+    if not isinstance(behavior, dict):
+        return None
+
+    values = behavior.get("values")
+    current_sample_size = behavior.get("currentSampleSize")
+    previous_sample_size = behavior.get("previousSampleSize")
 
     if (
-        not isinstance(current_sample_size, int)
+        not isinstance(values, list)
+        or not isinstance(current_sample_size, int)
         or isinstance(current_sample_size, bool)
+        or current_sample_size < 10
         or not isinstance(previous_sample_size, int)
         or isinstance(previous_sample_size, bool)
-        or current_sample_size < 10
         or previous_sample_size < 10
     ):
         return None
@@ -486,15 +515,50 @@ def _build_behavior_change_finding(
             continue
 
         change = item.get("percentagePointChange")
+        current = item.get("current")
+        previous = item.get("previous")
+        value = item.get("value")
+
         if (
             not isinstance(change, (int, float))
             or isinstance(change, bool)
+            or not math.isfinite(change)
             or abs(change) < 0.15
+            or not isinstance(value, str)
+            or not value.strip()
+            or not isinstance(current, dict)
+            or not isinstance(previous, dict)
         ):
             continue
 
-        current = item.get("current") or {}
-        previous = item.get("previous") or {}
+        current_count = current.get("count")
+        previous_count = previous.get("count")
+
+        if (
+            not isinstance(current_count, int)
+            or isinstance(current_count, bool)
+            or current_count < 0
+            or not isinstance(previous_count, int)
+            or isinstance(previous_count, bool)
+            or previous_count < 0
+        ):
+            continue
+
+        current_trade_ids = current.get("tradeIds", [])
+        previous_trade_ids = previous.get("tradeIds", [])
+
+        if (
+            not isinstance(current_trade_ids, list)
+            or not isinstance(previous_trade_ids, list)
+            or any(
+                not isinstance(trade_id, str) or not trade_id.strip()
+                for trade_id in current_trade_ids + previous_trade_ids
+            )
+            or len(set(current_trade_ids)) != len(current_trade_ids)
+            or len(set(previous_trade_ids)) != len(previous_trade_ids)
+            or set(current_trade_ids) & set(previous_trade_ids)
+        ):
+            continue
 
         candidates.append({
             "item": item,
@@ -509,29 +573,20 @@ def _build_behavior_change_finding(
     candidates.sort(
         key=lambda item: (
             abs(item["change"]),
-            item["current"].get("count", 0),
+            item["current"]["count"],
         ),
         reverse=True,
     )
 
     selected = candidates[0]
     item = selected["item"]
-    value = item.get("value") or "Behavior"
+    value = item["value"]
     change = selected["change"]
-
     current = selected["current"]
     previous = selected["previous"]
-
-    current_count = current.get("count", 0)
-    previous_count = previous.get("count", 0)
-
-    trade_ids = list(
-        dict.fromkeys(
-            list(current.get("tradeIds") or [])
-            + list(previous.get("tradeIds") or [])
-        )
-    )
-
+    current_count = current["count"]
+    previous_count = previous["count"]
+    trade_ids = current.get("tradeIds", []) + previous.get("tradeIds", [])
     direction = "more often" if change > 0 else "less often"
 
     return {
@@ -545,7 +600,7 @@ def _build_behavior_change_finding(
             f"versus {previous_count} times in the previous period."
         ),
         "confidence": "MODERATE",
-        "sampleSize": current.get("count", 0),
+        "sampleSize": current_sample_size,
         "evidence": {
             "sampleSize": current_sample_size,
             "metrics": {
@@ -566,8 +621,6 @@ def _build_behavior_change_finding(
         "relatedMemory": None,
         "relatedExperiment": None,
     }
-
-
 
 
 def _build_weakening_pattern_finding(

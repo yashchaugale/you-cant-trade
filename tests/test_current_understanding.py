@@ -382,7 +382,7 @@ class CurrentUnderstandingTests(unittest.TestCase):
 
         self.assertEqual(finding["type"], "BEHAVIOR_CHANGE")
         self.assertEqual(finding["status"], "SUPPORTED")
-        self.assertEqual(finding["sampleSize"], 6)
+        self.assertEqual(finding["sampleSize"], 10)
         self.assertEqual(
             finding["evidence"]["tradeIds"],
             ["c1", "c2", "p1"],
