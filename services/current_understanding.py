@@ -700,42 +700,69 @@ def _build_weakening_pattern_finding(
 def _build_interesting_relationship_finding(
     compare: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    if not compare:
+    if not isinstance(compare, dict):
         return None
 
-    changes = compare.get("changes", {})
-
-    increase = changes.get("largestDistributionIncrease")
-    decrease = changes.get("largestDistributionDecrease")
+    changes = compare.get("changes")
+    if not isinstance(changes, dict):
+        return None
 
     candidates = []
 
-    for item in (increase, decrease):
+    for item in (
+        changes.get("largestDistributionIncrease"),
+        changes.get("largestDistributionDecrease"),
+    ):
         if not isinstance(item, dict):
             continue
 
         change = item.get("percentagePointChange")
         current = item.get("current")
         previous = item.get("previous")
+        field = item.get("field")
+        value = item.get("value")
 
         if (
             not isinstance(change, (int, float))
             or isinstance(change, bool)
+            or not math.isfinite(change)
             or abs(change) < 0.15
             or not isinstance(current, dict)
             or not isinstance(previous, dict)
+            or not isinstance(field, str)
+            or not field.strip()
+            or not isinstance(value, str)
+            or not value.strip()
         ):
             continue
 
-        current_count = current.get("count", 0)
-        previous_count = previous.get("count", 0)
+        current_count = current.get("count")
+        previous_count = previous.get("count")
 
         if (
             not isinstance(current_count, int)
             or isinstance(current_count, bool)
+            or current_count < 0
             or not isinstance(previous_count, int)
             or isinstance(previous_count, bool)
+            or previous_count < 0
             or current_count + previous_count < 10
+        ):
+            continue
+
+        current_trade_ids = current.get("tradeIds", [])
+        previous_trade_ids = previous.get("tradeIds", [])
+
+        if (
+            not isinstance(current_trade_ids, list)
+            or not isinstance(previous_trade_ids, list)
+            or any(
+                not isinstance(trade_id, str) or not trade_id.strip()
+                for trade_id in current_trade_ids + previous_trade_ids
+            )
+            or len(set(current_trade_ids)) != len(current_trade_ids)
+            or len(set(previous_trade_ids)) != len(previous_trade_ids)
+            or set(current_trade_ids) & set(previous_trade_ids)
         ):
             continue
 
@@ -755,26 +782,16 @@ def _build_interesting_relationship_finding(
     selected = candidates[0]
     current = selected["current"]
     previous = selected["previous"]
-
-    trade_ids = list(
-        dict.fromkeys(
-            current.get("tradeIds", [])
-            + previous.get("tradeIds", [])
-        )
-    )
+    trade_ids = current.get("tradeIds", []) + previous.get("tradeIds", [])
 
     change = selected["percentagePointChange"]
     direction = "more" if change > 0 else "less"
+    sample_size = current["count"] + previous["count"]
 
     return {
-        "id": (
-            f"interesting_relationship:"
-            f"{selected['field']}:{selected['value']}"
-        ),
+        "id": f"interesting_relationship:{selected['field']}:{selected['value']}",
         "type": "INTERESTING_RELATIONSHIP",
-        "title": (
-            f"{selected['value']} is showing up {direction} often"
-        ),
+        "title": f"{selected['value']} is showing up {direction} often",
         "summary": (
             f"{selected['field']} changed by "
             f"{change:+.1f} percentage points between periods."
@@ -782,18 +799,12 @@ def _build_interesting_relationship_finding(
         "status": "SUPPORTED",
         "importance": "MODERATE",
         "confidence": "MODERATE",
-        "sampleSize": (
-            current.get("count", 0)
-            + previous.get("count", 0)
-        ),
+        "sampleSize": sample_size,
         "evidence": {
-            "sampleSize": (
-                current.get("count", 0)
-                + previous.get("count", 0)
-            ),
+            "sampleSize": sample_size,
             "metrics": {
-                "currentCount": current.get("count"),
-                "previousCount": previous.get("count"),
+                "currentCount": current["count"],
+                "previousCount": previous["count"],
                 "percentagePointChange": change,
             },
             "tradeIds": trade_ids,
@@ -813,7 +824,6 @@ def _build_interesting_relationship_finding(
         },
         "supportingTradeIds": trade_ids,
     }
-
 
 
 def _build_data_gap_finding(
