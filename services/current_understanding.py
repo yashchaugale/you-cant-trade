@@ -817,28 +817,37 @@ def _build_interesting_relationship_finding(
 def _build_data_gap_finding(
     data_health: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    if not data_health:
+    if not isinstance(data_health, dict):
         return None
 
-    missing = data_health.get("missing", {})
-    if not missing:
+    total_trades = data_health.get("totalTrades")
+    missing = data_health.get("missing")
+
+    if (
+        not isinstance(total_trades, int)
+        or isinstance(total_trades, bool)
+        or total_trades < 1
+        or not isinstance(missing, dict)
+    ):
         return None
 
     candidates = [
         (field, count)
         for field, count in missing.items()
-        if isinstance(count, (int, float)) and count > 0
+        if (
+            isinstance(field, str)
+            and field.strip()
+            and isinstance(count, int)
+            and not isinstance(count, bool)
+            and 0 < count <= total_trades
+        )
     ]
 
     if not candidates:
         return None
 
-    candidates.sort(
-        key=lambda item: (-item[1], item[0])
-    )
-
+    candidates.sort(key=lambda item: (-item[1], item[0]))
     field, missing_count = candidates[0]
-    total_trades = data_health.get("totalTrades", 0)
 
     return {
         "id": f"data_gap:{field}",
@@ -869,9 +878,7 @@ def _build_data_gap_finding(
         "relatedExperimentIds": [],
         "source": {
             "engine": "data_health",
-            "computationVersion": data_health.get(
-                "computationVersion"
-            ),
+            "computationVersion": data_health.get("computationVersion"),
             "dimension": field,
         },
         "supportingTradeIds": [],
