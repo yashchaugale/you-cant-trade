@@ -644,6 +644,7 @@ def _build_weakening_pattern_finding(
             or sample_size < 10
             or not isinstance(average_r, (int, float))
             or isinstance(average_r, bool)
+            or not math.isfinite(average_r)
             or not isinstance(stability, dict)
             or not isinstance(evidence, dict)
         ):
