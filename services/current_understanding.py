@@ -430,6 +430,8 @@ def _build_performance_change_finding(
     if (
         not isinstance(current_trade_ids, list)
         or not isinstance(previous_trade_ids, list)
+        or len(current_trade_ids) != current_count
+        or len(previous_trade_ids) != previous_count
         or any(
             not isinstance(trade_id, str) or not trade_id.strip()
             for trade_id in current_trade_ids + previous_trade_ids

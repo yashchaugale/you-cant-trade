@@ -101,11 +101,11 @@ class CurrentUnderstandingTests(unittest.TestCase):
                 "periods": {
                     "current": {
                         "actualCount": 10,
-                        "tradeIds": ["c1"],
+                        "tradeIds": [f"c{i}" for i in range(10)],
                     },
                     "previous": {
                         "actualCount": 20,
-                        "tradeIds": ["p1"],
+                        "tradeIds": [f"p{i}" for i in range(20)],
                     },
                 },
                 "performance": {
@@ -121,7 +121,7 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertIsNotNone(result["recentChange"])
         self.assertEqual(
             result["recentChange"]["supportingTradeIds"],
-            ["c1", "p1"],
+            [f"c{i}" for i in range(10)] + [f"p{i}" for i in range(20)],
         )
 
 
@@ -262,11 +262,11 @@ class CurrentUnderstandingTests(unittest.TestCase):
             "periods": {
                 "current": {
                     "actualCount": 10,
-                    "tradeIds": ["c1", "c2"],
+                    "tradeIds": [f"c{i}" for i in range(10)],
                 },
                 "previous": {
                     "actualCount": 20,
-                    "tradeIds": ["p1", "p2"],
+                    "tradeIds": [f"p{i}" for i in range(20)],
                 },
             },
             "performance": {
@@ -285,7 +285,7 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertEqual(finding["sampleSize"], 10)
         self.assertEqual(
             finding["evidence"]["tradeIds"],
-            ["c1", "c2", "p1", "p2"],
+            [f"c{i}" for i in range(10)] + [f"p{i}" for i in range(20)],
         )
         self.assertEqual(
             finding["evidence"]["source"],
@@ -325,11 +325,11 @@ class CurrentUnderstandingTests(unittest.TestCase):
                 "periods": {
                     "current": {
                         "actualCount": 10,
-                        "tradeIds": ["c1"],
+                        "tradeIds": [f"c{i}" for i in range(10)],
                     },
                     "previous": {
                         "actualCount": 20,
-                        "tradeIds": ["p1"],
+                        "tradeIds": [f"p{i}" for i in range(20)],
                     },
                 },
                 "performance": {
