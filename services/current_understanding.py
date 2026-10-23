@@ -897,16 +897,21 @@ def _build_data_gap_finding(
     ):
         return None
 
+    if any(
+        not isinstance(field, str)
+        or not field.strip()
+        or not isinstance(count, int)
+        or isinstance(count, bool)
+        or count < 0
+        or count > total_trades
+        for field, count in missing.items()
+    ):
+        return None
+
     candidates = [
         (field, count)
         for field, count in missing.items()
-        if (
-            isinstance(field, str)
-            and field.strip()
-            and isinstance(count, int)
-            and not isinstance(count, bool)
-            and 0 < count <= total_trades
-        )
+        if count > 0
     ]
 
     if not candidates:
