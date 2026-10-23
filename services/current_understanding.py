@@ -1046,6 +1046,25 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if source != expected_sources[finding_type]:
             continue
 
+        finding_sample_size = finding.get("sampleSize")
+        if finding_sample_size is not None and (
+            isinstance(finding_sample_size, bool)
+            or not isinstance(finding_sample_size, int)
+            or finding_sample_size != sample_size
+        ):
+            continue
+
+        title = finding.get("title")
+        summary = finding.get("summary")
+        if title is not None and (
+            not isinstance(title, str) or not title.strip()
+        ):
+            continue
+        if summary is not None and (
+            not isinstance(summary, str) or not summary.strip()
+        ):
+            continue
+
         verified.append(finding)
 
     return verified
