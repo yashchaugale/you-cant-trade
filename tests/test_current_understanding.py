@@ -364,12 +364,12 @@ class CurrentUnderstandingTests(unittest.TestCase):
                             "current": {
                                 "count": 6,
                                 "percentage": 0.6,
-                                "tradeIds": ["c1", "c2"],
+                                "tradeIds": [f"c{i}" for i in range(6)],
                             },
                             "previous": {
-                                "count": 2,
+                                "count": 4,
                                 "percentage": 0.1,
-                                "tradeIds": ["p1"],
+                                "tradeIds": [f"p{i}" for i in range(4)],
                             },
                             "percentagePointChange": 0.5,
                         }
@@ -385,7 +385,8 @@ class CurrentUnderstandingTests(unittest.TestCase):
         self.assertEqual(finding["sampleSize"], 10)
         self.assertEqual(
             finding["evidence"]["tradeIds"],
-            ["c1", "c2", "p1"],
+            [f"c{i}" for i in range(6)]
+            + [f"p{i}" for i in range(4)],
         )
         self.assertEqual(
             finding["evidence"]["source"],

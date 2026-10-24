@@ -552,6 +552,11 @@ def _build_behavior_change_finding(
         if (
             not isinstance(current_trade_ids, list)
             or not isinstance(previous_trade_ids, list)
+            or len(current_trade_ids) != current_count
+            or len(previous_trade_ids) != previous_count
+            or current_count > current_sample_size
+            or previous_count > previous_sample_size
+            or current_count + previous_count < 10
             or any(
                 not isinstance(trade_id, str) or not trade_id.strip()
                 for trade_id in current_trade_ids + previous_trade_ids
