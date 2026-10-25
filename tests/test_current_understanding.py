@@ -1025,3 +1025,36 @@ class PatternCandidateValidationTests(unittest.TestCase):
         self.assertEqual(candidates[0]["sampleSize"], 5)
         self.assertEqual(candidates[0]["actualRCoverage"], 0.8)
         self.assertEqual(candidates[0]["averageR"], 0.4)
+
+class WatchCandidateValidationTests(unittest.TestCase):
+    def test_select_watch_rejects_malformed_numeric_values(self):
+        from services.current_understanding import _select_watch
+
+        leaks = [
+            {"occurrenceCount": 2.5, "rImpact": -1.0},
+            {"occurrenceCount": True, "rImpact": -1.0},
+            {"occurrenceCount": 2, "rImpact": float("nan")},
+            {"occurrenceCount": 2, "rImpact": float("inf")},
+            {"occurrenceCount": 2, "rImpact": -1.0, "actualRCoverage": float("nan")},
+            {"occurrenceCount": 2, "rImpact": -1.0, "actualRCoverage": float("inf")},
+            {"occurrenceCount": 2, "rImpact": -1.0, "actualRCoverage": -0.1},
+        ]
+
+        self.assertIsNone(_select_watch(leaks))
+
+    def test_select_watch_accepts_valid_negative_r_impact(self):
+        from services.current_understanding import _select_watch
+
+        selected = _select_watch([
+            {
+                "type": "LATE_ENTRY",
+                "occurrenceCount": 4,
+                "rImpact": -1.5,
+                "actualRCoverage": 0.8,
+                "evidenceStrength": "MODERATE",
+            }
+        ])
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["occurrenceCount"], 4)
+        self.assertEqual(selected["rImpact"], -1.5)

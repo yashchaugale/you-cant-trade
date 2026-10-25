@@ -143,15 +143,32 @@ def _select_watch(
         if not isinstance(leak, dict):
             continue
 
-        count = int(_number(leak.get("occurrenceCount"), 0))
-        if count <= 0:
+        raw_count = leak.get("occurrenceCount")
+        if (
+            not isinstance(raw_count, int)
+            or isinstance(raw_count, bool)
+            or raw_count <= 0
+        ):
             continue
+        count = raw_count
 
-        r_impact = (
-            _number(leak.get("rImpact"))
-            if leak.get("rImpact") is not None
-            else None
-        )
+        raw_r_impact = leak.get("rImpact")
+        if (
+            not isinstance(raw_r_impact, (int, float))
+            or isinstance(raw_r_impact, bool)
+            or not math.isfinite(raw_r_impact)
+        ):
+            continue
+        r_impact = float(raw_r_impact)
+
+        raw_coverage = leak.get("actualRCoverage", 0)
+        if (
+            not isinstance(raw_coverage, (int, float))
+            or isinstance(raw_coverage, bool)
+            or not math.isfinite(raw_coverage)
+            or raw_coverage < 0
+        ):
+            continue
 
         # A Home "watch" should describe a measured negative impact.
         # Positive or unknown R impact remains available in Leak Map,
