@@ -1098,3 +1098,33 @@ class SurfacedFindingLimitTests(unittest.TestCase):
             [finding["type"] for finding in surfaced],
             ["PERFORMANCE_CHANGE", "WEAKENING_PATTERN", "NEW_PATTERN"],
         )
+
+
+class FormatChangeFiniteValueTests(unittest.TestCase):
+    def test_format_change_rejects_non_finite_numeric_evidence(self):
+        import math
+        from services.current_understanding import _format_change
+
+        valid = {
+            "periods": {
+                "current": {"actualCount": 10, "tradeIds": ["c1"]},
+                "previous": {"actualCount": 10, "tradeIds": ["p1"]},
+            },
+            "performance": {
+                "averageR": {"current": 0.8, "previous": 0.2, "change": 0.6}
+            },
+        }
+
+        for field in ("current", "previous", "change"):
+            for invalid in (math.nan, math.inf, -math.inf):
+                with self.subTest(field=field, invalid=invalid):
+                    compare = {
+                        **valid,
+                        "performance": {
+                            "averageR": {
+                                **valid["performance"]["averageR"],
+                                field: invalid,
+                            }
+                        },
+                    }
+                    self.assertIsNone(_format_change(compare))
