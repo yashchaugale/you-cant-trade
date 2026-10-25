@@ -1153,7 +1153,12 @@ def build_current_understanding(
 ) -> dict[str, Any]:
     """Compose deterministic current understanding from existing evidence."""
 
-    trade_count = max(0, int(trade_count or 0))
+    if (
+        not isinstance(trade_count, int)
+        or isinstance(trade_count, bool)
+        or trade_count < 0
+    ):
+        raise ValueError("trade_count must be a non-negative integer")
     patterns = patterns if isinstance(patterns, list) else []
     leaks = leaks if isinstance(leaks, list) else []
     data_health = data_health if isinstance(data_health, dict) else None

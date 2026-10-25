@@ -1058,3 +1058,21 @@ class WatchCandidateValidationTests(unittest.TestCase):
         self.assertIsNotNone(selected)
         self.assertEqual(selected["occurrenceCount"], 4)
         self.assertEqual(selected["rImpact"], -1.5)
+
+
+class TradeCountValidationTests(unittest.TestCase):
+    def test_trade_count_rejects_invalid_values(self):
+        for value in (True, 1.5, "invalid", float("nan"), float("inf")):
+            with self.subTest(trade_count=value):
+                with self.assertRaises((TypeError, ValueError)):
+                    build_current_understanding(trade_count=value)
+
+    def test_trade_count_accepts_zero_and_positive_integers(self):
+        self.assertEqual(
+            build_current_understanding(trade_count=0)["status"],
+            "NO_TRADES",
+        )
+        self.assertEqual(
+            build_current_understanding(trade_count=3)["tradeCount"],
+            3,
+        )
