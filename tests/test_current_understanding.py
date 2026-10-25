@@ -989,3 +989,39 @@ class CurrentUnderstandingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PatternCandidateValidationTests(unittest.TestCase):
+    def test_pattern_candidates_reject_malformed_numeric_values(self):
+        from services.current_understanding import _pattern_candidates
+
+        patterns = [
+            {"sampleSize": 3.5, "evidenceStrength": {"level": "MODERATE"}},
+            {"sampleSize": True, "evidenceStrength": {"level": "MODERATE"}},
+            {"sampleSize": 5, "evidenceStrength": {"level": "MODERATE", "actualRCoverage": float("nan")}},
+            {"sampleSize": 5, "evidenceStrength": {"level": "MODERATE", "actualRCoverage": float("inf")}},
+            {"sampleSize": 5, "evidenceStrength": {"level": "MODERATE"}, "actualR": {"average": float("nan")}},
+            {"sampleSize": 5, "evidenceStrength": {"level": "MODERATE"}, "actualR": {"average": float("inf")}},
+            {"sampleSize": 5, "evidenceStrength": {"level": "MODERATE"}, "actualR": {"average": "invalid"}},
+        ]
+
+        self.assertEqual(_pattern_candidates(patterns), [])
+
+    def test_pattern_candidates_accept_valid_numeric_evidence(self):
+        from services.current_understanding import _pattern_candidates
+
+        candidates = _pattern_candidates([
+            {
+                "sampleSize": 5,
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                    "actualRCoverage": 0.8,
+                },
+                "actualR": {"average": 0.4},
+            }
+        ])
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["sampleSize"], 5)
+        self.assertEqual(candidates[0]["actualRCoverage"], 0.8)
+        self.assertEqual(candidates[0]["averageR"], 0.4)

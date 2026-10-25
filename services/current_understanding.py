@@ -57,8 +57,38 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(pattern, dict):
             continue
 
-        sample_size = int(_number(pattern.get("sampleSize"), 0))
-        if sample_size < 3:
+        sample_size = pattern.get("sampleSize")
+        if (
+            not isinstance(sample_size, int)
+            or isinstance(sample_size, bool)
+            or sample_size < 3
+        ):
+            continue
+
+        evidence_strength = pattern.get("evidenceStrength")
+        if evidence_strength is not None and not isinstance(evidence_strength, dict):
+            continue
+        evidence_strength = evidence_strength or {}
+
+        coverage = evidence_strength.get("actualRCoverage", 0)
+        if (
+            not isinstance(coverage, (int, float))
+            or isinstance(coverage, bool)
+            or not math.isfinite(coverage)
+            or coverage < 0
+        ):
+            continue
+
+        actual_r = pattern.get("actualR")
+        if actual_r is not None and not isinstance(actual_r, dict):
+            continue
+
+        average_r = actual_r.get("average") if actual_r else None
+        if average_r is not None and (
+            not isinstance(average_r, (int, float))
+            or isinstance(average_r, bool)
+            or not math.isfinite(average_r)
+        ):
             continue
 
         evidence = _evidence_level(pattern)
@@ -69,17 +99,8 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "evidence": evidence,
                 "evidenceRank": EVIDENCE_ORDER.get(evidence, 0),
                 "sampleSize": sample_size,
-                "actualRCoverage": _number(
-                    (pattern.get("evidenceStrength") or {}).get(
-                        "actualRCoverage",
-                        0,
-                    )
-                ),
-                "averageR": (
-                    _number((pattern.get("actualR") or {}).get("average"))
-                    if (pattern.get("actualR") or {}).get("average") is not None
-                    else None
-                ),
+                "actualRCoverage": float(coverage),
+                "averageR": float(average_r) if average_r is not None else None,
             }
         )
 
