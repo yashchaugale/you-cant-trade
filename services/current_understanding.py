@@ -306,15 +306,25 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(compare, dict):
         return None
 
-    performance = compare.get("performance") or {}
+    performance = compare.get("performance")
+    periods = compare.get("periods")
 
-    average_r = performance.get("averageR") or {}
+    if not isinstance(performance, dict) or not isinstance(periods, dict):
+        return None
+
+    average_r = performance.get("averageR")
+    if not isinstance(average_r, dict):
+        return None
+
+    current = periods.get("current")
+    previous = periods.get("previous")
+
+    if not isinstance(current, dict) or not isinstance(previous, dict):
+        return None
+
     current_r = average_r.get("current")
     previous_r = average_r.get("previous")
     change_r = average_r.get("change")
-
-    current = compare.get("periods", {}).get("current") or {}
-    previous = compare.get("periods", {}).get("previous") or {}
 
     current_count = current.get("actualCount", 0)
     previous_count = previous.get("actualCount", 0)

@@ -1128,3 +1128,34 @@ class FormatChangeFiniteValueTests(unittest.TestCase):
                         },
                     }
                     self.assertIsNone(_format_change(compare))
+
+
+class FormatChangeStructureTests(unittest.TestCase):
+    def test_format_change_rejects_malformed_nested_structures(self):
+        from services.current_understanding import _format_change
+
+        malformed_inputs = [
+            {"performance": "invalid"},
+            {"performance": {"averageR": []}},
+            {"periods": []},
+            {"periods": {"current": "invalid"}},
+            {"periods": {"previous": []}},
+        ]
+
+        for override in malformed_inputs:
+            with self.subTest(override=override):
+                compare = {
+                    "performance": {
+                        "averageR": {
+                            "current": 0.8,
+                            "previous": 0.2,
+                            "change": 0.6,
+                        }
+                    },
+                    "periods": {
+                        "current": {"actualCount": 10, "tradeIds": ["c1"]},
+                        "previous": {"actualCount": 10, "tradeIds": ["p1"]},
+                    },
+                }
+                compare.update(override)
+                self.assertIsNone(_format_change(compare))
