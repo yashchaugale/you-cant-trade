@@ -1076,3 +1076,25 @@ class TradeCountValidationTests(unittest.TestCase):
             build_current_understanding(trade_count=3)["tradeCount"],
             3,
         )
+
+
+class SurfacedFindingLimitTests(unittest.TestCase):
+    def test_current_understanding_surfaces_at_most_three_findings(self):
+        from services.current_understanding import _prioritize_findings
+
+        findings = [
+            {"id": "performance", "type": "PERFORMANCE_CHANGE", "sampleSize": 20},
+            {"id": "weakening", "type": "WEAKENING_PATTERN", "sampleSize": 20},
+            {"id": "pattern", "type": "NEW_PATTERN", "sampleSize": 20},
+            {"id": "behavior", "type": "BEHAVIOR_CHANGE", "sampleSize": 20},
+            {"id": "relationship", "type": "INTERESTING_RELATIONSHIP", "sampleSize": 20},
+            {"id": "gap", "type": "DATA_GAP", "sampleSize": 20},
+        ]
+
+        surfaced = _prioritize_findings(findings)[:3]
+
+        self.assertEqual(len(surfaced), 3)
+        self.assertEqual(
+            [finding["type"] for finding in surfaced],
+            ["PERFORMANCE_CHANGE", "WEAKENING_PATTERN", "NEW_PATTERN"],
+        )
