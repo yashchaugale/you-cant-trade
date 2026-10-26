@@ -1308,3 +1308,24 @@ class PatternDifferenceMetricValidationTests(unittest.TestCase):
         ]
 
         self.assertEqual(_pattern_candidates(patterns), [])
+
+
+class PatternIdentityValidationTests(unittest.TestCase):
+    def test_pattern_candidates_rejects_non_string_identity_fields(self):
+        from services.current_understanding import _pattern_candidates
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": {"unexpected": "object"},
+                "sampleSize": 8,
+                "actualR": {"average": 1.25},
+                "winRate": 0.625,
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                    "actualRCoverage": 1.0,
+                },
+            }
+        ]
+
+        self.assertEqual(_pattern_candidates(patterns), [])

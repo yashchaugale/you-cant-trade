@@ -57,6 +57,14 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(pattern, dict):
             continue
 
+        dimension = pattern.get("dimension")
+        value = pattern.get("value")
+        if (
+            (dimension is not None and not isinstance(dimension, str))
+            or (value is not None and not isinstance(value, str))
+        ):
+            continue
+
         sample_size = pattern.get("sampleSize")
         if (
             not isinstance(sample_size, int)
