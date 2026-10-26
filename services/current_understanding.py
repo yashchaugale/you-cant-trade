@@ -115,6 +115,20 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if difference is not None and not isinstance(difference, dict):
             continue
 
+        if isinstance(difference, dict):
+            malformed_difference = False
+            for metric in ("winRate", "averageR", "expectancy"):
+                value = difference.get(metric)
+                if value is not None and (
+                    not isinstance(value, (int, float))
+                    or isinstance(value, bool)
+                    or not math.isfinite(value)
+                ):
+                    malformed_difference = True
+                    break
+            if malformed_difference:
+                continue
+
         evidence = _evidence_level(pattern)
 
         candidates.append(
