@@ -111,6 +111,10 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ):
             continue
 
+        difference = pattern.get("difference")
+        if difference is not None and not isinstance(difference, dict):
+            continue
+
         evidence = _evidence_level(pattern)
 
         candidates.append(

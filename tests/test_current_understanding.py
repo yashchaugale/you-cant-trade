@@ -1258,3 +1258,26 @@ class PatternTradeIdValidationTests(unittest.TestCase):
         ]
 
         self.assertEqual(_pattern_candidates(patterns), [])
+
+
+class PatternDifferenceValidationTests(unittest.TestCase):
+    def test_pattern_candidates_rejects_malformed_difference(self):
+        from services.current_understanding import _pattern_candidates
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": "Breakout",
+                "sampleSize": 8,
+                "actualR": {"average": 1.25},
+                "winRate": 0.625,
+                "difference": "invalid",
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                    "actualRCoverage": 1.0,
+                },
+                "sourceTradeIds": ["t1", "t2", "t3"],
+            }
+        ]
+
+        self.assertEqual(_pattern_candidates(patterns), [])
