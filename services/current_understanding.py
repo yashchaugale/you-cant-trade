@@ -78,6 +78,14 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
         evidence_strength = evidence_strength or {}
 
+        level = evidence_strength.get("level")
+        if level is not None:
+            if not isinstance(level, str):
+                continue
+            normalized_level = level.strip().upper()
+            if normalized_level not in EVIDENCE_ORDER and normalized_level != "LOW":
+                continue
+
         coverage = evidence_strength.get("actualRCoverage", 0)
         if (
             not isinstance(coverage, (int, float))

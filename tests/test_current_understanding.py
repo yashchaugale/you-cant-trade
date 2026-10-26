@@ -1329,3 +1329,24 @@ class PatternIdentityValidationTests(unittest.TestCase):
         ]
 
         self.assertEqual(_pattern_candidates(patterns), [])
+
+
+class PatternEvidenceLevelValidationTests(unittest.TestCase):
+    def test_pattern_candidates_rejects_unknown_evidence_level(self):
+        from services.current_understanding import _pattern_candidates
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": "Breakout",
+                "sampleSize": 8,
+                "actualR": {"average": 1.25},
+                "winRate": 0.625,
+                "evidenceStrength": {
+                    "level": "SUPER_STRONG",
+                    "actualRCoverage": 1.0,
+                },
+            }
+        ]
+
+        self.assertEqual(_pattern_candidates(patterns), [])
