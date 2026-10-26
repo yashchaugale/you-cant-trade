@@ -100,6 +100,17 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ):
             continue
 
+        trade_ids = pattern.get("sourceTradeIds")
+        if trade_ids is not None and (
+            not isinstance(trade_ids, list)
+            or any(
+                not isinstance(trade_id, str) or not trade_id.strip()
+                for trade_id in trade_ids
+            )
+            or len(set(trade_ids)) != len(trade_ids)
+        ):
+            continue
+
         evidence = _evidence_level(pattern)
 
         candidates.append(
