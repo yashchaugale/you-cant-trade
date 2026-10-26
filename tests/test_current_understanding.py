@@ -1159,3 +1159,32 @@ class FormatChangeStructureTests(unittest.TestCase):
                 }
                 compare.update(override)
                 self.assertIsNone(_format_change(compare))
+
+
+class FormatChangeTradeIdTests(unittest.TestCase):
+    def test_format_change_rejects_invalid_trade_id_evidence(self):
+        from services.current_understanding import _format_change
+
+        def make_compare(current_ids, previous_ids, current_count=10, previous_count=10):
+            return {
+                "performance": {
+                    "averageR": {"current": 0.8, "previous": 0.2, "change": 0.6}
+                },
+                "periods": {
+                    "current": {"actualCount": current_count, "tradeIds": current_ids},
+                    "previous": {"actualCount": previous_count, "tradeIds": previous_ids},
+                },
+            }
+
+        invalid_cases = [
+            make_compare("not-a-list", [f"p{i}" for i in range(10)]),
+            make_compare([f"c{i}" for i in range(10)], "not-a-list"),
+            make_compare([""] + [f"c{i}" for i in range(9)], [f"p{i}" for i in range(10)]),
+            make_compare(["c1"] * 10, [f"p{i}" for i in range(10)]),
+            make_compare([f"c{i}" for i in range(9)], [f"p{i}" for i in range(10)]),
+            make_compare([f"t{i}" for i in range(10)], [f"t{i}" for i in range(10)]),
+        ]
+
+        for compare in invalid_cases:
+            with self.subTest(compare=compare):
+                self.assertIsNone(_format_change(compare))

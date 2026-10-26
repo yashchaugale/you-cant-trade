@@ -349,6 +349,24 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
     ):
         return None
 
+    current_trade_ids = current.get("tradeIds")
+    previous_trade_ids = previous.get("tradeIds")
+
+    if (
+        not isinstance(current_trade_ids, list)
+        or not isinstance(previous_trade_ids, list)
+        or len(current_trade_ids) != current_count
+        or len(previous_trade_ids) != previous_count
+        or any(
+            not isinstance(trade_id, str) or not trade_id.strip()
+            for trade_id in current_trade_ids + previous_trade_ids
+        )
+        or len(set(current_trade_ids)) != len(current_trade_ids)
+        or len(set(previous_trade_ids)) != len(previous_trade_ids)
+        or set(current_trade_ids) & set(previous_trade_ids)
+    ):
+        return None
+
     statement = (
         f"Your latest {current.get('actualCount')} trades are averaging "
         f"{float(current_r):+.2f}R, up from "
@@ -358,8 +376,7 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
     return {
         "type": "COMPARE",
         "statement": statement,
-        "supportingTradeIds": list(current.get("tradeIds") or [])
-        + list(previous.get("tradeIds") or []),
+        "supportingTradeIds": current_trade_ids + previous_trade_ids,
         "source": {
             "version": compare.get("version"),
             "currentCount": current.get("actualCount"),
