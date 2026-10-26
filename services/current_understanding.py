@@ -345,6 +345,12 @@ def _format_change(compare: dict[str, Any] | None) -> dict[str, Any] | None:
         or not math.isfinite(current_r)
         or not math.isfinite(previous_r)
         or not math.isfinite(change_r)
+        or not math.isclose(
+            change_r,
+            current_r - previous_r,
+            rel_tol=1e-9,
+            abs_tol=1e-9,
+        )
         or abs(change_r) < 0.3
     ):
         return None

@@ -1188,3 +1188,30 @@ class FormatChangeTradeIdTests(unittest.TestCase):
         for compare in invalid_cases:
             with self.subTest(compare=compare):
                 self.assertIsNone(_format_change(compare))
+
+
+class FormatChangeConsistencyTests(unittest.TestCase):
+    def test_format_change_rejects_inconsistent_change_metric(self):
+        from services.current_understanding import _format_change
+
+        compare = {
+            "performance": {
+                "averageR": {
+                    "current": 0.8,
+                    "previous": 0.2,
+                    "change": 1.5,
+                }
+            },
+            "periods": {
+                "current": {
+                    "actualCount": 10,
+                    "tradeIds": [f"c{i}" for i in range(10)],
+                },
+                "previous": {
+                    "actualCount": 10,
+                    "tradeIds": [f"p{i}" for i in range(10)],
+                },
+            },
+        }
+
+        self.assertIsNone(_format_change(compare))
