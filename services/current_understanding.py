@@ -91,6 +91,15 @@ def _pattern_candidates(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ):
             continue
 
+        win_rate = pattern.get("winRate")
+        if win_rate is not None and (
+            not isinstance(win_rate, (int, float))
+            or isinstance(win_rate, bool)
+            or not math.isfinite(win_rate)
+            or not 0 <= win_rate <= 1
+        ):
+            continue
+
         evidence = _evidence_level(pattern)
 
         candidates.append(

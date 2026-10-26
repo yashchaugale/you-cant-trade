@@ -1215,3 +1215,24 @@ class FormatChangeConsistencyTests(unittest.TestCase):
         }
 
         self.assertIsNone(_format_change(compare))
+
+
+class PatternWinRateValidationTests(unittest.TestCase):
+    def test_pattern_candidates_rejects_malformed_win_rate(self):
+        from services.current_understanding import _pattern_candidates
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": "Breakout",
+                "sampleSize": 8,
+                "actualR": {"average": 1.25},
+                "winRate": "invalid",
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                    "actualRCoverage": 1.0,
+                },
+            }
+        ]
+
+        self.assertEqual(_pattern_candidates(patterns), [])
