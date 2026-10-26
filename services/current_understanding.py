@@ -1122,6 +1122,10 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(finding_type, str) or finding_type not in supported_types:
             continue
 
+        status = finding.get("status")
+        if status is not None and status != "SUPPORTED":
+            continue
+
         evidence = finding.get("evidence")
         if not isinstance(evidence, dict):
             continue

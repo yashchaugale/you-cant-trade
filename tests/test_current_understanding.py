@@ -1350,3 +1350,23 @@ class PatternEvidenceLevelValidationTests(unittest.TestCase):
         ]
 
         self.assertEqual(_pattern_candidates(patterns), [])
+
+
+class FindingStatusValidationTests(unittest.TestCase):
+    def test_verify_findings_rejects_invalid_status(self):
+        from services.current_understanding import _verify_findings
+
+        finding = {
+            "id": "invalid-status",
+            "type": "NEW_PATTERN",
+            "status": "PREDICTED",
+            "sampleSize": 3,
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        self.assertEqual(_verify_findings([finding]), [])
