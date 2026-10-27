@@ -23,7 +23,7 @@ from trading data, without relying on an LLM.
 - [ ] Verify unsupported findings are safely rejected
 
 ## 4. Reliability and Traceability
-- [ ] Verify evidence source and trade-ID traceability
+- [x] Verify evidence source and trade-ID traceability
 - [ ] Verify missing or insufficient data handling
 - [ ] Verify deterministic outputs for identical inputs
 - [ ] Test interactions between finding types

@@ -708,6 +708,40 @@ class CurrentUnderstandingTests(unittest.TestCase):
 
         self.assertEqual(_verify_findings([None, "invalid", 42]), [])
 
+    def test_verify_findings_rejects_mismatched_supporting_trade_ids(self):
+        finding = {
+            "id": "mismatched-supporting-trades",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "supportingTradeIds": ["t1", "t2", "t4"],
+            "source": {"engine": "pattern_discovery"},
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        self.assertEqual(current_understanding._verify_findings([finding]), [])
+
+    def test_verify_findings_rejects_mismatched_source_engine(self):
+        finding = {
+            "id": "mismatched-source-engine",
+            "type": "NEW_PATTERN",
+            "sampleSize": 3,
+            "supportingTradeIds": ["t1", "t2", "t3"],
+            "source": {"engine": "compare"},
+            "evidence": {
+                "sampleSize": 3,
+                "metrics": {"averageR": 1.0},
+                "tradeIds": ["t1", "t2", "t3"],
+                "source": "pattern_discovery",
+            },
+        }
+
+        self.assertEqual(current_understanding._verify_findings([finding]), [])
+
     def test_verify_findings_rejects_duplicate_trade_ids(self):
         from services.current_understanding import _verify_findings
 

@@ -1220,6 +1220,27 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if source != expected_sources[finding_type]:
             continue
 
+        supporting_trade_ids = finding.get("supportingTradeIds")
+        if supporting_trade_ids is not None:
+            if (
+                not isinstance(supporting_trade_ids, list)
+                or any(
+                    not isinstance(trade_id, str) or not trade_id.strip()
+                    for trade_id in supporting_trade_ids
+                )
+                or len(supporting_trade_ids) != len(set(supporting_trade_ids))
+                or supporting_trade_ids != trade_ids
+            ):
+                continue
+
+        source_details = finding.get("source")
+        if source_details is not None:
+            if not isinstance(source_details, dict):
+                continue
+            source_engine = source_details.get("engine")
+            if source_engine is not None and source_engine != source:
+                continue
+
         finding_sample_size = finding.get("sampleSize")
         if finding_sample_size is not None and (
             isinstance(finding_sample_size, bool)
