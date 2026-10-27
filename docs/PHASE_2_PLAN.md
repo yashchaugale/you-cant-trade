@@ -11,7 +11,7 @@ from trading data, without relying on an LLM.
 ## 2. Finding Generation
 - [ ] Verify all six finding types
 - [ ] Verify finding prioritization
-- [ ] Verify maximum of three surfaced findings
+- [x] Verify maximum of three surfaced findings
 - [ ] Verify findings are concise and evidence-backed
 
 ## 3. Evidence and Validation
