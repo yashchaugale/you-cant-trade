@@ -1116,12 +1116,27 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         "DATA_GAP": "data_health",
     }
 
+    finding_ids = [
+        finding.get("id")
+        for finding in findings
+        if isinstance(finding, dict)
+        and isinstance(finding.get("id"), str)
+        and finding.get("id").strip()
+    ]
+    duplicate_finding_ids = {
+        finding_id
+        for finding_id in finding_ids
+        if finding_ids.count(finding_id) > 1
+    }
+
     for finding in findings:
         if not isinstance(finding, dict):
             continue
 
         finding_id = finding.get("id")
         if not isinstance(finding_id, str) or not finding_id.strip():
+            continue
+        if finding_id in duplicate_finding_ids:
             continue
 
         finding_type = finding.get("type")

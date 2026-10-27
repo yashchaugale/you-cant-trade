@@ -1390,3 +1390,30 @@ class WatchEvidenceValidationTests(unittest.TestCase):
                     }
                 ])
                 self.assertIsNone(selected)
+
+
+class DuplicateFindingIdValidationTests(unittest.TestCase):
+    def test_verify_findings_rejects_duplicate_finding_ids(self):
+        from services.current_understanding import _verify_findings
+
+        def make_finding(finding_id):
+            return {
+                "id": finding_id,
+                "type": "NEW_PATTERN",
+                "sampleSize": 3,
+                "evidence": {
+                    "sampleSize": 3,
+                    "metrics": {"averageR": 1.0},
+                    "tradeIds": ["t1", "t2", "t3"],
+                    "source": "pattern_discovery",
+                },
+            }
+
+        findings = [
+            make_finding("duplicate-id"),
+            make_finding("duplicate-id"),
+        ]
+
+        verified = _verify_findings(findings)
+
+        self.assertEqual(verified, [])
