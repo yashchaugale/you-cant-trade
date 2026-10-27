@@ -1370,3 +1370,23 @@ class FindingStatusValidationTests(unittest.TestCase):
         }
 
         self.assertEqual(_verify_findings([finding]), [])
+
+
+class WatchEvidenceValidationTests(unittest.TestCase):
+    def test_select_watch_rejects_invalid_evidence_strength(self):
+        from services.current_understanding import _select_watch
+
+        invalid_values = [[], {}, 123, "UNKNOWN"]
+
+        for evidence_strength in invalid_values:
+            with self.subTest(evidence_strength=evidence_strength):
+                selected = _select_watch([
+                    {
+                        "type": "LATE_ENTRY",
+                        "occurrenceCount": 4,
+                        "rImpact": -1.5,
+                        "actualRCoverage": 0.8,
+                        "evidenceStrength": evidence_strength,
+                    }
+                ])
+                self.assertIsNone(selected)

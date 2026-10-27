@@ -230,7 +230,13 @@ def _select_watch(
         if r_impact is None or r_impact >= 0:
             continue
 
-        evidence = str(leak.get("evidenceStrength") or "INSUFFICIENT").upper()
+        raw_evidence = leak.get("evidenceStrength", "INSUFFICIENT")
+        if not isinstance(raw_evidence, str):
+            continue
+
+        evidence = raw_evidence.strip().upper()
+        if evidence not in EVIDENCE_ORDER:
+            continue
 
         candidates.append(
             {
