@@ -1197,7 +1197,21 @@ def _verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 return any(contains_non_finite_number(item) for item in value)
             return False
 
-        if contains_non_finite_number(metrics):
+        def has_invalid_metric(value: Any) -> bool:
+            if value is None:
+                return False
+            if isinstance(value, bool):
+                return True
+            if isinstance(value, (int, float)):
+                return not math.isfinite(value)
+            if isinstance(value, dict):
+                return any(
+                    not isinstance(key, str) or has_invalid_metric(item)
+                    for key, item in value.items()
+                )
+            return True
+
+        if any(has_invalid_metric(value) for value in metrics.values()):
             continue
 
         if not isinstance(source, str) or not source.strip():

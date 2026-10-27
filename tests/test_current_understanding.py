@@ -1417,3 +1417,24 @@ class DuplicateFindingIdValidationTests(unittest.TestCase):
         verified = _verify_findings(findings)
 
         self.assertEqual(verified, [])
+
+
+class FindingMetricTypeValidationTests(unittest.TestCase):
+    def test_verify_findings_rejects_non_numeric_metric_values(self):
+        from services.current_understanding import _verify_findings
+
+        for invalid_metric in ("not-a-number", [], {"unexpected": "value"}):
+            with self.subTest(invalid_metric=invalid_metric):
+                finding = {
+                    "id": "invalid-metric-type",
+                    "type": "NEW_PATTERN",
+                    "sampleSize": 3,
+                    "evidence": {
+                        "sampleSize": 3,
+                        "metrics": {"averageR": invalid_metric},
+                        "tradeIds": ["t1", "t2", "t3"],
+                        "source": "pattern_discovery",
+                    },
+                }
+
+                self.assertEqual(_verify_findings([finding]), [])
