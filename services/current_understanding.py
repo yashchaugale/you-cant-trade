@@ -181,6 +181,8 @@ def _select_observation(
             item["actualRCoverage"],
             item["sampleSize"],
             abs(item["averageR"]) if item["averageR"] is not None else -1,
+            str(item["pattern"].get("dimension") or ""),
+            str(item["pattern"].get("value") or ""),
         ),
         reverse=True,
     )
@@ -259,6 +261,8 @@ def _select_watch(
             item["occurrenceCount"],
             item["actualRCoverage"],
             abs(item["rImpact"]) if item["rImpact"] is not None else -1,
+            str(item["leak"].get("type") or ""),
+            str(item["leak"].get("label") or ""),
         ),
         reverse=True,
     )

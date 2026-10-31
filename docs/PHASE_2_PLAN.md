@@ -25,12 +25,12 @@ from trading data, without relying on an LLM.
 ## 4. Reliability and Traceability
 - [x] Verify evidence source and trade-ID traceability
 - [x] Verify missing or insufficient data handling (DATA_GAP validation and coexistence)
-- [ ] Verify deterministic outputs for identical inputs
+- [x] Verify deterministic outputs for identical inputs and reordered pattern/leak inputs
 - [x] Test interactions between finding types (NEW_PATTERN + DATA_GAP)
 
 ## 5. Final Verification
-- [x] Run focused Understanding Engine tests (62 passed)
-- [x] Run full test suite (341 passed, 1 warning)
+- [x] Run focused Understanding Engine tests (66 passed)
+- [x] Run full test suite (345 passed, 1 warning)
 - [x] Resolve failures and document remaining warnings (no failures; existing Starlette/httpx deprecation warning)
 - [ ] Document behavior, limitations, and requirements
 - [ ] Commit and push final changes
@@ -42,11 +42,11 @@ important edge cases are covered, tests pass, documentation is
 updated, and the final changes are committed and pushed.
 
 ## Latest Verified Baseline
-- Focused Understanding Engine tests: 62 passed
-- Full suite: 341 passed, 1 warning
+- Focused Understanding Engine tests: 66 passed
+- Full suite: 345 passed, 1 warning
 - Remaining warning: Starlette deprecation warning for httpx usage in TestClient
-- Latest committed baseline: 5932319 (Validate finding evidence consistency)
-- Current verification includes uncommitted DATA_GAP validation and coexistence tests.
+- Latest committed baseline: 084654e (Test data gap finding validation)
+- Current verification includes uncommitted deterministic selection fixes and regression tests.
 
 Note: Only check off items after verification. The initial audit
 determines which unchecked items are actual gaps.

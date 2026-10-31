@@ -1573,3 +1573,184 @@ class DataGapCoexistenceTests(unittest.TestCase):
 
         self.assertIn("NEW_PATTERN", finding_types)
         self.assertIn("DATA_GAP", finding_types)
+
+
+class CurrentUnderstandingDeterminismTests(unittest.TestCase):
+    def test_identical_inputs_produce_identical_complete_outputs(self):
+        inputs = {
+            "trade_count": 20,
+            "patterns": [
+                {
+                    "dimension": "setup",
+                    "value": "Breakout",
+                    "sampleSize": 8,
+                    "actualR": {"average": 1.25},
+                    "winRate": 0.625,
+                    "evidenceStrength": {
+                        "level": "MODERATE",
+                        "actualRCoverage": 1.0,
+                    },
+                    "sourceTradeIds": [
+                        "t1", "t2", "t3", "t4",
+                        "t5", "t6", "t7", "t8",
+                    ],
+                    "computationVersion": 3,
+                }
+            ],
+            "leaks": [
+                {
+                    "type": "LATE_ENTRY",
+                    "label": "Late entries",
+                    "occurrenceCount": 6,
+                    "rImpact": -4.0,
+                    "actualRCoverage": 1.0,
+                    "evidenceStrength": "MODERATE",
+                    "supportingTradeIds": ["t9", "t10"],
+                }
+            ],
+            "data_health": {
+                "totalTrades": 20,
+                "missing": {"screenshot": 8},
+            },
+        }
+
+        first = build_current_understanding(**inputs)
+        second = build_current_understanding(**inputs)
+
+        self.assertEqual(first, second)
+
+
+class SelectionOrderDeterminismTests(unittest.TestCase):
+    def test_equal_ranked_patterns_select_independently_of_input_order(self):
+        from services.current_understanding import _select_observation
+
+        patterns = [
+            {
+                "dimension": "setup",
+                "value": "Breakout",
+                "sampleSize": 8,
+                "actualR": {"average": 1.0},
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                    "actualRCoverage": 1.0,
+                },
+                "sourceTradeIds": ["t1", "t2", "t3"],
+            },
+            {
+                "dimension": "session",
+                "value": "London",
+                "sampleSize": 8,
+                "actualR": {"average": 1.0},
+                "evidenceStrength": {
+                    "level": "MODERATE",
+                    "actualRCoverage": 1.0,
+                },
+                "sourceTradeIds": ["t4", "t5", "t6"],
+            },
+        ]
+
+        first = _select_observation(patterns)
+        second = _select_observation(list(reversed(patterns)))
+
+        self.assertEqual(
+            first["pattern"]["dimension"],
+            second["pattern"]["dimension"],
+        )
+        self.assertEqual(
+            first["pattern"]["value"],
+            second["pattern"]["value"],
+        )
+
+    def test_equal_ranked_leaks_select_independently_of_input_order(self):
+        from services.current_understanding import _select_watch
+
+        leaks = [
+            {
+                "type": "LATE_ENTRY",
+                "label": "Late entries",
+                "occurrenceCount": 6,
+                "rImpact": -4.0,
+                "actualRCoverage": 1.0,
+                "evidenceStrength": "MODERATE",
+                "supportingTradeIds": ["t1", "t2"],
+            },
+            {
+                "type": "REVENGE_TRADING",
+                "label": "Revenge trading",
+                "occurrenceCount": 6,
+                "rImpact": -4.0,
+                "actualRCoverage": 1.0,
+                "evidenceStrength": "MODERATE",
+                "supportingTradeIds": ["t3", "t4"],
+            },
+        ]
+
+        first = _select_watch(leaks)
+        second = _select_watch(list(reversed(leaks)))
+
+        self.assertEqual(
+            first["leak"]["type"],
+            second["leak"]["type"],
+        )
+
+
+    def test_complete_output_is_independent_of_pattern_and_leak_order(self):
+        inputs = {
+            "trade_count": 20,
+            "patterns": [
+                {
+                    "dimension": "setup",
+                    "value": "Breakout",
+                    "sampleSize": 8,
+                    "actualR": {"average": 1.0},
+                    "evidenceStrength": {
+                        "level": "MODERATE",
+                        "actualRCoverage": 1.0,
+                    },
+                    "sourceTradeIds": ["t1", "t2", "t3"],
+                },
+                {
+                    "dimension": "session",
+                    "value": "London",
+                    "sampleSize": 8,
+                    "actualR": {"average": 1.0},
+                    "evidenceStrength": {
+                        "level": "MODERATE",
+                        "actualRCoverage": 1.0,
+                    },
+                    "sourceTradeIds": ["t4", "t5", "t6"],
+                },
+            ],
+            "leaks": [
+                {
+                    "type": "LATE_ENTRY",
+                    "label": "Late entries",
+                    "occurrenceCount": 6,
+                    "rImpact": -4.0,
+                    "actualRCoverage": 1.0,
+                    "evidenceStrength": "MODERATE",
+                    "supportingTradeIds": ["t7", "t8"],
+                },
+                {
+                    "type": "REVENGE_TRADING",
+                    "label": "Revenge trading",
+                    "occurrenceCount": 6,
+                    "rImpact": -4.0,
+                    "actualRCoverage": 1.0,
+                    "evidenceStrength": "MODERATE",
+                    "supportingTradeIds": ["t9", "t10"],
+                },
+            ],
+        }
+
+        original = build_current_understanding(**inputs)
+
+        reordered = build_current_understanding(
+            **{
+                **inputs,
+                "patterns": list(reversed(inputs["patterns"])),
+                "leaks": list(reversed(inputs["leaks"])),
+            }
+        )
+
+        self.assertEqual(original, reordered)
