@@ -1480,3 +1480,96 @@ class FindingMetricTypeValidationTests(unittest.TestCase):
                 }
 
                 self.assertEqual(_verify_findings([finding]), [])
+
+
+class DataGapValidationTests(unittest.TestCase):
+    def test_equal_missing_counts_select_alphabetically(self):
+        from services.current_understanding import _build_data_gap_finding
+
+        data_health = {
+            "computationVersion": 1,
+            "totalTrades": 20,
+            "missing": {
+                "setup": 5,
+                "screenshot": 5,
+                "marketContext": 5,
+            },
+        }
+
+        finding = _build_data_gap_finding(data_health)
+
+        self.assertEqual(finding["source"]["dimension"], "marketContext")
+        self.assertEqual(finding["evidence"]["metrics"]["missingCount"], 5)
+
+    def test_zero_missing_counts_return_no_finding(self):
+        from services.current_understanding import _build_data_gap_finding
+
+        data_health = {
+            "totalTrades": 20,
+            "missing": {"setup": 0, "screenshot": 0},
+        }
+
+        self.assertIsNone(_build_data_gap_finding(data_health))
+
+    def test_invalid_missing_counts_return_no_finding(self):
+        from services.current_understanding import _build_data_gap_finding
+
+        invalid_counts = [-1, True, 21, 2.5, "5"]
+
+        for count in invalid_counts:
+            with self.subTest(count=count):
+                data_health = {
+                    "totalTrades": 20,
+                    "missing": {"setup": count},
+                }
+                self.assertIsNone(_build_data_gap_finding(data_health))
+
+    def test_invalid_data_health_structures_return_no_finding(self):
+        from services.current_understanding import _build_data_gap_finding
+
+        invalid_inputs = [
+            None,
+            [],
+            {},
+            {"totalTrades": 0, "missing": {"setup": 2}},
+            {"totalTrades": 20, "missing": []},
+            {"totalTrades": True, "missing": {"setup": 2}},
+        ]
+
+        for data_health in invalid_inputs:
+            with self.subTest(data_health=data_health):
+                self.assertIsNone(_build_data_gap_finding(data_health))
+
+
+class DataGapCoexistenceTests(unittest.TestCase):
+    def test_data_gap_coexists_with_pattern_finding(self):
+        result = build_current_understanding(
+            trade_count=20,
+            patterns=[
+                {
+                    "dimension": "setup",
+                    "value": "Breakout",
+                    "sampleSize": 8,
+                    "actualR": {"average": 1.25},
+                    "winRate": 0.625,
+                    "evidenceStrength": {
+                        "level": "MODERATE",
+                        "actualRCoverage": 1.0,
+                    },
+                    "sourceTradeIds": [
+                        "t1", "t2", "t3", "t4",
+                        "t5", "t6", "t7", "t8",
+                    ],
+                    "computationVersion": 3,
+                }
+            ],
+            data_health={
+                "totalTrades": 20,
+                "missing": {"screenshot": 8},
+            },
+        )
+
+        finding_types = {finding["type"] for finding in result["findings"]}
+
+        self.assertIn("NEW_PATTERN", finding_types)
+        self.assertIn("DATA_GAP", finding_types)
