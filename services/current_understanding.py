@@ -690,8 +690,6 @@ def _build_behavior_change_finding(
         if (
             not isinstance(current_trade_ids, list)
             or not isinstance(previous_trade_ids, list)
-            or len(current_trade_ids) != current_count
-            or len(previous_trade_ids) != previous_count
             or current_count > current_sample_size
             or previous_count > previous_sample_size
             or current_count + previous_count < 10
@@ -701,6 +699,8 @@ def _build_behavior_change_finding(
             )
             or len(set(current_trade_ids)) != len(current_trade_ids)
             or len(set(previous_trade_ids)) != len(previous_trade_ids)
+            or len(current_trade_ids) != current_count
+            or len(previous_trade_ids) != previous_count
             or set(current_trade_ids) & set(previous_trade_ids)
         ):
             continue
@@ -719,6 +719,7 @@ def _build_behavior_change_finding(
         key=lambda item: (
             abs(item["change"]),
             item["current"]["count"],
+            str(item["item"].get("value") or ""),
         ),
         reverse=True,
     )
@@ -742,7 +743,9 @@ def _build_behavior_change_finding(
         "title": f"{value} is showing up {direction}",
         "summary": (
             f"{value} appeared {current_count} times in the current period "
-            f"versus {previous_count} times in the previous period."
+            f"versus {previous_count} times in the previous period. "
+            f"Its share of trades changed by "
+            f"{change * 100:+.1f} percentage points."
         ),
         "confidence": "MODERATE",
         "sampleSize": current_sample_size,
@@ -816,7 +819,19 @@ def _build_weakening_pattern_finding(
             or periods_with_actual_r > observed_periods
             or profitable_periods + losing_periods > observed_periods
             or losing_periods <= profitable_periods
-            or str(evidence.get("level", "")).upper() == "LOW"
+            or not isinstance(evidence.get("level"), str)
+            or evidence["level"].upper() not in EVIDENCE_ORDER
+        ):
+            continue
+
+        source_trade_ids = pattern.get("sourceTradeIds")
+        if source_trade_ids is not None and (
+            not isinstance(source_trade_ids, list)
+            or any(
+                not isinstance(trade_id, str) or not trade_id.strip()
+                for trade_id in source_trade_ids
+            )
+            or len(source_trade_ids) != len(set(source_trade_ids))
         ):
             continue
 
@@ -961,6 +976,8 @@ def _build_interesting_relationship_finding(
             )
             or len(set(current_trade_ids)) != len(current_trade_ids)
             or len(set(previous_trade_ids)) != len(previous_trade_ids)
+            or len(current_trade_ids) != current_count
+            or len(previous_trade_ids) != previous_count
             or set(current_trade_ids) & set(previous_trade_ids)
         ):
             continue

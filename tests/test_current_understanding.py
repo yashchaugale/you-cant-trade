@@ -1754,3 +1754,224 @@ class SelectionOrderDeterminismTests(unittest.TestCase):
         )
 
         self.assertEqual(original, reordered)
+
+
+class BehaviorFindingDeterminismTests(unittest.TestCase):
+    def test_equal_ranked_behavior_changes_ignore_input_order(self):
+        from services.current_understanding import (
+            _build_behavior_change_finding,
+        )
+
+        compare = {
+            "version": 1,
+            "distributions": {
+                "behavior": {
+                    "currentSampleSize": 20,
+                    "previousSampleSize": 20,
+                    "values": [
+                        {
+                            "value": "Revenge Trading",
+                            "percentagePointChange": 0.2,
+                            "current": {
+                                "count": 6,
+                                "tradeIds": [f"c{i}" for i in range(6)],
+                            },
+                            "previous": {
+                                "count": 6,
+                                "tradeIds": [f"p{i}" for i in range(6)],
+                            },
+                        },
+                        {
+                            "value": "Overtrading",
+                            "percentagePointChange": 0.2,
+                            "current": {
+                                "count": 6,
+                                "tradeIds": [f"x{i}" for i in range(6)],
+                            },
+                            "previous": {
+                                "count": 6,
+                                "tradeIds": [f"y{i}" for i in range(6)],
+                            },
+                        },
+                    ],
+                }
+            },
+        }
+
+        first = _build_behavior_change_finding(compare)
+
+        reordered = {
+            **compare,
+            "distributions": {
+                "behavior": {
+                    **compare["distributions"]["behavior"],
+                    "values": list(reversed(
+                        compare["distributions"]["behavior"]["values"]
+                    )),
+                }
+            },
+        }
+
+        second = _build_behavior_change_finding(reordered)
+
+        self.assertEqual(first["id"], second["id"])
+
+
+class WeakeningPatternValidationTests(unittest.TestCase):
+    def test_rejects_string_source_trade_ids(self):
+        from services.current_understanding import (
+            _build_weakening_pattern_finding,
+        )
+
+        pattern = {
+            "sampleSize": 10,
+            "actualR": {"average": -0.5},
+            "stability": {
+                "profitablePeriods": 1,
+                "losingPeriods": 2,
+                "observedPeriods": 3,
+                "periodsWithActualR": 3,
+            },
+            "evidenceStrength": {"level": "MODERATE"},
+            "dimension": "setup",
+            "value": "Breakout",
+            "sourceTradeIds": "trade-123",
+        }
+
+        finding = _build_weakening_pattern_finding([pattern])
+
+        self.assertIsNone(finding)
+
+
+class InterestingRelationshipValidationTests(unittest.TestCase):
+    def test_rejects_trade_id_count_mismatch(self):
+        from services.current_understanding import (
+            _build_interesting_relationship_finding,
+        )
+
+        compare = {
+            "changes": {
+                "largestDistributionIncrease": {
+                    "field": "behavior",
+                    "value": "Revenge Trading",
+                    "percentagePointChange": 25.0,
+                    "current": {
+                        "count": 8,
+                        "tradeIds": ["t1", "t2", "t3"],
+                    },
+                    "previous": {
+                        "count": 4,
+                        "tradeIds": ["p1", "p2", "p3", "p4"],
+                    },
+                },
+                "largestDistributionDecrease": None,
+            }
+        }
+
+        finding = _build_interesting_relationship_finding(compare)
+
+        self.assertIsNone(finding)
+
+
+class BehaviorFindingIntegrationTests(unittest.TestCase):
+    def test_current_understanding_exposes_behavior_change(self):
+        from services.current_understanding import build_current_understanding
+
+        compare = {
+            "distributions": {
+                "behavior": {
+                    "currentSampleSize": 10,
+                    "previousSampleSize": 20,
+                    "values": [
+                        {
+                            "value": "LateEntry",
+                            "percentagePointChange": 0.5,
+                            "current": {
+                                "count": 6,
+                                "tradeIds": [f"c{i}" for i in range(6)],
+                            },
+                            "previous": {
+                                "count": 4,
+                                "tradeIds": [f"p{i}" for i in range(4)],
+                            },
+                        }
+                    ],
+                }
+            }
+        }
+
+        result = build_current_understanding(
+            trade_count=30,
+            patterns=[],
+            leaks=[],
+            compare=compare,
+        )
+
+        findings = [
+            finding for finding in result["findings"]
+            if finding["type"] == "BEHAVIOR_CHANGE"
+        ]
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["status"], "SUPPORTED")
+        self.assertEqual(findings[0]["sampleSize"], 10)
+
+
+class WeakeningPatternEvidenceLevelTests(unittest.TestCase):
+    def test_rejects_unknown_evidence_level(self):
+        from services.current_understanding import (
+            _build_weakening_pattern_finding,
+        )
+
+        pattern = {
+            "sampleSize": 10,
+            "actualR": {"average": -0.5},
+            "stability": {
+                "profitablePeriods": 1,
+                "losingPeriods": 2,
+                "observedPeriods": 3,
+                "periodsWithActualR": 3,
+            },
+            "evidenceStrength": {"level": "UNKNOWN"},
+            "dimension": "setup",
+            "value": "Breakout",
+            "sourceTradeIds": [f"t{i}" for i in range(10)],
+        }
+
+        self.assertIsNone(
+            _build_weakening_pattern_finding([pattern])
+        )
+
+
+class BehaviorFindingSummaryTests(unittest.TestCase):
+    def test_summary_includes_percentage_point_change(self):
+        from services.current_understanding import (
+            _build_behavior_change_finding,
+        )
+
+        compare = {
+            "distributions": {
+                "behavior": {
+                    "currentSampleSize": 10,
+                    "previousSampleSize": 20,
+                    "values": [
+                        {
+                            "value": "LateEntry",
+                            "percentagePointChange": 0.5,
+                            "current": {
+                                "count": 6,
+                                "tradeIds": [f"c{i}" for i in range(6)],
+                            },
+                            "previous": {
+                                "count": 4,
+                                "tradeIds": [f"p{i}" for i in range(4)],
+                            },
+                        }
+                    ],
+                }
+            }
+        }
+
+        finding = _build_behavior_change_finding(compare)
+
+        self.assertIn("50.0 percentage points", finding["summary"])
