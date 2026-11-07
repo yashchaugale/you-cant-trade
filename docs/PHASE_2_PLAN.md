@@ -4,9 +4,9 @@ Goal: Produce deterministic, evidence-backed, traceable findings
 from trading data, without relying on an LLM.
 
 ## 1. Audit and Scope
-- [ ] Audit existing engine behavior and inputs
-- [ ] Map requirements to implementation and tests
-- [ ] Identify remaining gaps and define the final scope
+- [x] Audit existing engine behavior and inputs
+- [x] Map requirements to implementation and tests
+- [x] Identify remaining gaps and define the final scope (AI investigation and experiments deferred to later phases)
 
 ## 2. Finding Generation
 - [x] Verify all six finding types (builder and public integration coverage)
@@ -32,7 +32,7 @@ from trading data, without relying on an LLM.
 - [x] Run focused Understanding Engine tests (72 passed)
 - [x] Run full test suite (351 passed, 1 warning)
 - [x] Resolve failures and document remaining warnings (no failures; existing Starlette/httpx deprecation warning)
-- [ ] Document behavior, limitations, and requirements
+- [x] Document behavior, limitations, and requirements (`docs/CURRENT_UNDERSTANDING.md`)
 - [ ] Commit and push final changes
 - [ ] Formally close Phase 2
 
@@ -45,14 +45,14 @@ updated, and the final changes are committed and pushed.
 - Focused Understanding Engine tests: 72 passed
 - Full suite: 351 passed, 1 warning
 - Remaining warning: Starlette deprecation warning for httpx usage in TestClient
-- Latest committed baseline: 9b01361 (Make understanding selection order independent)
+- Latest committed baseline: a949f9e (Harden current understanding findings)
 - Additional verified fixes:
   - Deterministic behavior-change candidate selection
   - Rejection of malformed weakening-pattern trade IDs
   - Interesting-relationship sample-count/trade-ID consistency
   - Weakening-pattern confidence-level validation
   - Behavior summary percentage-point accuracy and context
-- Current verification includes uncommitted production fixes, regression tests, and public BEHAVIOR_CHANGE integration coverage.
+- Verified production fixes and regression tests are committed and pushed in `a949f9e`.
 
 Note: Only check off items after verification. The initial audit
 determines which unchecked items are actual gaps.
